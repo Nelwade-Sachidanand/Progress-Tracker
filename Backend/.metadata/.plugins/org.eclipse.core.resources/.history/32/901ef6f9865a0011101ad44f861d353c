@@ -1,0 +1,33 @@
+package com.dashboard.model;
+
+import lombok.Data;
+
+@Data
+public class ExcelRowModel {
+	
+	private String phaseName;
+
+    private String milestoneName;
+
+    private String taskName;
+
+    private String subTaskName;
+
+    private String activityName;
+
+    private Integer estimatedWeek;
+
+    private String plannedStartDate;
+
+    private String plannedEndDate;
+
+    private String actualStartDate;
+
+    private String actualEndDate;
+
+    private Double progress;
+
+    private String executionStatus;
+
+    private String scheduleHealth;
+}

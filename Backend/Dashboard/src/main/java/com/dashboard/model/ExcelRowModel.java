@@ -1,4 +1,4 @@
-package com.dashboard.entity;
+package com.dashboard.model;
 
 import java.time.LocalDate;
 
@@ -9,9 +9,17 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Activity {
+public class ExcelRowModel {
 	
-	private String activityName;
+	private String phaseName;
+
+    private String milestoneName;
+
+    private String taskName;
+
+    private String subTaskName;
+
+    private String activityName;
 
     private Double estimatedPeriodWeek;
 

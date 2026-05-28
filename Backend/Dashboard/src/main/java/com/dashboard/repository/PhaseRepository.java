@@ -1,0 +1,12 @@
+package com.dashboard.repository;
+
+import java.util.Optional;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import com.dashboard.entity.Phase;
+
+public interface PhaseRepository extends MongoRepository<Phase, String> {
+
+	Optional<Phase> findByPhaseName(String phaseName);
+}
