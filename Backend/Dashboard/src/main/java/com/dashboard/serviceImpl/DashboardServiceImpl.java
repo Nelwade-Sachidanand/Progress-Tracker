@@ -5,10 +5,13 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.dashboard.common.util.ExcelParserUtil;
+import com.dashboard.common.Response;
+import com.dashboard.common.ResponseBuilder;
+import com.dashboard.common.StatusCode;
 import com.dashboard.entity.Activity;
 import com.dashboard.entity.Milestone;
 import com.dashboard.entity.Phase;
@@ -18,15 +21,21 @@ import com.dashboard.entity.Task;
 import com.dashboard.model.ExcelRowModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.DashboardService;
+import com.dashboard.util.ExcelParserUtil;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
 	@Autowired
 	private ProjectRepository projectRepository;
+	
+	@Autowired
+	private ApplicationContext context;
 
 	@Override
-	public String uploadExcel(MultipartFile file) {
+	public Response uploadExcel(MultipartFile file) {
+		
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		try {
 
@@ -133,20 +142,20 @@ public class DashboardServiceImpl implements DashboardService {
 
 				projectRepository.save(project);
 			}
-
-			return "Excel Uploaded Successfully";
-
+			
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Excel Uploaded Successfully", rows);
 		} catch (Exception e) {
 
 			e.printStackTrace();
-
-			return "Failed To Upload Excel";
+			
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Failed to upload Excel", null);
 		}
 	}
 	
 	@Override
-	public List<Project> getAllProjects() {
-
-	    return projectRepository.findAll();
+	public Response getAllProjects() {
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		List<Project> projects =  projectRepository.findAll();
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Projects Fetched Successfully", projects);
 	}
 }

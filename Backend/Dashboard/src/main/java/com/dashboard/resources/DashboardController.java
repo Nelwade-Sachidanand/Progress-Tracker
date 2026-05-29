@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.dashboard.common.Response;
 import com.dashboard.entity.Project;
 import com.dashboard.service.DashboardService;
 
@@ -18,23 +19,20 @@ import com.dashboard.service.DashboardService;
 @RequestMapping("/dashboard")
 public class DashboardController {
 
-    @Autowired
-    private DashboardService dashboardService;
+	@Autowired
+	private DashboardService dashboardService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadExcel(
-            @RequestParam("file") MultipartFile file) {
+	@PostMapping("/upload")
+	public Response uploadExcel(@RequestParam("file") MultipartFile file) {
+		
+		Response response = null;
+		response = dashboardService.uploadExcel(file);
+		return response;
+	}
 
-        return ResponseEntity.ok(
-                dashboardService.uploadExcel(file));
-    }
-    
-    @GetMapping("/projects")
-    public ResponseEntity<List<Project>>
-            getAllProjects() {
+	@GetMapping("/projects")
+	public Response getAllProjects() {
 
-        return ResponseEntity.ok(
-                dashboardService.getAllProjects());
-    }
+		return dashboardService.getAllProjects();
+	}
 }
-

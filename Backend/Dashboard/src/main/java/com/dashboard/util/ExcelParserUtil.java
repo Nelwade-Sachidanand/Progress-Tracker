@@ -1,4 +1,4 @@
-package com.dashboard.common.util;
+package com.dashboard.util;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ public class ExcelParserUtil {
 
 			Workbook workbook = new XSSFWorkbook(inputStream);
 
-			Sheet sheet = workbook.getSheetAt(1);
+			Sheet sheet = workbook.getSheet("Project Schedule");
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 			

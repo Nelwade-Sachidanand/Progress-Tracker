@@ -1,4 +1,4 @@
-package com.dashboard.common.util;
+package com.dashboard.util;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

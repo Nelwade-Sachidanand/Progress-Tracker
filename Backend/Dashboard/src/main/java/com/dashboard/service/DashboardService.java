@@ -4,11 +4,12 @@ import java.util.List;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import com.dashboard.common.Response;
 import com.dashboard.entity.Project;
 
 public interface DashboardService {
 
-	String uploadExcel(MultipartFile file);
-	List<Project> getAllProjects();
+	Response uploadExcel(MultipartFile file);
+	Response getAllProjects();
 }
 
