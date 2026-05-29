@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dashboard.common.Response;
+import com.dashboard.model.LoginModel;
 import com.dashboard.model.UserModel;
 import com.dashboard.service.UserService;
 
@@ -24,10 +25,10 @@ public class UserController {
 		return userService.register(userModel);
 	}
 	
-	@GetMapping("/login/{userName}/{password}")
-	public Response login(@PathVariable String userName, @PathVariable String password) {
-		System.out.println(userName);
-		return userService.login(userName,password);
+	@PostMapping("/login")
+	public Response login(@RequestBody LoginModel loginModel) {
+		System.out.println(loginModel);
+		return userService.login(loginModel);
 	}
 	
 	@GetMapping("/getAllUsers")

@@ -15,4 +15,5 @@ import lombok.NoArgsConstructor;
 public class LoginResponseModel {
 	private User user;
 	private List<Project> projects;
+	private String token;
 }

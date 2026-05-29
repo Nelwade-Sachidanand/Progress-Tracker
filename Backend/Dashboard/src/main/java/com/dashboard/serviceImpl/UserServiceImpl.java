@@ -15,11 +15,13 @@ import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
 import com.dashboard.entity.Project;
 import com.dashboard.entity.User;
+import com.dashboard.model.LoginModel;
 import com.dashboard.model.LoginResponseModel;
 import com.dashboard.model.UserModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.repository.UserRepository;
 import com.dashboard.service.UserService;
+import com.dashboard.util.JwtUtil;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -81,7 +83,10 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public Response login(String username, String password) {
+	public Response login(LoginModel loginModel) {
+		
+		String username = loginModel.getUsername();
+		String password = loginModel.getPassword();
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
@@ -115,9 +120,12 @@ public class UserServiceImpl implements UserService {
 			Project project = projectRepository.findByProjectName(projectName).get();
 			projects.add(project);
 		}
+		String token = JwtUtil.generateToken(username, user.getRole());
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
+		responseModel.setToken(token);
+		
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);
 	}

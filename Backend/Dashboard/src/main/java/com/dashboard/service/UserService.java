@@ -1,6 +1,7 @@
 package com.dashboard.service;
 
 import com.dashboard.common.Response;
+import com.dashboard.model.LoginModel;
 import com.dashboard.model.UserModel;
 
 public interface UserService {
@@ -8,6 +9,6 @@ public interface UserService {
 
     Response getAllUsers();
 
-    Response login(String username, String password);
+    Response login(LoginModel loginModel);
 
 }
