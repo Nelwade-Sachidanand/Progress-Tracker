@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ExcelRowModel {
 	
+	private String projectName;
+	
 	private String phaseName;
 
     private String milestoneName;

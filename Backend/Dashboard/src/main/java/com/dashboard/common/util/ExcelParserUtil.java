@@ -1,14 +1,9 @@
 package com.dashboard.common.util;
 
 import java.io.InputStream;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -33,6 +28,12 @@ public class ExcelParserUtil {
 			Sheet sheet = workbook.getSheetAt(1);
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+			
+			ExcelRowModel model ;
+			
+			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
+			System.out.println(projectName);
+			
 
 			for (int i = 7; i <= sheet.getLastRowNum(); i++) {
 
@@ -42,7 +43,9 @@ public class ExcelParserUtil {
 					continue;
 				}
 
-				ExcelRowModel model = new ExcelRowModel();
+				model = new ExcelRowModel();
+				
+				model.setProjectName(projectName);
 
 				model.setPhaseName(ReadUtil.getString(row.getCell(1), evaluator));
 

@@ -12,17 +12,18 @@ import com.dashboard.common.util.ExcelParserUtil;
 import com.dashboard.entity.Activity;
 import com.dashboard.entity.Milestone;
 import com.dashboard.entity.Phase;
+import com.dashboard.entity.Project;
 import com.dashboard.entity.Subtask;
 import com.dashboard.entity.Task;
 import com.dashboard.model.ExcelRowModel;
-import com.dashboard.repository.PhaseRepository;
+import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.DashboardService;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
 	@Autowired
-	private PhaseRepository phaseRepository;
+	private ProjectRepository projectRepository;
 
 	@Override
 	public String uploadExcel(MultipartFile file) {
@@ -33,14 +34,29 @@ public class DashboardServiceImpl implements DashboardService {
 
 			for (ExcelRowModel model : rows) {
 
-				Optional<Phase> optionalPhase = phaseRepository.findByPhaseName(model.getPhaseName());
+				Optional<Project> optionalProject = projectRepository.findByProjectName(model.getProjectName());
 
-				Phase phase = optionalPhase.orElseGet(Phase::new);
+				Project project = optionalProject.orElseGet(Project::new);
 
-				phase.setPhaseName(model.getPhaseName());
+				project.setProjectName(model.getProjectName());
 
-				if (phase.getMilestones() == null) {
+				if (project.getPhases() == null) {
+
+					project.setPhases(new ArrayList<>());
+				}
+
+				Phase phase = project.getPhases().stream().filter(p -> p.getPhaseName().equals(model.getPhaseName()))
+						.findFirst().orElse(null);
+
+				if (phase == null) {
+
+					phase = new Phase();
+
+					phase.setPhaseName(model.getPhaseName());
+
 					phase.setMilestones(new ArrayList<>());
+
+					project.getPhases().add(phase);
 				}
 
 				Milestone milestone = phase.getMilestones().stream()
@@ -49,6 +65,7 @@ public class DashboardServiceImpl implements DashboardService {
 				if (milestone == null) {
 
 					milestone = new Milestone();
+
 					milestone.setMilestoneName(model.getMilestoneName());
 
 					milestone.setTasks(new ArrayList<>());
@@ -62,7 +79,9 @@ public class DashboardServiceImpl implements DashboardService {
 				if (task == null) {
 
 					task = new Task();
+
 					task.setTaskName(model.getTaskName());
+
 					task.setSubTasks(new ArrayList<>());
 
 					milestone.getTasks().add(task);
@@ -74,6 +93,7 @@ public class DashboardServiceImpl implements DashboardService {
 				if (subTask == null) {
 
 					subTask = new Subtask();
+
 					subTask.setSubTaskName(model.getSubTaskName());
 
 					subTask.setActivities(new ArrayList<>());
@@ -103,13 +123,15 @@ public class DashboardServiceImpl implements DashboardService {
 
 				activity.setActualEndDate(model.getActualEndDate());
 
+				activity.setActualPeriodWeek(model.getActualPeriodWeek());
+
 				activity.setProgress(model.getProgress());
 
 				activity.setExecutionStatus(model.getExecutionStatus());
 
 				activity.setScheduleHealth(model.getScheduleHealth());
 
-				phaseRepository.save(phase);
+				projectRepository.save(project);
 			}
 
 			return "Excel Uploaded Successfully";
@@ -120,5 +142,11 @@ public class DashboardServiceImpl implements DashboardService {
 
 			return "Failed To Upload Excel";
 		}
+	}
+	
+	@Override
+	public List<Project> getAllProjects() {
+
+	    return projectRepository.findAll();
 	}
 }
