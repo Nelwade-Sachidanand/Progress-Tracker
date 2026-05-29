@@ -11,7 +11,7 @@ import lombok.Data;
 @Document(collection = "project_dashboard")
 public class Phase {
 	@Id
-	private Integer id;
+	private String id;
 	private String phaseName;
 	private List<Milestone> milestones;
 	
