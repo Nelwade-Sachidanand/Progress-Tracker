@@ -32,7 +32,11 @@ public class ExcelParserUtil {
 			ExcelRowModel model ;
 			
 			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
-//			System.out.println(projectName);
+			String bankName = sheet.getRow(1).getCell(3).getStringCellValue();
+			String managerName = sheet.getRow(3).getCell(3).getStringCellValue();
+			System.out.println(projectName);
+			System.out.println(bankName);
+			System.out.println(managerName);
 			
 
 			for (int i = 7; i <= sheet.getLastRowNum(); i++) {
@@ -42,6 +46,10 @@ public class ExcelParserUtil {
 				if (row == null) continue;
 
 				model = new ExcelRowModel();
+				
+				model.setBankName(bankName);
+				
+				model.setProjectManager(managerName);
 				
 				model.setProjectName(projectName);
 

@@ -10,34 +10,38 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExcelRowModel {
-	
+
+	private String bankName;
+
+	private String projectManager;
+
 	private String projectName;
-	
+
 	private String phaseName;
 
-    private String milestoneName;
+	private String milestoneName;
 
-    private String taskName;
+	private String taskName;
 
-    private String subTaskName;
+	private String subTaskName;
 
-    private String activityName;
+	private String activityName;
 
-    private Double estimatedPeriodWeek;
+	private Double estimatedPeriodWeek;
 
-    private LocalDate plannedStartDate;
+	private LocalDate plannedStartDate;
 
-    private LocalDate plannedEndDate;
+	private LocalDate plannedEndDate;
 
-    private LocalDate actualStartDate;
+	private LocalDate actualStartDate;
 
-    private LocalDate actualEndDate;
-    
-    private Double actualPeriodWeek;
-    
-    private Integer progress;
+	private LocalDate actualEndDate;
 
-    private String executionStatus;
+	private Double actualPeriodWeek;
 
-    private String scheduleHealth;
+	private Integer progress;
+
+	private String executionStatus;
+
+	private String scheduleHealth;
 }
