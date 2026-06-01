@@ -853,3 +853,6 @@ java.io.FileNotFoundException: D:\Progress_Tracker_Project\Backend\.metadata\.pl
 2026-06-01 15:12:31,797 [Worker-62: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
 2026-06-01 15:12:31,816 [Worker-62: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 0 resource from src\main\resources to target\classes
 2026-06-01 15:12:31,822 [Worker-62: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory C:\Users\aishwarya.shinde\Desktop\Project\Progress-Tracker\Backend\Dashboard\src\test\resources
+2026-06-01 15:19:22,496 [Worker-69: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-01 15:19:22,546 [Worker-69: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-01 15:19:22,552 [Worker-69: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory C:\Users\aishwarya.shinde\Desktop\Project\Progress-Tracker\Backend\Dashboard\src\test\resources
