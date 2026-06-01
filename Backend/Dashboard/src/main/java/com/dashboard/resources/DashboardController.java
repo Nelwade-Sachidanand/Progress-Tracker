@@ -22,7 +22,7 @@ public class DashboardController {
 	@Autowired
 	private DashboardService dashboardService;
 
-	@PostMapping("/upload")
+	@PostMapping("/upload/excel")
 	public Response uploadExcel(@RequestParam("file") MultipartFile file) {
 		
 		Response response = null;

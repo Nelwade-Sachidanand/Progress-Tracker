@@ -116,11 +116,14 @@ public class UserServiceImpl implements UserService {
 
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
+		
 		for (String projectName : user.getProjectNames()) {
 			Project project = projectRepository.findByProjectName(projectName).get();
 			projects.add(project);
 		}
+		
 		String token = JwtUtil.generateToken(username, user.getRole());
+		
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
