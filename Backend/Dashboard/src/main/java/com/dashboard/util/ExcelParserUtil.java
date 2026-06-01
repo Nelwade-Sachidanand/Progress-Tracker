@@ -10,7 +10,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.dashboard.exception.ReadExcelException;
 import com.dashboard.model.ExcelRowModel;
 
 public class ExcelParserUtil {
@@ -32,16 +32,14 @@ public class ExcelParserUtil {
 			ExcelRowModel model ;
 			
 			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
-			System.out.println(projectName);
+//			System.out.println(projectName);
 			
 
 			for (int i = 7; i <= sheet.getLastRowNum(); i++) {
 
 				Row row = sheet.getRow(i);
 
-				if (row == null) {
-					continue;
-				}
+				if (row == null) continue;
 
 				model = new ExcelRowModel();
 				
@@ -79,11 +77,11 @@ public class ExcelParserUtil {
 			}
 
 			workbook.close();
-
+			
+			return rowList;
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw new ReadExcelException("EXCEL_READ_ERROR", "Error while processing Excel: " + e.getMessage());
 		}
-
-		return rowList;
 	}
 }

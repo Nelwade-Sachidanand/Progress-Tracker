@@ -18,6 +18,7 @@ import com.dashboard.entity.Phase;
 import com.dashboard.entity.Project;
 import com.dashboard.entity.Subtask;
 import com.dashboard.entity.Task;
+import com.dashboard.exception.ReadExcelException;
 import com.dashboard.model.ExcelRowModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.DashboardService;
@@ -148,7 +149,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 			e.printStackTrace();
 			
-			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Failed to upload Excel", null);
+			throw new ReadExcelException("EXCEL_READ_ERROR", "Error while saving Excel into db: " + e.getMessage());
 		}
 	}
 	
