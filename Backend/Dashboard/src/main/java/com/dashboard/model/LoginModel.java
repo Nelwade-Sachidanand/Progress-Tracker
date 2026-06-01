@@ -9,6 +9,4 @@ public class LoginModel {
 	private String password;
 	
 	
-	
-
 }
