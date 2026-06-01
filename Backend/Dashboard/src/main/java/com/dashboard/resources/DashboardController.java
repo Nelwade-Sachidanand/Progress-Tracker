@@ -1,10 +1,15 @@
 package com.dashboard.resources;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,7 +29,7 @@ public class DashboardController {
 
 	@PostMapping("/upload/excel")
 	public Response uploadExcel(@RequestParam("file") MultipartFile file) {
-		
+
 		Response response = null;
 		response = dashboardService.uploadExcel(file);
 		return response;
@@ -34,5 +39,17 @@ public class DashboardController {
 	public Response getAllProjects() {
 
 		return dashboardService.getAllProjects();
+	}
+
+	@GetMapping("/export/{projectName}")
+	public ResponseEntity<InputStreamResource> exportExcel(@PathVariable String projectName) {
+
+		ByteArrayInputStream stream = dashboardService.exportExcel(projectName);
+
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + projectName + ".xlsx")
+				.contentType(
+						MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+				.body(new InputStreamResource(stream));
 	}
 }

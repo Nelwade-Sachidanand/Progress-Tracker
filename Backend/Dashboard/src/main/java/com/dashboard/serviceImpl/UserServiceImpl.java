@@ -18,6 +18,7 @@ import com.dashboard.entity.User;
 import com.dashboard.model.LoginModel;
 import com.dashboard.model.LoginResponseModel;
 import com.dashboard.model.UserModel;
+import com.dashboard.model.UserProjectUpdateModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.repository.UserRepository;
 import com.dashboard.service.UserService;
@@ -84,15 +85,15 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public Response login(LoginModel loginModel) {
-		
+
 		String username = loginModel.getUsername();
 		String password = loginModel.getPassword();
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		User user = userRepository.findByUsername(username).orElse(null);
-		
-		System.out.println("find");
+
+		System.out.println("find "+user);
 
 		if (user == null) {
 
@@ -116,20 +117,74 @@ public class UserServiceImpl implements UserService {
 
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
-		
+
 		for (String projectName : user.getProjectNames()) {
 			Project project = projectRepository.findByProjectName(projectName).get();
 			projects.add(project);
 		}
-		
+
 		String token = JwtUtil.generateToken(username, user.getRole());
-		
+
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
 		responseModel.setToken(token);
-		
+
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);
 	}
+
+	@Override
+	public Response updateUserProjects(UserProjectUpdateModel model) {
+		System.out.println(model);
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		User user = userRepository.findByUsername(model.getUsername()).orElse(null);
+
+		if (user == null) {
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "User not found",
+					null);
+		}
+
+		for (String projectName : model.getProjectNames()) {
+			if (projectRepository.findByProjectName(projectName).isEmpty()) {
+				return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+						projectName + " project not found", null);
+			}
+		}
+
+		user.setProjectNames(model.getProjectNames());
+		User updatedUser = userRepository.save(user);
+		updatedUser.setPassword(null);
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Projects updated successfully", updatedUser);
+	}
+
+	@Override
+	public Response updateUserStatus(String username, Boolean active) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		if (username == null || username.isBlank()) {
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+					"Username is required", null);
+		}
+
+		User user = userRepository.findByUsername(username).orElse(null);
+
+		if (user == null) {
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "User not found",
+					null);
+		}
+
+		if (user.getActive().equals(active)) {
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+					"User already has this status", null);
+		}
+
+		user.setActive(active);
+		userRepository.save(user);
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"User status updated successfully", user);
+	}
+
 }
