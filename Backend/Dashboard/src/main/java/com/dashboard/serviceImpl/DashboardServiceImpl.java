@@ -34,6 +34,7 @@ import com.dashboard.model.ExcelRowModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.DashboardService;
 import com.dashboard.util.ExcelParserUtil;
+import com.dashboard.util.WriteUtil;
 
 @Service
 public class DashboardServiceImpl implements DashboardService {
@@ -58,6 +59,10 @@ public class DashboardServiceImpl implements DashboardService {
 				Optional<Project> optionalProject = projectRepository.findByProjectName(model.getProjectName());
 
 				Project project = optionalProject.orElseGet(Project::new);
+				
+				project.setBankName(model.getBankName());
+				
+				project.setProjectManager(model.getProjectManager());
 
 				project.setProjectName(model.getProjectName());
 
@@ -187,7 +192,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 			Sheet sheet = workbook.getSheet("Project schedule");
 
-			int templateRow = 7; // Excel Row 8
+			int templateRow = 7;
 			int currentRow = 7;
 
 			int srNo = 1;
@@ -213,31 +218,31 @@ public class DashboardServiceImpl implements DashboardService {
 									row = copyTemplateRow(sheet, templateRow, currentRow);
 								}
 
-								setCell(row, 0, ((srNo++)*100));
+								WriteUtil.setCell(row, 0, ((srNo++) * 100));
 
-								setCell(row, 1, phase.getPhaseName());
+								WriteUtil.setCell(row, 1, phase.getPhaseName());
 
-								setCell(row, 2, milestone.getMilestoneName());
+								WriteUtil.setCell(row, 2, milestone.getMilestoneName());
 
-								setCell(row, 3, task.getTaskName());
+								WriteUtil.setCell(row, 3, task.getTaskName());
 
-								setCell(row, 4, subTask.getSubTaskName());
+								WriteUtil.setCell(row, 4, subTask.getSubTaskName());
 
-								setCell(row, 5, activity.getActivityName());
+								WriteUtil.setCell(row, 5, activity.getActivityName());
 
-								setCell(row, 6, ""); // Owner
+								WriteUtil.setCell(row, 6, ""); // Owner
 
-								setCell(row, 7, activity.getEstimatedPeriodWeek());
+								WriteUtil.setCell(row, 7, activity.getEstimatedPeriodWeek());
 
-								setDate(row, 8, activity.getPlannedStartDate());
+								WriteUtil.setDate(row, 8, activity.getPlannedStartDate());
 
-								setDate(row, 9, activity.getPlannedEndDate());
+								WriteUtil.setDate(row, 9, activity.getPlannedEndDate());
 
-								setDate(row, 10, activity.getActualStartDate());
+								WriteUtil.setDate(row, 10, activity.getActualStartDate());
 
-								setDate(row, 11, activity.getActualEndDate());
+								WriteUtil.setDate(row, 11, activity.getActualEndDate());
 
-								setCell(row, 13, activity.getProgress());
+								WriteUtil.setCell(row, 13, activity.getProgress());
 
 								currentRow++;
 							}
@@ -294,63 +299,5 @@ public class DashboardServiceImpl implements DashboardService {
 		}
 
 		return newRow;
-	}
-
-	private void setCell(Row row, int column, String value) {
-
-		Cell cell = row.getCell(column);
-
-		if (cell == null) {
-
-			cell = row.createCell(column);
-		}
-
-		cell.setCellValue(value == null ? "" : value);
-	}
-
-	private void setCell(Row row, int column, Integer value) {
-
-		Cell cell = row.getCell(column);
-
-		if (cell == null) {
-
-			cell = row.createCell(column);
-		}
-
-		if (value != null) {
-
-			cell.setCellValue(value/100.0);
-		}
-	}
-
-	private void setCell(Row row, int column, Double value) {
-
-		Cell cell = row.getCell(column);
-
-		if (cell == null) {
-
-			cell = row.createCell(column);
-		}
-
-		if (value != null) {
-
-			cell.setCellValue(value);
-		}
-	}
-
-	private void setDate(Row row, int column, LocalDate date) {
-
-		if (date == null) {
-			return;
-		}
-
-		Cell cell = row.getCell(column);
-
-		if (cell == null) {
-
-			cell = row.createCell(column);
-		}
-
-		cell.setCellValue(java.sql.Date.valueOf(date));
 	}
 }
