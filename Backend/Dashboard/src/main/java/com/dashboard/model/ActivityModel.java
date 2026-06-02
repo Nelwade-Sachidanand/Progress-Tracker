@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import lombok.Data;
 
 @Data
-public class Activity {
+public class ActivityModel {
 	
 	private String projectName;
 	
