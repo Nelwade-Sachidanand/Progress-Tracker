@@ -93,7 +93,7 @@ public class UserServiceImpl implements UserService {
 
 		User user = userRepository.findByUsername(username).orElse(null);
 
-		System.out.println("find");
+		System.out.println("find "+user);
 
 		if (user == null) {
 
