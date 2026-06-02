@@ -47,6 +47,8 @@ public class DashboardController {
 	public ResponseEntity<InputStreamResource> exportExcel(@PathVariable String projectName) {
 
 		ByteArrayInputStream stream = dashboardService.exportExcel(projectName);
+		
+		System.out.println(projectName);
 
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + projectName + ".xlsx")

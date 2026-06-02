@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -14,6 +15,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
@@ -32,6 +34,7 @@ import com.dashboard.entity.Task;
 import com.dashboard.exception.ReadExcelException;
 import com.dashboard.model.ExcelRowModel;
 import com.dashboard.repository.ProjectRepository;
+import com.dashboard.service.AuditService;
 import com.dashboard.service.DashboardService;
 import com.dashboard.util.ExcelParserUtil;
 import com.dashboard.util.WriteUtil;
@@ -41,6 +44,9 @@ public class DashboardServiceImpl implements DashboardService {
 
 	@Autowired
 	private ProjectRepository projectRepository;
+
+	@Autowired
+	private AuditService auditService;
 
 	@Autowired
 	private ApplicationContext context;
@@ -130,6 +136,10 @@ public class DashboardServiceImpl implements DashboardService {
 				Activity activity = subTask.getActivities().stream()
 						.filter(a -> a.getActivityName().equals(model.getActivityName())).findFirst().orElse(null);
 
+				boolean isNewActivity = false;
+
+				Activity oldActivity = null;
+
 				if (activity == null) {
 
 					activity = new Activity();
@@ -137,6 +147,14 @@ public class DashboardServiceImpl implements DashboardService {
 					activity.setActivityName(model.getActivityName());
 
 					subTask.getActivities().add(activity);
+
+					isNewActivity = true;
+
+				} else {
+
+					oldActivity = new Activity();
+
+					BeanUtils.copyProperties(activity, oldActivity);
 				}
 
 				activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
@@ -158,6 +176,16 @@ public class DashboardServiceImpl implements DashboardService {
 				activity.setScheduleHealth(model.getScheduleHealth());
 
 				projectRepository.save(project);
+
+				if (isNewActivity) {
+
+					auditService.saveAuditLog("CREATE", "ACTIVITY", activity.getActivityName(),
+							project.getProjectName(), null, activity, "SYSTEM_EXCEL_UPLOAD");
+				} else if (isActivityChanged(oldActivity, activity)) {
+
+					auditService.saveAuditLog("UPDATE", "ACTIVITY", activity.getActivityName(),
+							project.getProjectName(), oldActivity, activity, "SYSTEM_EXCEL_UPLOAD");
+				}
 			}
 
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
@@ -168,6 +196,27 @@ public class DashboardServiceImpl implements DashboardService {
 
 			throw new ReadExcelException("EXCEL_READ_ERROR", "Error while saving Excel into db: " + e.getMessage());
 		}
+	}
+
+	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
+
+		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
+
+				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
+
+				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
+
+				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
+
+				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
+
+				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
+
+				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
+
+				|| !Objects.equals(oldActivity.getExecutionStatus(), newActivity.getExecutionStatus())
+
+				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth());
 	}
 
 	@Override
@@ -185,7 +234,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 			Project project = projectRepository.findByProjectName(projectName)
 					.orElseThrow(() -> new RuntimeException("Project not found"));
-
+			// System.out.println(project);
 			ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
 
 			Workbook workbook = WorkbookFactory.create(resource.getInputStream());
@@ -218,6 +267,8 @@ public class DashboardServiceImpl implements DashboardService {
 									row = copyTemplateRow(sheet, templateRow, currentRow);
 								}
 
+								WriteUtil.setCell(row, 0, ((srNo++) * 100));
+								
 								WriteUtil.setCell(row, 0, ((srNo++) * 100));
 
 								WriteUtil.setCell(row, 1, phase.getPhaseName());
@@ -300,4 +351,5 @@ public class DashboardServiceImpl implements DashboardService {
 
 		return newRow;
 	}
+
 }

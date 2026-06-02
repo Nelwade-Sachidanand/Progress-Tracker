@@ -19,6 +19,6 @@ public class Project {
     private String projectManager;
 
     private String projectName;
-
+    
     private List<Phase> phases;
 }
