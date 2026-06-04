@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ResponseBuilder {
 	
-	public Response createResponse(String code, String desc, String type, Object details) {
+	public Response createResponse(String code, String type, String desc, Object details) {
         Response response = new Response();
         response.setStatusCode(code);
         response.setStatusDesc(desc);

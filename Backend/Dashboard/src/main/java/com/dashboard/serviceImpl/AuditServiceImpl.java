@@ -24,38 +24,26 @@ public class AuditServiceImpl implements AuditService {
 	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
 			Object oldObject, Object newObject, String modifiedBy) {
 
-		try {
+		try{
 
 			AuditLog auditLog = new AuditLog();
-
 			auditLog.setActionType(actionType);
-
 			auditLog.setEntityType(entityType);
-
 			auditLog.setEntityName(entityName);
-
 			auditLog.setProjectName(projectName);
-
 			auditLog.setModifiedBy(modifiedBy);
-
 			auditLog.setModifiedDate(LocalDateTime.now());
-
 			auditLog.setOldData(oldObject == null ? null : objectMapper.writeValueAsString(oldObject));
-
 			auditLog.setNewData(newObject == null ? null : objectMapper.writeValueAsString(newObject));
-
 			auditLogRepository.save(auditLog);
 
-		} catch (Exception e) {
-
+		}catch (Exception e) {
 			throw new RuntimeException("Error while saving audit log", e);
 		}
 	}
-	
-	@Override
-	public List<AuditLog> getAuditLogs(String projectName) {
 
-	    return auditLogRepository
-	            .findByProjectName(projectName);
+	@Override
+	public List<AuditLog> getAuditLogs() {
+		return auditLogRepository.findAll();
 	}
 }

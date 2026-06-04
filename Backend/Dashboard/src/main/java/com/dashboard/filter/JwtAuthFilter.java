@@ -23,14 +23,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 			throws ServletException, IOException {
 
 		String path = request.getServletPath();
-
 		if (path.equals("/user/login")) {
 			filterChain.doFilter(request, response);
 			return;
 		}
 
 		String header = request.getHeader("Authorization");
-
 		if (header == null || !header.startsWith("Bearer ")) {
 			response.setStatus(401);
 			response.getWriter().write("Unauthorized access is denied");
@@ -38,11 +36,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 		}
 
 		String token = header.substring(7);
-
 		try {
 
 			Claims claims = JwtUtil.extractClaims(token);
-
 			String username = claims.getSubject();
 			String role = (String) claims.get("role");
 			request.setAttribute("username", username);
