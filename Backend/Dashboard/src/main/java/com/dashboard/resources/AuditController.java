@@ -15,13 +15,11 @@ import com.dashboard.service.AuditService;
 @RequestMapping("/audit")
 public class AuditController {
 
-    @Autowired
-    private AuditService auditService;
+	@Autowired
+	private AuditService auditService;
 
-    @GetMapping("/{projectName}")
-    public List<AuditLog> getAuditLogs(
-            @PathVariable String projectName) {
-
-        return auditService.getAuditLogs(projectName);
-    }
+	@GetMapping("/getAllAudit")
+	public List<AuditLog> getAuditLogs() {
+		return auditService.getAuditLogs();
+	}
 }

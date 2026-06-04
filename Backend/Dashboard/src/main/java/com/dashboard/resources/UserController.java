@@ -2,6 +2,7 @@ package com.dashboard.resources;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,6 +16,7 @@ import com.dashboard.common.Response;
 import com.dashboard.model.LoginModel;
 import com.dashboard.model.UserModel;
 import com.dashboard.model.UserProjectUpdateModel;
+import com.dashboard.model.UserUpdateModel;
 import com.dashboard.service.UserService;
 
 @RestController
@@ -41,13 +43,22 @@ public class UserController {
 		return userService.getAllUsers();
 	}
 
-	@PutMapping("/updateProjects")
-	public Response updateUserProjects(@RequestBody UserProjectUpdateModel model) {
-		return userService.updateUserProjects(model);
+	/*
+	 * @PutMapping("/updateProjects") public Response
+	 * updateUserProjects(@RequestBody UserProjectUpdateModel model) { return
+	 * userService.updateUserProjects(model); }
+	 * 
+	 * @PutMapping("/updateStatus") public Response updateUserStatus(@RequestParam
+	 * String username, @RequestParam Boolean active) { return
+	 * userService.updateUserStatus(username, active); }
+	 */
+	@PutMapping("/updateUser")
+	public Response updateUser(@RequestBody UserUpdateModel model) {
+		return userService.updateUser(model);
 	}
 
-	@PutMapping("/updateStatus")
-	public Response updateUserStatus(@RequestParam String username, @RequestParam Boolean active) {
-		return userService.updateUserStatus(username, active);
+	@DeleteMapping("/deleteUser/{username}")
+	public Response deleteUser(@PathVariable String username) {
+		return userService.deleteUser(username);
 	}
 }

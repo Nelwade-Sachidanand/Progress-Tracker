@@ -3,7 +3,7 @@ package com.dashboard.service;
 import com.dashboard.common.Response;
 import com.dashboard.model.ActivityModel;
 
-public interface UpdateActivityService {
+public interface CreateStructureService {
 	
-	Response updateActivity(ActivityModel activity);
+	Response createStructure(ActivityModel request);
 }

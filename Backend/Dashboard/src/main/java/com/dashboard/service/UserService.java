@@ -3,7 +3,7 @@ package com.dashboard.service;
 import com.dashboard.common.Response;
 import com.dashboard.model.LoginModel;
 import com.dashboard.model.UserModel;
-import com.dashboard.model.UserProjectUpdateModel;
+import com.dashboard.model.UserUpdateModel;
 
 public interface UserService {
 	Response register(UserModel userModel);
@@ -12,8 +12,14 @@ public interface UserService {
 
 	Response login(LoginModel loginModel);
 
-	Response updateUserProjects(UserProjectUpdateModel model);
-
-	Response updateUserStatus(String username, Boolean active);
+	/*
+	 * Response updateUserProjects(UserProjectUpdateModel model);
+	 * 
+	 * Response updateUserStatus(String username, Boolean active);
+	 */
+	
+	Response updateUser(UserUpdateModel model);
+	
+	Response deleteUser(String username);
 
 }

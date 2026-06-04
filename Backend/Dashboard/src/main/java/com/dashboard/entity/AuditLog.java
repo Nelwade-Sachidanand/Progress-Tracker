@@ -17,10 +17,10 @@ public class AuditLog {
 
     @Id
     private String id;
+    
+    private String entityType;
 
-    private String actionType;      
-
-    private String entityType;      
+    private String actionType;            
 
     private String entityName;
 
