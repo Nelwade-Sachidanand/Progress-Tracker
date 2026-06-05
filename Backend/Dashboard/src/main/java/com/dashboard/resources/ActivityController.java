@@ -35,6 +35,7 @@ public class ActivityController {
 
 	@PostMapping("/create/activity")
 	public Response createStructure(@RequestBody ActivityModel request) {
+		System.out.println(request);
 		return createStructureService.createStructure(request);
 	}
 }

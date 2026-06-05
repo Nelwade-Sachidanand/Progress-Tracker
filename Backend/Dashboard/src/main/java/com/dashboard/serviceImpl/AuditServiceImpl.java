@@ -6,6 +6,9 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.dashboard.common.Response;
+import com.dashboard.common.ResponseBuilder;
+import com.dashboard.common.StatusCode;
 import com.dashboard.entity.AuditLog;
 import com.dashboard.repository.AuditLogRepository;
 import com.dashboard.service.AuditService;
@@ -19,6 +22,9 @@ public class AuditServiceImpl implements AuditService {
 
 	@Autowired
 	private ObjectMapper objectMapper;
+	
+	@Autowired
+	private ResponseBuilder responseBuilder;
 
 	@Override
 	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
@@ -43,7 +49,8 @@ public class AuditServiceImpl implements AuditService {
 	}
 
 	@Override
-	public List<AuditLog> getAuditLogs() {
-		return auditLogRepository.findAll();
+	public Response getAuditLogs() {
+		List<AuditLog> result = auditLogRepository.findAll();
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Audits Fetched Successfully", result);
 	}
 }

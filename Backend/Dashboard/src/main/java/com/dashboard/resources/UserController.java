@@ -54,6 +54,7 @@ public class UserController {
 	 */
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
+		System.out.println(model);
 		return userService.updateUser(model);
 	}
 

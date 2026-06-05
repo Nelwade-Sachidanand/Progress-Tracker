@@ -16,8 +16,8 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ReadExcelException.class)
 	public ResponseEntity<Response> handleDashboardException(ReadExcelException ex) {
 
-		Response response = responseBuilder.createResponse(ex.getErrorCode(), ex.getErrorMessage(),
-				StatusCode.ERROR_STATUS_TYPE, null);
+		Response response = responseBuilder.createResponse(ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
@@ -25,8 +25,8 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<Response> handleResourceNotFoundException(ResourceNotFoundException ex) {
 
-		Response response = responseBuilder.createResponse(ex.getErrorCode(), ex.getErrorMessage(),
-				StatusCode.ERROR_STATUS_TYPE, null);
+		Response response = responseBuilder.createResponse(ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
 
 		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 	}
