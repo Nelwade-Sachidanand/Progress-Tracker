@@ -20,7 +20,11 @@ public class AuditController {
 	private AuditService auditService;
 
 	@GetMapping("/getAllAudit")
+<<<<<<< HEAD
 	public Response  getAuditLogs() {
+=======
+	public Response getAuditLogs() {
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 		return auditService.getAuditLogs();
 	}
 }

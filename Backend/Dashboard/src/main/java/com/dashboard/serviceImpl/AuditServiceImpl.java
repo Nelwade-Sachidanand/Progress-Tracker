@@ -9,7 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
+<<<<<<< HEAD
 import com.dashboard.common.ErrorCode;
+=======
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
@@ -30,8 +33,14 @@ public class AuditServiceImpl implements AuditService {
 
 	@Autowired
 	private ObjectMapper objectMapper;
+<<<<<<< HEAD
 	@Autowired
 	private ApplicationContext context;
+=======
+	
+	@Autowired
+	private ResponseBuilder responseBuilder;
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 
 	@Override
 	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
@@ -61,6 +70,7 @@ public class AuditServiceImpl implements AuditService {
 
 	@Override
 	public Response getAuditLogs() {
+<<<<<<< HEAD
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
@@ -84,5 +94,9 @@ public class AuditServiceImpl implements AuditService {
 
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while fetching audit logs");
 		}
+=======
+		List<AuditLog> result = auditLogRepository.findAll();
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Audits Fetched Successfully", result);
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 	}
 }

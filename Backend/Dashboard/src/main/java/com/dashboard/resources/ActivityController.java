@@ -43,9 +43,13 @@ public class ActivityController {
 
 	@PostMapping("/create/activity")
 	public Response createStructure(@RequestBody ActivityModel request) {
+<<<<<<< HEAD
 		logger.info("Create Activity request received for project: {}, activity: {}", request.getProjectName(),
 				request.getActivityName());
 
+=======
+		System.out.println(request);
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 		return createStructureService.createStructure(request);
 	}
 }

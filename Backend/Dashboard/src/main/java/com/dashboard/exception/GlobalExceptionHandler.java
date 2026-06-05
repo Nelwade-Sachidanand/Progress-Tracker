@@ -18,18 +18,30 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(ReadExcelException.class)
 	public ResponseEntity<Response> handleDashboardException(ReadExcelException ex) {
+<<<<<<< HEAD
 		logger.error("Excel processing error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
 				ex.getErrorMessage(), null);
+=======
+
+		Response response = responseBuilder.createResponse(ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<Response> handleResourceNotFoundException(ResourceNotFoundException ex) {
+<<<<<<< HEAD
 		logger.warn("Resource not found. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
 				ex.getErrorMessage(), ex.getResourceName());
+=======
+
+		Response response = responseBuilder.createResponse(ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 
 		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 	}

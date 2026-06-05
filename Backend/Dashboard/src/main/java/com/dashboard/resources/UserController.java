@@ -61,7 +61,11 @@ public class UserController {
 	 */
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
+<<<<<<< HEAD
 		logger.info("Update user request received. Username: {}", model.getUsername());
+=======
+		System.out.println(model);
+>>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 		return userService.updateUser(model);
 	}
 
