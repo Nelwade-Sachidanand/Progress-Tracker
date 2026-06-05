@@ -13,7 +13,6 @@ import com.dashboard.model.ActivityModel;
 import com.dashboard.service.CreateStructureService;
 import com.dashboard.service.UpdateActivityService;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,28 +27,25 @@ public class ActivityController {
 	private UpdateActivityService updateActivityService;
 
 	@Autowired
-
 	private CreateStructureService createStructureService;
 
 	@PutMapping("/update/activity")
 	public Response updateActivity(@RequestBody ActivityModel updateActivity) {
-//		System.out.println(request.getHeader("Authorization"));
-//		System.out.println(updateActivity);
 
-		logger.info("Update Activity request received for project: {}, activity: {}", updateActivity.getProjectName(),
+		logger.info("Update Activity request received for project: {}, activity: {}",
+				updateActivity.getProjectName(),
 				updateActivity.getActivityName());
+
 		return updateActivityService.updateActivity(updateActivity);
 	}
 
 	@PostMapping("/create/activity")
 	public Response createStructure(@RequestBody ActivityModel request) {
-<<<<<<< HEAD
-		logger.info("Create Activity request received for project: {}, activity: {}", request.getProjectName(),
+
+		logger.info("Create Activity request received for project: {}, activity: {}",
+				request.getProjectName(),
 				request.getActivityName());
 
-=======
-		System.out.println(request);
->>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
 		return createStructureService.createStructure(request);
 	}
 }

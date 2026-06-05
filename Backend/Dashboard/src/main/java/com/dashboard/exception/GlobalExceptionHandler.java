@@ -13,64 +13,75 @@ import com.dashboard.common.StatusCode;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
 	private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 	private final ResponseBuilder responseBuilder = new ResponseBuilder();
 
 	@ExceptionHandler(ReadExcelException.class)
 	public ResponseEntity<Response> handleDashboardException(ReadExcelException ex) {
-<<<<<<< HEAD
-		logger.error("Excel processing error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
-		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(), null);
-=======
 
-		Response response = responseBuilder.createResponse(ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
->>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
+		logger.error("Excel processing error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
+
+		Response response = responseBuilder.createResponse(
+				ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(),
+				null);
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(ResourceNotFoundException.class)
 	public ResponseEntity<Response> handleResourceNotFoundException(ResourceNotFoundException ex) {
-<<<<<<< HEAD
-		logger.warn("Resource not found. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
-		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(), ex.getResourceName());
-=======
 
-		Response response = responseBuilder.createResponse(ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,ex.getErrorMessage(), null);
->>>>>>> c3a1570c35f269824906dd6100edf7c1feb8f519
+		logger.warn("Resource not found. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
+
+		Response response = responseBuilder.createResponse(
+				ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(),
+				ex.getResourceName());
 
 		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 	}
 
 	@ExceptionHandler(ValidationException.class)
 	public ResponseEntity<Response> handleValidationException(ValidationException ex) {
+
 		logger.warn("Validation failed. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
-		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(), null);
+
+		Response response = responseBuilder.createResponse(
+				ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(),
+				null);
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
 
 	@ExceptionHandler(DatabaseException.class)
 	public Response handleDatabaseException(DatabaseException ex) {
-		logger.error("Database error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
-		ResponseBuilder responseBuilder = new ResponseBuilder();
 
-		return responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE, ex.getErrorMessage(),
+		logger.error("Database error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
+
+		return responseBuilder.createResponse(
+				ex.getErrorCode(),
+				StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(),
 				null);
 	}
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Response> handleGenericException(Exception ex) {
-		logger.error("Unexpected application error", ex.getMessage());
-		Response response = responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
-				"Something went wrong: " + ex.getMessage(), null);
+
+		logger.error("Unexpected application error", ex);
+
+		Response response = responseBuilder.createResponse(
+				StatusCode.ERROR,
+				StatusCode.ERROR_STATUS_TYPE,
+				"Something went wrong: " + ex.getMessage(),
+				null);
 
 		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
-
 }
