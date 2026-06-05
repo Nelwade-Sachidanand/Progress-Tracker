@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,7 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.dashboard.common.Response;
 import com.dashboard.entity.Project;
+import com.dashboard.model.ActivityModel;
+import com.dashboard.model.GenerateReportModel;
 import com.dashboard.service.DashboardService;
+import com.dashboard.service.ExcelService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +35,9 @@ public class DashboardController {
 	private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
 	@Autowired
 	private DashboardService dashboardService;
+	
+	@Autowired
+	private ExcelService excelService;
 
 	@PostMapping("/upload/excel")
 	public Response uploadExcel(@RequestParam("file") MultipartFile file) {
@@ -55,5 +63,16 @@ public class DashboardController {
 				.contentType(
 						MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
 				.body(new InputStreamResource(stream));
+	}
+
+	@GetMapping("/generate/report")
+	public ResponseEntity<byte[]> export(@RequestBody GenerateReportModel request) {
+
+		List<ActivityModel> reports = dashboardService.generateReport(request);
+
+		byte[] excel = excelService.generateExcel(reports);
+
+		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.xlsx")
+				.contentType(MediaType.APPLICATION_OCTET_STREAM).body(excel);
 	}
 }
