@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.dashboard.common.AuditAction;
 import com.dashboard.common.AuditEntity;
+import com.dashboard.common.ErrorCode;
 import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
@@ -30,9 +31,13 @@ import com.dashboard.service.AuditService;
 import com.dashboard.service.UserService;
 import com.dashboard.util.JwtUtil;
 import com.dashboard.util.UserContextUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+	private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
 	@Autowired
 	private UserRepository userRepository;
@@ -51,13 +56,14 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public Response register(UserModel userModel) {
+		logger.info("User registration started. Username: {}", userModel.getUsername());
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		User existingUser = userRepository.findByUsername(userModel.getUsername()).orElse(null);
 
-		if(existingUser != null) {
-
+		if (existingUser != null) {
+			logger.warn("User registration failed. Username already exists: {}", userModel.getUsername());
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
 					"Username already exists", null);
 		}
@@ -71,20 +77,22 @@ public class UserServiceImpl implements UserService {
 		user.setActive(true);
 
 		User savedUser = userRepository.save(user);
-
+		logger.info("User registered successfully. Username: {}", savedUser.getUsername());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"User registered successfully", savedUser);
 	}
 
 	@Override
 	public Response getAllUsers() {
-
+		logger.info("Fetching all users");
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		List<User> users = userRepository.findAll();
-		if(users.isEmpty()) {
-			throw new ResourceNotFoundException("USR_404", "No users found", null);
+		if (users.isEmpty()) {
+			logger.warn("No users found");
+			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "No users found", null);
 		}
+		logger.info("Users fetched successfully. Count: {}", users.size());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Users fetched successfully", users);
 	}
@@ -94,22 +102,24 @@ public class UserServiceImpl implements UserService {
 
 		String username = loginModel.getUsername();
 		String password = loginModel.getPassword();
-
+		logger.info("Login attempt for username: {}", username);
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 		User user = userRepository.findByUsername(username).orElse(null);
 		System.out.println("find " + user);
-		if(user == null) {
-			throw new ResourceNotFoundException("USR_404", "User not found", username);
+		if (user == null) {
+			logger.warn("Login failed. User not found: {}", username);
+			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
 		}
 
-		if(!Boolean.TRUE.equals(user.getActive())) {
+		if (!Boolean.TRUE.equals(user.getActive())) {
+			logger.warn("Login failed. User inactive: {}", username);
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "User is inactive",
 					null);
 		}
 
 		boolean isPasswordValid = passwordEncoder.matches(password, user.getPassword());
 
-		if(!isPasswordValid) {
+		if (!isPasswordValid) {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
 					"Invalid username or password", null);
 		}
@@ -117,9 +127,10 @@ public class UserServiceImpl implements UserService {
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
 
-		for(String projectName : user.getProjectNames()) {
+		for (String projectName : user.getProjectNames()) {
 			Project project = projectRepository.findByProjectName(projectName)
-					.orElseThrow(() -> new ResourceNotFoundException("PRJ_404", " project not found", projectName));
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, " project not found",
+							projectName));
 
 			projects.add(project);
 		}
@@ -130,7 +141,7 @@ public class UserServiceImpl implements UserService {
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
 		responseModel.setToken(token);
-
+		logger.info("Login successful. Username: {}, Role: {}", username, user.getRole());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);
 	}
@@ -155,8 +166,8 @@ public class UserServiceImpl implements UserService {
 	 * user.setProjectNames(model.getProjectNames()); User updatedUser =
 	 * userRepository.save(user);
 	 * 
-	 * if(!Objects.equals(oldUser.getProjectNames(),
-	 * updatedUser.getProjectNames())) { String modifiedBy =
+	 * if(!Objects.equals(oldUser.getProjectNames(), updatedUser.getProjectNames()))
+	 * { String modifiedBy =
 	 * SecurityContextHolder.getContext().getAuthentication().getName();
 	 * auditService.saveAuditLog(AuditAction.UPDATE_USER, AuditEntity.USER,
 	 * updatedUser.getUsername(), null, oldUser, updatedUser, modifiedBy); }
@@ -200,9 +211,9 @@ public class UserServiceImpl implements UserService {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 		User user = userRepository.findByUsername(model.getUsername()).orElse(null);
-		if(user == null) {
-
-			throw new ResourceNotFoundException("USR_404", "User not found", model.getUsername());
+		if (user == null) {
+			logger.warn("User update failed. User not found: {}", model.getUsername());
+			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", model.getUsername());
 		}
 
 		User oldUser = new User();
@@ -210,38 +221,46 @@ public class UserServiceImpl implements UserService {
 		boolean isUpdated = false;
 
 		// Update Projects
-		if(model.getProjectNames() != null) {
+		if (model.getProjectNames() != null) {
 
-			for(String projectName : model.getProjectNames()) {
-				if(projectRepository.findByProjectName(projectName).isEmpty()) {
-					throw new ResourceNotFoundException("PRJ_404", "Project not found", projectName);
+			for (String projectName : model.getProjectNames()) {
+				if (projectRepository.findByProjectName(projectName).isEmpty()) {
+					logger.warn("User update failed. Project not found: {}", projectName);
+					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
 				}
 			}
 
-			if(!Objects.equals(user.getProjectNames(), model.getProjectNames())) {
+			if (!Objects.equals(user.getProjectNames(), model.getProjectNames())) {
 				user.setProjectNames(model.getProjectNames());
 				isUpdated = true;
 			}
 		}
+		if (model.getFullname() != null && !model.getFullname().isBlank()
+				&& !Objects.equals(user.getFullname(), model.getFullname())) {
 
-		if(model.getActive() != null && !Objects.equals(user.getActive(), model.getActive())) {
+			user.setFullname(model.getFullname());
+
+			isUpdated = true;
+		}
+		if (model.getActive() != null && !Objects.equals(user.getActive(), model.getActive())) {
 			user.setActive(model.getActive());
 			isUpdated = true;
 		}
-		if(model.getRole() != null && !model.getRole().isBlank() && !Objects.equals(user.getRole(), model.getRole())) {
+		if (model.getRole() != null && !model.getRole().isBlank() && !Objects.equals(user.getRole(), model.getRole())) {
 			user.setRole(model.getRole());
 			isUpdated = true;
 		}
 
-		if(!isUpdated) {
-			throw new ValidationException("VAL_013", "No changes found to update");
+		if (!isUpdated) {
+			logger.warn("No changes found for user: {}", model.getUsername());
+			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
 		User updatedUser = userRepository.save(user);
 		String modifiedBy = UserContextUtil.getCurrentUser();
 		auditService.saveAuditLog(AuditAction.UPDATE_USER, AuditEntity.USER, updatedUser.getUsername(), null, oldUser,
 				updatedUser, modifiedBy);
-
+		logger.info("User updated successfully. Username: {}, Modified By: {}", updatedUser.getUsername(), modifiedBy);
 		updatedUser.setPassword(null);
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"User updated successfully", updatedUser);
@@ -251,23 +270,25 @@ public class UserServiceImpl implements UserService {
 	public Response deleteUser(String username) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		if(username == null || username.isBlank()) {
-			throw new ValidationException("VAL_013", "Username is required");
+		if (username == null || username.isBlank()) {
+			logger.warn("Delete user failed. Username is empty");
+			throw new ValidationException(ErrorCode.USERNAME_REQUIRED, "Username is required");
 		}
 
 		User user = userRepository.findByUsername(username).orElse(null);
-		if(user == null) {
-
-			throw new ResourceNotFoundException("USR_404", "User not found", username);
+		if (user == null) {
+			logger.warn("Delete user failed. User not found: {}", username);
+			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
 		}
 		User deletedUser = new User();
 		BeanUtils.copyProperties(user, deletedUser);
-		try{
+		try {
 
 			userRepository.delete(user);
 
-		}catch(Exception e) {
-			throw new DatabaseException("DB_002", "Unable to delete user");
+		} catch (Exception e) {
+			logger.error("Failed to delete user: {}", username, e);
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to delete user");
 		}
 
 		String DeletedBy = UserContextUtil.getCurrentUser();

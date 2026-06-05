@@ -17,16 +17,18 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.dashboard.common.AuditAction;
 import com.dashboard.common.AuditEntity;
+import com.dashboard.common.ErrorCode;
 import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
@@ -51,6 +53,8 @@ import com.dashboard.util.WriteUtil;
 @Service
 public class DashboardServiceImpl implements DashboardService {
 
+	private static final Logger logger = LoggerFactory.getLogger(UpdateActivityServiceImpl.class);
+
 	@Autowired
 	private ProjectRepository projectRepository;
 
@@ -63,35 +67,45 @@ public class DashboardServiceImpl implements DashboardService {
 	@Override
 	public Response uploadExcel(MultipartFile file) {
 
+		logger.info("Excel upload started. File: {}", file.getOriginalFilename());
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		try{
+		try {
 
 			List<ExcelRowModel> rows = ExcelParserUtil.parseExcel(file);
-			Map<String, Project> projectMap = new HashMap<>();
-			List<AuditLogModel> auditLogs = new ArrayList<>();
-			for(ExcelRowModel model : rows) {
 
+			logger.info("Excel parsed successfully. Rows found: {}", rows.size());
+
+			Map<String, Project> projectMap = new HashMap<>();
+			List<Project> newlyCreatedProjects = new ArrayList<>();
+			List<AuditLogModel> auditLogs = new ArrayList<>();
+
+			for (ExcelRowModel model : rows) {
+				WriteUtil.validateExcelRow(model);
 				Project project = projectMap.get(model.getProjectName());
 
-				if(project == null) {
+				if (project == null) {
+					project = projectRepository.findByProjectName(model.getProjectName()).orElse(null);
 
-					project = projectRepository.findByProjectName(model.getProjectName()).orElse(new Project());
-					project.setBankName(model.getBankName());
-					project.setProjectManager(model.getProjectManager());
-					project.setProjectName(model.getProjectName());
+					if (project == null) {
+						project = new Project();
+						project.setBankName(model.getBankName());
+						project.setProjectManager(model.getProjectManager());
+						project.setProjectName(model.getProjectName());
+						project.setPhases(new ArrayList<>());
+						newlyCreatedProjects.add(project);
 
-					if(project.getPhases() == null) {
+					} else if (project.getPhases() == null) {
 						project.setPhases(new ArrayList<>());
 					}
-
 					projectMap.put(model.getProjectName(), project);
 				}
 
 				Phase phase = project.getPhases().stream().filter(p -> p.getPhaseName().equals(model.getPhaseName()))
 						.findFirst().orElse(null);
 
-				if(phase == null) {
+				if (phase == null) {
 
 					phase = new Phase();
 					phase.setPhaseName(model.getPhaseName());
@@ -102,7 +116,7 @@ public class DashboardServiceImpl implements DashboardService {
 				Milestone milestone = phase.getMilestones().stream()
 						.filter(m -> m.getMilestoneName().equals(model.getMilestoneName())).findFirst().orElse(null);
 
-				if(milestone == null) {
+				if (milestone == null) {
 					milestone = new Milestone();
 					milestone.setMilestoneName(model.getMilestoneName());
 					milestone.setTasks(new ArrayList<>());
@@ -112,8 +126,7 @@ public class DashboardServiceImpl implements DashboardService {
 				Task task = milestone.getTasks().stream().filter(t -> t.getTaskName().equals(model.getTaskName()))
 						.findFirst().orElse(null);
 
-				if(task == null) {
-
+				if (task == null) {
 					task = new Task();
 					task.setTaskName(model.getTaskName());
 					task.setSubTasks(new ArrayList<>());
@@ -123,32 +136,31 @@ public class DashboardServiceImpl implements DashboardService {
 				Subtask subTask = task.getSubTasks().stream()
 						.filter(st -> st.getSubTaskName().equals(model.getSubTaskName())).findFirst().orElse(null);
 
-				if(subTask == null) {
+				if (subTask == null) {
 					subTask = new Subtask();
 					subTask.setSubTaskName(model.getSubTaskName());
 					subTask.setActivities(new ArrayList<>());
 					task.getSubTasks().add(subTask);
 				}
-
 				Activity activity = subTask.getActivities().stream()
 						.filter(a -> a.getActivityName().equals(model.getActivityName())).findFirst().orElse(null);
-
 				boolean isNewActivity = false;
 
 				Activity oldActivity = null;
 
-				if(activity == null) {
+				if (activity == null) {
 					activity = new Activity();
 					activity.setActivityName(model.getActivityName());
 					subTask.getActivities().add(activity);
 					isNewActivity = true;
 
-				} else{
+				} else {
 
 					oldActivity = new Activity();
-
 					BeanUtils.copyProperties(activity, oldActivity);
 				}
+
+				// Update Activity Fields
 
 				activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
 				activity.setPlannedStartDate(model.getPlannedStartDate());
@@ -160,38 +172,62 @@ public class DashboardServiceImpl implements DashboardService {
 				activity.setExecutionStatus(model.getExecutionStatus());
 				activity.setScheduleHealth(model.getScheduleHealth());
 
-				if(isNewActivity) {
-					auditLogs.add(new AuditLogModel(AuditAction.CREATE_ACTIVITY, AuditEntity.ACTIVITY,
+				// Audit for New Activity (Only for Existing Projects)
+
+				if (isNewActivity && !newlyCreatedProjects.contains(project)) {
+
+					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_CREATE_ACTIVITY, AuditEntity.ACTIVITY,
 							activity.getActivityName(), project.getProjectName(), null, activity));
+				}
 
-				} else if(isActivityChanged(oldActivity, activity)) {
+				// Audit for Updated Activity (Only for Existing Projects)
 
-					auditLogs.add(new AuditLogModel(AuditAction.UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
+				if (!isNewActivity && !newlyCreatedProjects.contains(project)
+						&& isActivityChanged(oldActivity, activity)) {
+					
+					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
 							activity.getActivityName(), project.getProjectName(), oldActivity, activity));
 				}
 			}
+			try {
 
-			try{
 				projectRepository.saveAll(projectMap.values());
+				logger.info("Projects saved successfully. Count: {}", projectMap.size());
 
-			} catch(Exception e) {
-				throw new DatabaseException("DB_001", "Unable to save projects");
+			} catch (Exception e) {
+				logger.error("Failed to save projects from uploaded Excel", e);
+				throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to save projects");
 			}
 			String modifiedBy = UserContextUtil.getCurrentUser();
-			for(AuditLogModel audit : auditLogs) {
+
+			for (Project project : newlyCreatedProjects) {
+				auditService.saveAuditLog(AuditAction.IMPORT_PROJECT, AuditEntity.PROJECT, project.getProjectName(),
+						project.getProjectName(), null, project, modifiedBy);
+			}
+			for (AuditLogModel audit : auditLogs) {
 				auditService.saveAuditLog(audit.getActionType(), audit.getEntityType(), audit.getEntityName(),
 						audit.getProjectName(), audit.getOldData(), audit.getNewData(), modifiedBy);
 			}
 
+			logger.info("Excel upload completed successfully. Rows Processed: {}, New Projects Imported: {}",
+					rows.size(), newlyCreatedProjects.size());
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Excel Uploaded Successfully", rows);
 
+		} catch (DatabaseException e) {
+			throw e;
+
 		} catch (Exception e) {
-			throw new ReadExcelException("EXCEL_READ_ERROR", "Error while saving Excel into DB : " + e.getMessage());
+			logger.error("Excel upload failed. File: {}", file.getOriginalFilename(), e);
+			
+			throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR,
+					"Error while saving Excel into DB : " + e.getMessage());
 		}
 	}
 
 	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
+
 		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
 				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
 				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
@@ -207,6 +243,7 @@ public class DashboardServiceImpl implements DashboardService {
 	public Response getAllProjects() {
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 		List<Project> projects = projectRepository.findAll();
+		logger.info("Projects fetched successfully. Count: {}", projects.size());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Projects Fetched Successfully", projects);
 	}
@@ -215,9 +252,16 @@ public class DashboardServiceImpl implements DashboardService {
 	public ByteArrayInputStream exportExcel(String projectName) {
 
 		try {
-			Project project = projectRepository.findByProjectName(projectName)
-					.orElseThrow(() -> new ResourceNotFoundException("PRJ_404", "Project not found", projectName));
+			Optional<Project> optionalProject = projectRepository.findByProjectName(projectName);
 
+			if (optionalProject.isEmpty()) {
+
+				logger.warn("Project not found for export. Project: {}", projectName);
+
+				throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+			}
+
+			Project project = optionalProject.get();
 			ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
 			try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
 
@@ -226,7 +270,7 @@ public class DashboardServiceImpl implements DashboardService {
 				sheet.getRow(2).getCell(3).setCellValue(project.getProjectName());
 				sheet.getRow(3).getCell(3).setCellValue(project.getProjectManager());
 
-				 int templateRow = 7;
+				int templateRow = 7;
 				int currentRow = templateRow;
 
 				int srNo = 1;
@@ -236,23 +280,23 @@ public class DashboardServiceImpl implements DashboardService {
 							continue;
 						}
 
-						for(Milestone milestone : phase.getMilestones()) {
+						for (Milestone milestone : phase.getMilestones()) {
 							if (milestone.getTasks() == null) {
 								continue;
 							}
-							for(Task task : milestone.getTasks()) {
+							for (Task task : milestone.getTasks()) {
 								if (task.getSubTasks() == null) {
 									continue;
 								}
-								for(Subtask subTask : task.getSubTasks()) {
+								for (Subtask subTask : task.getSubTasks()) {
 									if (subTask.getActivities() == null) {
 										continue;
 									}
-									for(Activity activity : subTask.getActivities()) {
+									for (Activity activity : subTask.getActivities()) {
 										Row row;
-										if(currentRow == templateRow) {
+										if (currentRow == templateRow) {
 											row = sheet.getRow(templateRow);
-										} else{
+										} else {
 
 											row = copyTemplateRow(sheet, templateRow, currentRow);
 										}
@@ -287,14 +331,16 @@ public class DashboardServiceImpl implements DashboardService {
 
 				auditService.saveAuditLog(AuditAction.EXPORT_EXCEL, AuditEntity.PROJECT, project.getProjectName(),
 						project.getProjectName(), null, null, modifiedBy);
-
+				logger.info("Excel exported successfully. Project: {}, User: {}", projectName, modifiedBy);
 				return new ByteArrayInputStream(output.toByteArray());
 			}
 		} catch (ResourceNotFoundException e) {
 			throw e;
 
 		} catch (Exception e) {
-			throw new ReadExcelException("EXCEL_EXPORT_ERROR", "Error while exporting excel : " + e.getMessage());
+			logger.error("Excel export failed. Project: {}", projectName, e);
+			throw new ReadExcelException(ErrorCode.EXCEL_EXPORT_ERROR,
+					"Error while exporting excel : " + e.getMessage());
 		}
 	}
 
@@ -305,10 +351,10 @@ public class DashboardServiceImpl implements DashboardService {
 			Cell oldCell = templateRow.getCell(i);
 			if (oldCell == null)
 				continue;
-			
+
 			Cell newCell = newRow.createCell(i);
 			newCell.setCellStyle(oldCell.getCellStyle());
-			if(oldCell.getCellType() == CellType.FORMULA) {
+			if (oldCell.getCellType() == CellType.FORMULA) {
 				String formula = oldCell.getCellFormula();
 				formula = formula.replace(String.valueOf(templateRowNum + 1), String.valueOf(newRowNum + 1));
 				newCell.setCellFormula(formula);

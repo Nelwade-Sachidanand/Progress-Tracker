@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dashboard.common.Response;
 import com.dashboard.entity.AuditLog;
 import com.dashboard.service.AuditService;
 
@@ -19,7 +20,7 @@ public class AuditController {
 	private AuditService auditService;
 
 	@GetMapping("/getAllAudit")
-	public List<AuditLog> getAuditLogs() {
+	public Response  getAuditLogs() {
 		return auditService.getAuditLogs();
 	}
 }

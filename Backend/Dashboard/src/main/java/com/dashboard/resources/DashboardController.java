@@ -20,18 +20,21 @@ import org.springframework.web.multipart.MultipartFile;
 import com.dashboard.common.Response;
 import com.dashboard.entity.Project;
 import com.dashboard.service.DashboardService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/dashboard")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class DashboardController {
-
+	private static final Logger logger = LoggerFactory.getLogger(DashboardController.class);
 	@Autowired
 	private DashboardService dashboardService;
 
 	@PostMapping("/upload/excel")
 	public Response uploadExcel(@RequestParam("file") MultipartFile file) {
-		System.out.println(file.getOriginalFilename());
+		logger.info("Excel upload request received. File: {}", file.getOriginalFilename());
+		// System.out.println(file.getOriginalFilename());
 		Response response = null;
 		response = dashboardService.uploadExcel(file);
 		return response;
@@ -44,7 +47,7 @@ public class DashboardController {
 
 	@GetMapping("/export/{projectName}")
 	public ResponseEntity<InputStreamResource> exportExcel(@PathVariable String projectName) {
-
+		logger.info("Excel export request received. Project: {}", projectName);
 		ByteArrayInputStream stream = dashboardService.exportExcel(projectName);
 		System.out.println(projectName);
 		return ResponseEntity.ok()

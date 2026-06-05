@@ -18,28 +18,35 @@ import com.dashboard.model.UserModel;
 import com.dashboard.model.UserProjectUpdateModel;
 import com.dashboard.model.UserUpdateModel;
 import com.dashboard.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/user")
 @CrossOrigin
 public class UserController {
-
+	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 	@Autowired
 	private UserService userService;
 
 	@PostMapping("/register")
 	public Response registerUser(@RequestBody UserModel userModel) {
+		logger.info("User registration request received. Username: {}", userModel.getUsername());
+
 		return userService.register(userModel);
 	}
 
 	@PostMapping("/login")
 	public Response login(@RequestBody LoginModel loginModel) {
-		System.out.println(loginModel);
+
+		logger.info("Login request received. Username: {}", loginModel.getUsername());
+		// System.out.println(loginModel);
 		return userService.login(loginModel);
 	}
 
 	@GetMapping("/getAllUsers")
 	public Response getAllUsers() {
+		logger.info("Get all users request received");
 		return userService.getAllUsers();
 	}
 
@@ -54,11 +61,13 @@ public class UserController {
 	 */
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
+		logger.info("Update user request received. Username: {}", model.getUsername());
 		return userService.updateUser(model);
 	}
 
 	@DeleteMapping("/deleteUser/{username}")
 	public Response deleteUser(@PathVariable String username) {
+		logger.info("Delete user request received. Username: {}", username);
 		return userService.deleteUser(username);
 	}
 }

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import com.dashboard.common.AuditAction;
 import com.dashboard.common.AuditEntity;
+import com.dashboard.common.ErrorCode;
 import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
@@ -29,10 +30,13 @@ import com.dashboard.service.AuditService;
 import com.dashboard.service.UpdateActivityService;
 import com.dashboard.util.UserContextUtil;
 import com.dashboard.util.WriteUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UpdateActivityServiceImpl implements UpdateActivityService {
 
+	private static final Logger logger = LoggerFactory.getLogger(UpdateActivityServiceImpl.class);
 	@Autowired
 	private ProjectRepository projectRepository;
 
@@ -47,36 +51,38 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		// System.out.println(request);
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		
+
 		WriteUtil.validateRequest(request);
 		Project project = projectRepository.findByProjectName(request.getProjectName()).orElse(null);
-		if(project == null) {
-			throw new ResourceNotFoundException("PRJ_404", "Project not found", request.getProjectName());
+		if (project == null) {
+			logger.warn("Project not found. Project: {}", request.getProjectName());
+			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+					request.getProjectName());
 		}
 		Activity activityToUpdate = null;
 
-		for(Phase phase : project.getPhases()) {
-			if(!phase.getPhaseName().equals(request.getPhaseName())) {
+		for (Phase phase : project.getPhases()) {
+			if (!phase.getPhaseName().equals(request.getPhaseName())) {
 				continue;
 			}
 
-			for(Milestone milestone : phase.getMilestones()) {
-				if(!milestone.getMilestoneName().equals(request.getMilestoneName())) {
+			for (Milestone milestone : phase.getMilestones()) {
+				if (!milestone.getMilestoneName().equals(request.getMilestoneName())) {
 					continue;
 				}
 
-				for(Task task : milestone.getTasks()) {
-					if(!task.getTaskName().equals(request.getTaskName())) {
+				for (Task task : milestone.getTasks()) {
+					if (!task.getTaskName().equals(request.getTaskName())) {
 						continue;
 					}
 
-					for(Subtask subTask : task.getSubTasks()) {
-						if(!subTask.getSubTaskName().equals(request.getSubTaskName())) {
+					for (Subtask subTask : task.getSubTasks()) {
+						if (!subTask.getSubTaskName().equals(request.getSubTaskName())) {
 							continue;
 						}
 
-						for(Activity activity : subTask.getActivities()) {
-							if(activity.getActivityName().equals(request.getActivityName())) {
+						for (Activity activity : subTask.getActivities()) {
+							if (activity.getActivityName().equals(request.getActivityName())) {
 
 								activityToUpdate = activity;
 								break;
@@ -87,8 +93,11 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			}
 		}
 
-		if(activityToUpdate == null) {
-			throw new ResourceNotFoundException("ACT_404", "Activity not found", request.getActivityName());
+		if (activityToUpdate == null) {
+			logger.warn("Activity not found. Activity: {}, Project: {}", request.getActivityName(),
+					request.getProjectName());
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+					request.getActivityName());
 		}
 		Activity oldActivity = new Activity();
 
@@ -102,20 +111,27 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate()));
 		activityToUpdate.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
 		activityToUpdate.setProgress(request.getProgress());
-		activityToUpdate.setScheduleHealth(WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
-				request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
+		activityToUpdate.setScheduleHealth(
+				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
+						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
 		// System.out.println(request);
-		if(!isActivityChanged(oldActivity, activityToUpdate)) {
-			throw new ValidationException("VAL_020", "No changes found to update");
+		if (!isActivityChanged(oldActivity, activityToUpdate)) {
+			logger.warn("No changes found for activity: {}", request.getActivityName());
+
+			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
 		projectRepository.save(project);
 
 		String modifiedBy = UserContextUtil.getCurrentUser();
 		// System.out.println("Logged In User : " + username);
+
 		auditService.saveAuditLog(AuditAction.UPDATE_ACTIVITY, AuditEntity.ACTIVITY, activityToUpdate.getActivityName(),
 				project.getProjectName(), oldActivity, activityToUpdate, modifiedBy);
+
+		logger.info("Activity updated successfully. Activity: {}, Project: {}, Modified By: {}",
+				activityToUpdate.getActivityName(), project.getProjectName(), modifiedBy);
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Activity updated successfully", activityToUpdate);
@@ -131,5 +147,4 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress());
 	}
 
-	
 }

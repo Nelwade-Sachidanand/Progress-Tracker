@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.dashboard.common.AuditAction;
 import com.dashboard.common.AuditEntity;
+import com.dashboard.common.ErrorCode;
 import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
@@ -28,9 +29,13 @@ import com.dashboard.service.AuditService;
 import com.dashboard.service.CreateStructureService;
 import com.dashboard.util.UserContextUtil;
 import com.dashboard.util.WriteUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class CreateStructureServiceImpl implements CreateStructureService {
+
+	private static final Logger logger = LoggerFactory.getLogger(CreateStructureServiceImpl.class);
 
 	@Autowired
 	private ProjectRepository projectRepository;
@@ -55,28 +60,31 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		Project project = projectRepository.findByProjectName(request.getProjectName()).orElse(null);
 
-		if(project == null) {
-			throw new ResourceNotFoundException("PRJ_404", "Project not found", request.getProjectName());
+		if (project == null) {
+			logger.warn("Project not found. Project: {}", request.getProjectName());
+
+			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+					request.getProjectName());
 		}
 		Phase phase = null;
 
-		if(project.getPhases() != null) {
+		if (project.getPhases() != null) {
 
-			for(Phase p : project.getPhases()) {
-				if(p.getPhaseName().equalsIgnoreCase(request.getPhaseName())) {
+			for (Phase p : project.getPhases()) {
+				if (p.getPhaseName().equalsIgnoreCase(request.getPhaseName())) {
 					phase = p;
 					break;
 				}
 			}
 		}
 
-		if(phase == null) {
+		if (phase == null) {
 
 			phase = new Phase();
 			phase.setPhaseName(request.getPhaseName());
 			phase.setMilestones(new ArrayList<>());
 
-			if(project.getPhases() == null) {
+			if (project.getPhases() == null) {
 				project.setPhases(new ArrayList<>());
 			}
 
@@ -86,17 +94,17 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		Milestone milestone = null;
 
-		if(request.getMilestoneName() != null) {
+		if (request.getMilestoneName() != null) {
 
-			for(Milestone m : phase.getMilestones()) {
+			for (Milestone m : phase.getMilestones()) {
 
-				if(m.getMilestoneName().equalsIgnoreCase(request.getMilestoneName())) {
+				if (m.getMilestoneName().equalsIgnoreCase(request.getMilestoneName())) {
 					milestone = m;
 					break;
 				}
 			}
 
-			if(milestone == null) {
+			if (milestone == null) {
 				milestone = new Milestone();
 				milestone.setMilestoneName(request.getMilestoneName());
 				milestone.setTasks(new ArrayList<>());
@@ -107,17 +115,17 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		Task task = null;
 
-		if(request.getTaskName() != null) {
+		if (request.getTaskName() != null) {
 
-			for(Task t : milestone.getTasks()) {
+			for (Task t : milestone.getTasks()) {
 
-				if(t.getTaskName().equalsIgnoreCase(request.getTaskName())) {
+				if (t.getTaskName().equalsIgnoreCase(request.getTaskName())) {
 					task = t;
 					break;
 				}
 			}
 
-			if(task == null) {
+			if (task == null) {
 
 				task = new Task();
 				task.setTaskName(request.getTaskName());
@@ -129,17 +137,17 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		Subtask subtask = null;
 
-		if(request.getSubTaskName() != null) {
+		if (request.getSubTaskName() != null) {
 
-			for(Subtask st : task.getSubTasks()) {
+			for (Subtask st : task.getSubTasks()) {
 
-				if(st.getSubTaskName().equalsIgnoreCase(request.getSubTaskName())) {
+				if (st.getSubTaskName().equalsIgnoreCase(request.getSubTaskName())) {
 					subtask = st;
 					break;
 				}
 			}
 
-			if(subtask == null) {
+			if (subtask == null) {
 				subtask = new Subtask();
 				subtask.setSubTaskName(request.getSubTaskName());
 				subtask.setActivities(new ArrayList<>());
@@ -148,15 +156,17 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			}
 		}
 		Activity activity = null;
-		if(request.getActivityName() != null) {
+		if (request.getActivityName() != null) {
 
 			Activity existingActivity = subtask.getActivities().stream()
 					.filter(a -> a.getActivityName().equalsIgnoreCase(request.getActivityName())).findFirst()
 					.orElse(null);
 
-			if(existingActivity != null) {
+			if (existingActivity != null) {
+				logger.warn("Activity already exists. Activity: {}, Project: {}", request.getActivityName(),
+						request.getProjectName());
 
-				throw new ValidationException("VAL_006", "Activity already exists");
+				throw new ValidationException(ErrorCode.ACTIVITY_ALREADY_EXISTS, "Activity already exists");
 			}
 
 			activity = new Activity();
@@ -181,44 +191,53 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			activityCreated = true;
 		}
 
-		try{
+		try {
 
 			projectRepository.save(project);
 
-		} catch(Exception e) {
+		} catch (Exception e) {
 
-			/*
-			 * logger.error( "Error while saving project {}", project.getProjectName(), e);
-			 */
+			logger.error("Failed to save project. Project: {}", project.getProjectName(), e);
 
-			throw new DatabaseException("DB_001", "Unable to save project");
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to save project");
 		}
 		String username = UserContextUtil.getCurrentUser();
-		if(phaseCreated) {
+		if (phaseCreated) {
+			logger.info("New phase created. Phase: {}, Project: {}", phase.getPhaseName(), project.getProjectName());
 
 			auditService.saveAuditLog(AuditAction.CREATE_PHASE, AuditEntity.PHASE, phase.getPhaseName(),
 					project.getProjectName(), null, phase, username);
 
-		} else if(milestoneCreated) {
+		} else if (milestoneCreated) {
+
+			logger.info("New milestone created. Milestone: {}, Project: {}", milestone.getMilestoneName(),
+					project.getProjectName());
 
 			auditService.saveAuditLog(AuditAction.CREATE_MILESTONE, AuditEntity.MILESTONE, milestone.getMilestoneName(),
 					project.getProjectName(), null, milestone, username);
 
-		} else if(taskCreated) {
+		} else if (taskCreated) {
+			logger.info("New task created. Task: {}, Project: {}", task.getTaskName(), project.getProjectName());
 
 			auditService.saveAuditLog(AuditAction.CREATE_TASK, AuditEntity.TASK, task.getTaskName(),
 					project.getProjectName(), null, task, username);
 
-		} else if(subtaskCreated) {
+		} else if (subtaskCreated) {
+			logger.info("New subtask created. SubTask: {}, Project: {}", subtask.getSubTaskName(),
+					project.getProjectName());
 
 			auditService.saveAuditLog(AuditAction.CREATE_SUBTASK, AuditEntity.SUBTASK, subtask.getSubTaskName(),
 					project.getProjectName(), null, subtask, username);
 
-		} else if(activityCreated) {
-
+		} else if (activityCreated) {
+			logger.info("New activity created. Activity: {}, Project: {}", activity.getActivityName(),
+					project.getProjectName());
+			
 			auditService.saveAuditLog(AuditAction.CREATE_ACTIVITY, AuditEntity.ACTIVITY, activity.getActivityName(),
 					project.getProjectName(), null, activity, username);
 		}
+		logger.info("Structure created successfully. Project: {}, User: {}", project.getProjectName(), username);
+
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Activity created successfully", project);
 	}

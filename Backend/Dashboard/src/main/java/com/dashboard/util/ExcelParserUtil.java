@@ -9,11 +9,16 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.dashboard.common.ErrorCode;
 import com.dashboard.exception.ReadExcelException;
 import com.dashboard.model.ExcelRowModel;
 
 public class ExcelParserUtil {
+	private static final Logger logger = LoggerFactory.getLogger(ExcelParserUtil.class);
 
 	public static List<ExcelRowModel> parseExcel(MultipartFile file) {
 
@@ -22,58 +27,48 @@ public class ExcelParserUtil {
 		try {
 
 			InputStream inputStream = file.getInputStream();
-
+			logger.info("Excel parsing started. File: {}", file.getOriginalFilename());
 			Workbook workbook = new XSSFWorkbook(inputStream);
 
 			Sheet sheet = workbook.getSheet("Project Schedule");
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-			
-			ExcelRowModel model ;
-			
+
+			ExcelRowModel model;
+
 			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
 			String bankName = sheet.getRow(1).getCell(3).getStringCellValue();
 			String managerName = sheet.getRow(3).getCell(3).getStringCellValue();
-			System.out.println(projectName);
-			System.out.println(bankName);
-			System.out.println(managerName);
-			
+			/*
+			 * System.out.println(projectName); System.out.println(bankName);
+			 * System.out.println(managerName);
+			 */
+			logger.info("Excel metadata loaded. Project: {}, Bank: {}, Manager: {}", projectName, bankName,
+					managerName);
 
 			for (int i = 7; i <= sheet.getLastRowNum(); i++) {
 
 				Row row = sheet.getRow(i);
 
-				if (row == null) continue;
+				if (row == null)
+					continue;
 
 				model = new ExcelRowModel();
-				
 				model.setBankName(bankName);
-				
 				model.setProjectManager(managerName);
-				
 				model.setProjectName(projectName);
-
 				model.setPhaseName(ReadUtil.getString(row.getCell(1), evaluator));
-
 				model.setMilestoneName(ReadUtil.getString(row.getCell(2), evaluator));
-
 				model.setTaskName(ReadUtil.getString(row.getCell(3), evaluator));
-
 				model.setSubTaskName(ReadUtil.getString(row.getCell(4), evaluator));
-
 				model.setActivityName(ReadUtil.getString(row.getCell(5), evaluator));
-
 				model.setEstimatedPeriodWeek(ReadUtil.getDouble(row.getCell(7), evaluator));
-
 				model.setPlannedStartDate(ReadUtil.getLocalDate(row.getCell(8)));
-
 				model.setPlannedEndDate(ReadUtil.getLocalDate(row.getCell(9)));
-
 				model.setActualStartDate(ReadUtil.getLocalDate(row.getCell(10)));
-
 				model.setActualEndDate(ReadUtil.getLocalDate(row.getCell(11)));
-
-				model.setActualPeriodWeek(ReadUtil.calculateActualPeriod(model.getActualStartDate(),model.getActualEndDate()));
+				model.setActualPeriodWeek(
+						ReadUtil.calculateActualPeriod(model.getActualStartDate(), model.getActualEndDate()));
 
 				model.setProgress(ReadUtil.getInt(row.getCell(13), evaluator));
 
@@ -85,11 +80,12 @@ public class ExcelParserUtil {
 			}
 
 			workbook.close();
-			
+			logger.info("Excel parsing completed successfully. Total rows processed: {}", rowList.size());
 			return rowList;
 		} catch (Exception e) {
-			e.printStackTrace();
-			throw new ReadExcelException("EXCEL_READ_ERROR", "Error while processing Excel: " + e.getMessage());
+			logger.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
+			logger.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
+			throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR, "Error while processing Excel: " + e.getMessage());
 		}
 	}
 }
