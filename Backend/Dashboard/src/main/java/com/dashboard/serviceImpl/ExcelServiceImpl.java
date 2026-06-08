@@ -24,7 +24,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 	@Override
 	public byte[] generateExcel(List<ActivityModel> reports) {
-		
+		//System.out.println(reports);
 		ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
 
 		try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
@@ -63,6 +63,8 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 9, report.getPlannedEndDate());
 				WriteUtil.setDate(row, 10, report.getActualStartDate());
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
+				//WriteUtil.setDate(row, 11, report.getActualPeriodWeek());
+
 				WriteUtil.setCell(row, 13, report.getProgress());
 
 				currentRow++;
