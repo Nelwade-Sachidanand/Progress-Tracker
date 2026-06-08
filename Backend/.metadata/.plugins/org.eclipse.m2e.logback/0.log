@@ -1469,3 +1469,11 @@ java.io.FileNotFoundException: D:\Progress_Tracker_Project\Backend\.metadata\.pl
 2026-06-05 12:43:00,560 [Worker-169: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
 2026-06-05 12:43:00,581 [Worker-169: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
 2026-06-05 12:43:00,586 [Worker-169: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory C:\Users\avinash.ghoghare\Desktop\Progress-Tracker\Backend\Dashboard\src\test\resources
+2026-06-05 15:01:40,869 [Worker-0: Loading available Gradle versions] INFO  o.e.b.c.i.u.g.PublishedGradleVersions - Gradle version information cache is up-to-date. Trying to read.
+2026-06-05 15:01:54,584 [Worker-6: Building] INFO  o.e.m.c.i.l.LifecycleMappingFactory - Using org.eclipse.m2e.jdt.JarLifecycleMapping lifecycle mapping for MavenProject: Dashboard:Dashboard:0.0.1-SNAPSHOT @ C:\Users\avinash.ghoghare\Desktop\Progress-Tracker\Backend\Dashboard\pom.xml.
+2026-06-05 15:01:55,607 [Worker-6: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-05 15:01:55,624 [Worker-6: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-05 15:01:55,629 [Worker-6: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory C:\Users\avinash.ghoghare\Desktop\Progress-Tracker\Backend\Dashboard\src\test\resources
+2026-06-05 15:13:37,316 [Worker-28: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-05 15:13:37,322 [Worker-28: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - Copying 1 resource from src\main\resources to target\classes
+2026-06-05 15:13:37,326 [Worker-28: Building] INFO  o.a.m.s.f.DefaultMavenResourcesFiltering - skip non existing resourceDirectory C:\Users\avinash.ghoghare\Desktop\Progress-Tracker\Backend\Dashboard\src\test\resources

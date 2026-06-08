@@ -82,7 +82,7 @@ public class DashboardServiceImpl implements DashboardService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				WriteUtil.validateExcelRow(model);
+				//WriteUtil.validateExcelRow(model);
 				Project project = projectMap.get(model.getProjectName());
 
 				if (project == null) {
