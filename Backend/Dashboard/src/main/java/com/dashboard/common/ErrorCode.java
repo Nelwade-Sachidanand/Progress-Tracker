@@ -25,6 +25,10 @@ public class ErrorCode {
 
     // Resource Not Found
     public static final String PROJECT_NOT_FOUND = "PRJ_404";
+    public static final String PHASE_NOT_FOUND = "PH_404";
+    public static final String MILESTONE_NOT_FOUND = "MIL_404";
+    public static final String TASK_NOT_FOUND = "TAS_404";
+    public static final String SUBTASK_NOT_FOUND = "SUB_404";
     public static final String ACTIVITY_NOT_FOUND = "ACT_404";
     public static final String USER_NOT_FOUND = "USR_404";
     public static final String AUDIT_NOT_FOUND = "AUD_404";

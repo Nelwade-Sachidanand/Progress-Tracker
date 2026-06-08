@@ -2,7 +2,6 @@ package com.dashboard.serviceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,8 +40,10 @@ import com.dashboard.entity.Task;
 import com.dashboard.exception.DatabaseException;
 import com.dashboard.exception.ReadExcelException;
 import com.dashboard.exception.ResourceNotFoundException;
+import com.dashboard.model.ActivityModel;
 import com.dashboard.model.AuditLogModel;
 import com.dashboard.model.ExcelRowModel;
+import com.dashboard.model.GenerateReportModel;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.AuditService;
 import com.dashboard.service.DashboardService;
@@ -184,7 +185,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 				if (!isNewActivity && !newlyCreatedProjects.contains(project)
 						&& isActivityChanged(oldActivity, activity)) {
-					
+
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
 							activity.getActivityName(), project.getProjectName(), oldActivity, activity));
 				}
@@ -220,7 +221,7 @@ public class DashboardServiceImpl implements DashboardService {
 
 		} catch (Exception e) {
 			logger.error("Excel upload failed. File: {}", file.getOriginalFilename(), e);
-			
+
 			throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR,
 					"Error while saving Excel into DB : " + e.getMessage());
 		}
@@ -362,5 +363,157 @@ public class DashboardServiceImpl implements DashboardService {
 		}
 		return newRow;
 	}
+
+	@Override
+	public List<ActivityModel> generateReport(GenerateReportModel req) {
+		String projectName = req.getProjectName();
+		Optional<Project> resultProject = projectRepository.findByProjectName(projectName);
+		List<ActivityModel> rows = new ArrayList<>();
+		Project project = resultProject.get();
+
+		if (resultProject.isEmpty()) {
+			logger.warn("Project not found for export. Project: {}", projectName);
+
+			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+		}
+		for (Phase phase : project.getPhases()) {
+
+		    if (hasText(req.getPhaseName()) &&
+		        !phase.getPhaseName().equalsIgnoreCase(req.getPhaseName())) {
+		        continue;
+		    }
+
+		    for (Milestone milestone : phase.getMilestones()) {
+
+		        if (hasText(req.getMilestoneName()) &&
+		            !milestone.getMilestoneName().equalsIgnoreCase(req.getMilestoneName())) {
+		            continue;
+		        }
+
+		        for (Task task : milestone.getTasks()) {
+
+		            if (hasText(req.getTaskName()) &&
+		                !task.getTaskName().equalsIgnoreCase(req.getTaskName())) {
+		                continue;
+		            }
+
+		            for (Subtask subTask : task.getSubTasks()) {
+
+		                if (hasText(req.getSubtaskName()) &&
+		                    !subTask.getSubTaskName().equalsIgnoreCase(req.getSubtaskName())) {
+		                    continue;
+		                }
+
+		                for (Activity activity : subTask.getActivities()) {
+
+		                    if (hasText(req.getExecutionStatus()) &&
+		                        !activity.getExecutionStatus()
+		                            .equalsIgnoreCase(req.getExecutionStatus())) {
+		                        continue;
+		                    }
+
+		                    ActivityModel row = new ActivityModel();
+		                    
+		                    BeanUtils.copyProperties(activity,row);
+
+		                    row.setProjectName(project.getProjectName());
+		                    row.setPhaseName(phase.getPhaseName());
+		                    row.setMilestoneName(milestone.getMilestoneName());
+		                    row.setTaskName(task.getTaskName());
+		                    row.setSubTaskName(subTask.getSubTaskName());
+
+		                    rows.add(row);
+		                }
+		            }
+		        }
+		    }
+		}
+
+		return rows;
+	}
+	
+	private boolean hasText(String value) {
+	    return value != null && !value.trim().isEmpty();
+	}
+//	@Override
+//	public Object generateReport(GenerateReportModel req) {
+//		String projectName = req.getProjectName();
+//		Optional<Project> resultProject = projectRepository.findByProjectName(projectName);
+//		Project project = resultProject.get();
+//
+//		if (resultProject.isEmpty()) {
+//			logger.warn("Project not found for export. Project: {}", projectName);
+//
+//			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+//		}
+//
+//		if (req.getPhaseName() != null && !req.getPhaseName().isEmpty()) {
+//			Phase resultPhase = project.getPhases().stream()
+//					.filter(phase -> phase.getPhaseName().equalsIgnoreCase(req.getPhaseName())).findFirst()
+//					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase Not Found",
+//							req.getPhaseName()));
+//			
+//			
+//			 if(req.getMilestoneName() != null && !req.getMilestoneName().isEmpty()) {
+//				Milestone resultMilestone = resultPhase.getMilestones().stream()
+//						.filter(milestone -> milestone.getMilestoneName()
+//								.equalsIgnoreCase(req.getMilestoneName())).findFirst()
+//								.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND, "Mile Stone Not Found", req.getMilestoneName()));
+//				
+//				if (req.getTaskName() != null && !req.getTaskName().isEmpty()) {
+//					Task resultTask = resultMilestone.getTasks().stream()
+//							.filter(task -> task.getTaskName().equalsIgnoreCase(req.getTaskName())).findFirst()
+//							.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TASK_NOT_FOUND, "Task Not FOund", req.getTaskName()));
+//					
+//					if (req.getSubtaskName() != null && !req.getSubtaskName().isEmpty()) {
+//						Subtask resulSubtask = resultTask.getSubTasks().stream()
+//								.filter(subtask -> subtask.getSubTaskName().equalsIgnoreCase(req.getSubtaskName())).findFirst()
+//								.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SUBTASK_NOT_FOUND, "Subtask Not Found", req.getSubtaskName()));
+//						
+//						return resulSubtask;
+//					}
+//					
+//					return resultTask;
+//				}
+//				return resultMilestone;
+//			}
+//
+//			return resultPhase;
+//		}
+//		else if (req.getExecutionStatus() != null && !req.getExecutionStatus().isEmpty()) {
+//			List<ActivityModel> activityModels = new ArrayList<>();
+//
+//			for (Phase phase : project.getPhases()) {
+//
+//			    for (Milestone milestone : phase.getMilestones()) {
+//
+//			        for (Task task : milestone.getTasks()) {
+//
+//			            for (Subtask subTask : task.getSubTasks()) {
+//
+//			                for (Activity activity : subTask.getActivities()) {
+//
+//			                    if (activity.getExecutionStatus()
+//			                            .equalsIgnoreCase(req.getExecutionStatus())) {
+//			                    	
+//			                    	ActivityModel activitydto = new ActivityModel();
+//			                    	BeanUtils.copyProperties(activity, activitydto);
+//			                    	activitydto.setProjectName(projectName);
+//			                    	activitydto.setPhaseName(phase.getPhaseName());
+//			                    	activitydto.setMilestoneName(milestone.getMilestoneName());
+//			                    	activitydto.setTaskName(task.getTaskName());
+//			                    	activitydto.setSubTaskName(subTask.getSubTaskName());
+//			                    	activityModels.add(activitydto);
+//			                    }
+//			                }
+//			            }
+//			        }
+//			    }
+//			}
+//
+//			return activityModels;
+//		}
+//		return resultProject;
+//	}
 
 }

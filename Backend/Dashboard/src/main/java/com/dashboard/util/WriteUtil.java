@@ -56,18 +56,17 @@ public class WriteUtil {
 
 	public static void setDate(Row row, int column, LocalDate date) {
 
-		if (date == null) {
-			return;
-		}
+	    Cell cell = row.getCell(column);
 
-		Cell cell = row.getCell(column);
+	    if (cell == null) {
+	        cell = row.createCell(column);
+	    }
 
-		if (cell == null) {
-
-			cell = row.createCell(column);
-		}
-
-		cell.setCellValue(java.sql.Date.valueOf(date));
+	    if (date != null) {
+	        cell.setCellValue(java.sql.Date.valueOf(date));
+	    } else {
+	        cell.setBlank(); // Clear old value
+	    }
 	}
 
 	public static Double calculateActualPeriodWeek(LocalDate startDate, LocalDate endDate) {
