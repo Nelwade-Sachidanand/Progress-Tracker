@@ -15,24 +15,50 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import com.dashboard.common.AuditAction;
+import com.dashboard.common.AuditEntity;
+import com.dashboard.common.ErrorCode;
+import com.dashboard.exception.ReadExcelException;
+import com.dashboard.exception.ResourceNotFoundException;
 import com.dashboard.model.ActivityModel;
+import com.dashboard.service.AuditService;
 import com.dashboard.service.ExcelService;
+import com.dashboard.util.UserContextUtil;
 import com.dashboard.util.WriteUtil;
 
 @Service
 public class ExcelServiceImpl implements ExcelService {
 
+	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
+
+	@Autowired
+	private AuditService auditService;
+
 	@Override
 	public byte[] generateExcel(List<ActivityModel> reports) {
 		// System.out.println(reports);
+		if (reports == null || reports.isEmpty()) {
+
+			logger.warn("Excel export failed. No report data found.");
+
+			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No report data found", null);
+		}
 		ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
 
 		try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
 
 			Sheet sheet = workbook.getSheet("Project schedule");
+			if (sheet == null) {
+
+				throw new ResourceNotFoundException(ErrorCode.EXCEL_TEMPLATE_NOT_FOUND,
+						"Project schedule sheet not found in template", "Project schedule");
+			}
 //			sheet.getRow(1).getCell(3).setCellValue(reports.get(0).getBankName());
 			sheet.getRow(2).getCell(3).setCellValue(reports.get(0).getProjectName());
 //			sheet.getRow(3).getCell(3).setCellValue(project.getProjectManager());
@@ -76,15 +102,25 @@ public class ExcelServiceImpl implements ExcelService {
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 			evaluator.evaluateAll();
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
-			
-			
-			workbook.write(output);
 
+			workbook.write(output);
+			logger.info("Excel report generated successfully. Project: {}, Records: {}",
+					reports.get(0).getProjectName(), reports.size());
+			String modifiedBy = UserContextUtil.getCurrentUser();
+
+			auditService.saveAuditLog(AuditAction.EXPORT_EXCEL, AuditEntity.PROJECT, reports.get(0).getProjectName(),
+					reports.get(0).getProjectName(), null, "Project Excel Report Exported", modifiedBy);
 			return output.toByteArray();
 
+		} catch (ResourceNotFoundException e) {
+
+			throw e;
+
 		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException("Failed to generate Excel", e);
+
+			logger.error("Error while generating excel report", e);
+
+			throw new ReadExcelException(ErrorCode.EXCEL_EXPORT_ERROR, "Error while generating Excel report");
 		}
 	}
 

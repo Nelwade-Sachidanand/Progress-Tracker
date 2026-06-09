@@ -83,7 +83,7 @@ public class DashboardServiceImpl implements DashboardService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				//WriteUtil.validateExcelRow(model);
+				WriteUtil.validateExcelRow(model);
 				Project project = projectMap.get(model.getProjectName());
 
 				if (project == null) {
@@ -202,7 +202,7 @@ public class DashboardServiceImpl implements DashboardService {
 			String modifiedBy = UserContextUtil.getCurrentUser();
 
 			for (Project project : newlyCreatedProjects) {
-				auditService.saveAuditLog(AuditAction.IMPORT_PROJECT, AuditEntity.PROJECT, project.getProjectName(),
+				auditService.saveAuditLog(AuditAction.CREATE_PROJECT, AuditEntity.PROJECT, project.getProjectName(),
 						project.getProjectName(), null, project, modifiedBy);
 			}
 			for (AuditLogModel audit : auditLogs) {
@@ -366,74 +366,101 @@ public class DashboardServiceImpl implements DashboardService {
 
 	@Override
 	public List<ActivityModel> generateReport(GenerateReportModel req) {
-		String projectName = req.getProjectName();
-		Optional<Project> resultProject = projectRepository.findByProjectName(projectName);
+
+		logger.info("Report generation started. Project: {}", req.getProjectName());
+
 		List<ActivityModel> rows = new ArrayList<>();
-		Project project = resultProject.get();
 
-		if (resultProject.isEmpty()) {
-			logger.warn("Project not found for export. Project: {}", projectName);
+		try {
 
-			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+			String projectName = req.getProjectName();
+
+			Optional<Project> resultProject = projectRepository.findByProjectName(projectName);
+
+			if (resultProject.isEmpty()) {
+
+				logger.warn("Project not found while generating report. Project: {}", projectName);
+
+				throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+			}
+
+			Project project = resultProject.get();
+
+			logger.info("Project found successfully. Project: {}", projectName);
+
+			for (Phase phase : project.getPhases()) {
+
+				if (hasText(req.getPhaseName()) && !phase.getPhaseName().equalsIgnoreCase(req.getPhaseName())) {
+					continue;
+				}
+
+				for (Milestone milestone : phase.getMilestones()) {
+
+					if (hasText(req.getMilestoneName())
+							&& !milestone.getMilestoneName().equalsIgnoreCase(req.getMilestoneName())) {
+						continue;
+					}
+
+					for (Task task : milestone.getTasks()) {
+
+						if (hasText(req.getTaskName()) && !task.getTaskName().equalsIgnoreCase(req.getTaskName())) {
+							continue;
+						}
+
+						for (Subtask subTask : task.getSubTasks()) {
+
+							if (hasText(req.getSubtaskName())
+									&& !subTask.getSubTaskName().equalsIgnoreCase(req.getSubtaskName())) {
+								continue;
+							}
+
+							for (Activity activity : subTask.getActivities()) {
+
+								if (hasText(req.getExecutionStatus())
+										&& !activity.getExecutionStatus().equalsIgnoreCase(req.getExecutionStatus())) {
+									continue;
+								}
+
+								ActivityModel row = new ActivityModel();
+
+								BeanUtils.copyProperties(activity, row);
+
+								row.setProjectName(project.getProjectName());
+								row.setPhaseName(phase.getPhaseName());
+								row.setMilestoneName(milestone.getMilestoneName());
+								row.setTaskName(task.getTaskName());
+								row.setSubTaskName(subTask.getSubTaskName());
+
+								rows.add(row);
+							}
+						}
+					}
+				}
+			}
+			if (rows.isEmpty()) {
+
+				logger.warn("No records found for report. Project: {}, Filters Applied", projectName);
+
+				throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND,
+						"No records found for selected filters", projectName);
+			}
+			logger.info("Report generated successfully. Project: {}, Records Found: {}", projectName, rows.size());
+
+			return rows;
+		} catch (ResourceNotFoundException e) {
+
+			throw e;
+
+		} catch (Exception e) {
+
+			logger.error("Error while generating report. Project: {}", req.getProjectName(), e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while generating report");
 		}
-		for (Phase phase : project.getPhases()) {
-
-		    if (hasText(req.getPhaseName()) &&
-		        !phase.getPhaseName().equalsIgnoreCase(req.getPhaseName())) {
-		        continue;
-		    }
-
-		    for (Milestone milestone : phase.getMilestones()) {
-
-		        if (hasText(req.getMilestoneName()) &&
-		            !milestone.getMilestoneName().equalsIgnoreCase(req.getMilestoneName())) {
-		            continue;
-		        }
-
-		        for (Task task : milestone.getTasks()) {
-
-		            if (hasText(req.getTaskName()) &&
-		                !task.getTaskName().equalsIgnoreCase(req.getTaskName())) {
-		                continue;
-		            }
-
-		            for (Subtask subTask : task.getSubTasks()) {
-
-		                if (hasText(req.getSubtaskName()) &&
-		                    !subTask.getSubTaskName().equalsIgnoreCase(req.getSubtaskName())) {
-		                    continue;
-		                }
-
-		                for (Activity activity : subTask.getActivities()) {
-
-		                    if (hasText(req.getExecutionStatus()) &&
-		                        !activity.getExecutionStatus()
-		                            .equalsIgnoreCase(req.getExecutionStatus())) {
-		                        continue;
-		                    }
-
-		                    ActivityModel row = new ActivityModel();
-		                    
-		                    BeanUtils.copyProperties(activity,row);
-
-		                    row.setProjectName(project.getProjectName());
-		                    row.setPhaseName(phase.getPhaseName());
-		                    row.setMilestoneName(milestone.getMilestoneName());
-		                    row.setTaskName(task.getTaskName());
-		                    row.setSubTaskName(subTask.getSubTaskName());
-
-		                    rows.add(row);
-		                }
-		            }
-		        }
-		    }
-		}
-
-		return rows;
 	}
-	
+
 	private boolean hasText(String value) {
-	    return value != null && !value.trim().isEmpty();
+		return value != null && !value.trim().isEmpty();
 	}
 //	@Override
 //	public Object generateReport(GenerateReportModel req) {

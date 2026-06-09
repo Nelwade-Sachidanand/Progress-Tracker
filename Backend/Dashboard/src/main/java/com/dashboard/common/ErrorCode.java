@@ -39,4 +39,8 @@ public class ErrorCode {
     // Excel
     public static final String EXCEL_READ_ERROR = "EXCEL_READ_ERROR";
     public static final String EXCEL_EXPORT_ERROR = "EXCEL_EXPORT_ERROR";
-    public static final String BANK_NAME_REQUIRED = "VAL_021";}
+    public static final String BANK_NAME_REQUIRED = "VAL_021";
+	public static final String EXCEL_TEMPLATE_NOT_FOUND = "EXCEL_003";
+	public static final String NO_REPORT_DATA_FOUND = "VAL_033";
+	
+}

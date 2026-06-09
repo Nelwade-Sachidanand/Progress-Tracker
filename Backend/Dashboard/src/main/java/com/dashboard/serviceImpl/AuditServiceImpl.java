@@ -1,6 +1,7 @@
 package com.dashboard.serviceImpl;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -38,8 +39,8 @@ public class AuditServiceImpl implements AuditService {
 	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
 			Object oldObject, Object newObject, String modifiedBy) {
 
-		logger.info("Saving audit log. Action: {}, Entity: {}, Name: {}, User: {}",
-				actionType, entityType, entityName, modifiedBy);
+		logger.info("Saving audit log. Action: {}, Entity: {}, Name: {}, User: {}", actionType, entityType, entityName,
+				modifiedBy);
 
 		try {
 
@@ -55,17 +56,13 @@ public class AuditServiceImpl implements AuditService {
 
 			auditLogRepository.save(auditLog);
 
-			logger.info("Audit log saved successfully. Action: {}, Entity: {}",
-					actionType, entityType);
+			logger.info("Audit log saved successfully. Action: {}, Entity: {}", actionType, entityType);
 
 		} catch (Exception e) {
 
-			logger.error("Failed to save audit log. Action: {}, Entity: {}",
-					actionType, entityType, e);
+			logger.error("Failed to save audit log. Action: {}, Entity: {}", actionType, entityType, e);
 
-			throw new DatabaseException(
-					ErrorCode.DATABASE_ERROR,
-					"Error while saving audit log");
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while saving audit log");
 		}
 	}
 
@@ -82,19 +79,13 @@ public class AuditServiceImpl implements AuditService {
 
 				logger.warn("No audit logs found");
 
-				throw new ResourceNotFoundException(
-						ErrorCode.AUDIT_NOT_FOUND,
-						"No audit logs found",
-						null);
+				throw new ResourceNotFoundException(ErrorCode.AUDIT_NOT_FOUND, "No audit logs found", null);
 			}
-
+			Collections.reverse(auditLogs);
 			logger.info("Audit logs fetched successfully. Count: {}", auditLogs.size());
 
-			return responseBuilder.createResponse(
-					StatusCode.SUCCESS,
-					StatusCode.SUCCESS_STATUS_TYPE,
-					"Audit logs fetched successfully",
-					auditLogs);
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Audit logs fetched successfully", auditLogs);
 
 		} catch (ResourceNotFoundException e) {
 
@@ -104,9 +95,7 @@ public class AuditServiceImpl implements AuditService {
 
 			logger.error("Error while fetching audit logs", e);
 
-			throw new DatabaseException(
-					ErrorCode.DATABASE_ERROR,
-					"Error while fetching audit logs");
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while fetching audit logs");
 		}
 	}
 }
