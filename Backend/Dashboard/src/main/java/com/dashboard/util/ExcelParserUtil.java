@@ -39,10 +39,7 @@ public class ExcelParserUtil {
 			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
 			String bankName = sheet.getRow(1).getCell(3).getStringCellValue();
 			String managerName = sheet.getRow(3).getCell(3).getStringCellValue();
-			/*
-			 * System.out.println(projectName); System.out.println(bankName);
-			 * System.out.println(managerName);
-			 */
+
 			logger.info("Excel metadata loaded. Project: {}, Bank: {}, Manager: {}", projectName, bankName,
 					managerName);
 

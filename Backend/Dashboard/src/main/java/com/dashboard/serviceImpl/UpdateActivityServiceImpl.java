@@ -49,7 +49,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	@Override
 	public Response updateActivity(ActivityModel request) {
 
-		// System.out.println(request);
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		WriteUtil.validateRequest(request);
@@ -115,7 +114,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
-		// System.out.println(request);
 		if (!isActivityChanged(oldActivity, activityToUpdate)) {
 			logger.warn("No changes found for activity: {}", request.getActivityName());
 
@@ -125,7 +123,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		projectRepository.save(project);
 
 		String modifiedBy = UserContextUtil.getCurrentUser();
-		// System.out.println("Logged In User : " + username);
 
 		auditService.saveAuditLog(AuditAction.UPDATE_ACTIVITY, AuditEntity.ACTIVITY, activityToUpdate.getActivityName(),
 				project.getProjectName(), oldActivity, activityToUpdate, modifiedBy);

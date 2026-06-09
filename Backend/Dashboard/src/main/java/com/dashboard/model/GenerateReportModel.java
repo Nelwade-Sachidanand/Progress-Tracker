@@ -1,5 +1,7 @@
 package com.dashboard.model;
 
+import java.time.LocalDate;
+
 import lombok.Data;
 
 @Data
@@ -11,4 +13,6 @@ public class GenerateReportModel {
 	private String subtaskName;
 	private String activityName;
 	private String executionStatus;
+	private LocalDate plannedStartDate;
+	private LocalDate plannedEndDate;
 }

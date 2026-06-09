@@ -105,7 +105,6 @@ public class UserServiceImpl implements UserService {
 		logger.info("Login attempt for username: {}", username);
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 		User user = userRepository.findByUsername(username).orElse(null);
-		System.out.println("find " + user);
 		if (user == null) {
 			logger.warn("Login failed. User not found: {}", username);
 			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
@@ -146,66 +145,6 @@ public class UserServiceImpl implements UserService {
 				responseModel);
 	}
 
-	/*
-	 * @Override public Response updateUserProjects(UserProjectUpdateModel model) {
-	 * System.out.println(model); ResponseBuilder responseBuilder =
-	 * context.getBean(ResponseBuilder.class); User user =
-	 * userRepository.findByUsername(model.getUsername()).orElse(null);
-	 * 
-	 * if(user == null) { throw new ResourceNotFoundException("USR_404",
-	 * "User not found", model.getUsername()); }
-	 * 
-	 * User oldUser = new User();
-	 * 
-	 * BeanUtils.copyProperties(user, oldUser);
-	 * 
-	 * for(String projectName : model.getProjectNames()) { if
-	 * (projectRepository.findByProjectName(projectName).isEmpty()) { throw new
-	 * ResourceNotFoundException("PRJ_404", "Project not found", projectName); } }
-	 * 
-	 * user.setProjectNames(model.getProjectNames()); User updatedUser =
-	 * userRepository.save(user);
-	 * 
-	 * if(!Objects.equals(oldUser.getProjectNames(), updatedUser.getProjectNames()))
-	 * { String modifiedBy =
-	 * SecurityContextHolder.getContext().getAuthentication().getName();
-	 * auditService.saveAuditLog(AuditAction.UPDATE_USER, AuditEntity.USER,
-	 * updatedUser.getUsername(), null, oldUser, updatedUser, modifiedBy); }
-	 * updatedUser.setPassword(null); return
-	 * responseBuilder.createResponse(StatusCode.SUCCESS,
-	 * StatusCode.SUCCESS_STATUS_TYPE, "Projects updated successfully",
-	 * updatedUser); }
-	 * 
-	 * @Override public Response updateUserStatus(String username, Boolean active) {
-	 * 
-	 * ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-	 * 
-	 * if(username == null || username.isBlank()) { return
-	 * responseBuilder.createResponse(StatusCode.ERROR,
-	 * StatusCode.ERROR_STATUS_TYPE, "Username is required", null); }
-	 * 
-	 * User user = userRepository.findByUsername(username).orElse(null);
-	 * 
-	 * if(user == null) { throw new ResourceNotFoundException("USR_404",
-	 * "User not found", username); }
-	 * 
-	 * User oldUser = new User();
-	 * 
-	 * BeanUtils.copyProperties(user, oldUser); if(user.getActive().equals(active))
-	 * { return responseBuilder.createResponse(StatusCode.ERROR,
-	 * StatusCode.ERROR_STATUS_TYPE, "User already has this status", null); }
-	 * 
-	 * user.setActive(active); userRepository.save(user);
-	 * 
-	 * if(!Objects.equals(oldUser.getActive(), user.getActive())) { String
-	 * modifiedBy =
-	 * SecurityContextHolder.getContext().getAuthentication().getName();
-	 * auditService.saveAuditLog(AuditAction.CHANGE_STATUS, AuditEntity.USER,
-	 * user.getUsername(), null, oldUser, user, modifiedBy); }
-	 * 
-	 * return responseBuilder.createResponse(StatusCode.SUCCESS,
-	 * StatusCode.SUCCESS_STATUS_TYPE, "User status updated successfully", user); }
-	 */
 	@Override
 	public Response updateUser(UserUpdateModel model) {
 

@@ -1,7 +1,6 @@
 package com.dashboard.resources;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/dashboard")
-@CrossOrigin
 public class ActivityController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ActivityController.class);
