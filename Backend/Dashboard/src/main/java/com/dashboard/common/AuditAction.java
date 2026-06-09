@@ -28,4 +28,6 @@ public class AuditAction {
 	
 	public static final String UPLOAD_UPDATE_ACTIVITY = "Upload_Activity_Updated";
 
+	public static final String DELETE_PROJECT = "Delete_Project";
+
 }

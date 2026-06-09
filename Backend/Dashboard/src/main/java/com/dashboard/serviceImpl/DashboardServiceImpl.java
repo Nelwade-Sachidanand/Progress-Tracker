@@ -240,14 +240,6 @@ public class DashboardServiceImpl implements DashboardService {
 				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth());
 	}
 
-	@Override
-	public Response getAllProjects() {
-		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		List<Project> projects = projectRepository.findAll();
-		logger.info("Projects fetched successfully. Count: {}", projects.size());
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Projects Fetched Successfully", projects);
-	}
 
 	@Override
 	public ByteArrayInputStream exportExcel(String projectName) {

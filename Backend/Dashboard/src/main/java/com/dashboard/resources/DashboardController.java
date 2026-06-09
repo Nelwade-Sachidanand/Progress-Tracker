@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +25,7 @@ import com.dashboard.model.ActivityModel;
 import com.dashboard.model.GenerateReportModel;
 import com.dashboard.service.DashboardService;
 import com.dashboard.service.ExcelService;
+import com.dashboard.service.ProjectService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +38,10 @@ public class DashboardController {
 	@Autowired
 	private DashboardService dashboardService;
 	
+	
+	@Autowired
+	private ProjectService projectService;
+
 	@Autowired
 	private ExcelService excelService;
 
@@ -50,7 +56,14 @@ public class DashboardController {
 
 	@GetMapping("/projects")
 	public Response getAllProjects() {
-		return dashboardService.getAllProjects();
+		
+		return projectService.getAllProjects();
+	}
+
+	@DeleteMapping("/delete/{projectName}")
+	public Response deleteProject(@PathVariable String projectName) {
+
+		return projectService.deleteProject(projectName);
 	}
 
 	@GetMapping("/export/{projectName}")

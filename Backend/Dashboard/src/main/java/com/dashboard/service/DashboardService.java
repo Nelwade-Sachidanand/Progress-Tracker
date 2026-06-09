@@ -13,7 +13,6 @@ public interface DashboardService {
 
 	Response uploadExcel(MultipartFile file);
 	
-	Response getAllProjects();
 	
 	ByteArrayInputStream exportExcel(String projectName);
 	
