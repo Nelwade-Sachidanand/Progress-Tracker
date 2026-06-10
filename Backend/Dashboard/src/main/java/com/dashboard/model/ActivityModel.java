@@ -38,4 +38,6 @@ public class ActivityModel {
     private String executionStatus;
 
     private String scheduleHealth;
+    
+    private String remark;
 }

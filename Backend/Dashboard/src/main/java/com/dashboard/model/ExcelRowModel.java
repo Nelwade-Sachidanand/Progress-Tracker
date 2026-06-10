@@ -44,4 +44,6 @@ public class ExcelRowModel {
 	private String executionStatus;
 
 	private String scheduleHealth;
+	
+	private String remark;
 }

@@ -35,6 +35,7 @@ import com.dashboard.entity.Phase;
 import com.dashboard.entity.Project;
 import com.dashboard.entity.Subtask;
 import com.dashboard.entity.Task;
+import com.dashboard.entity.User;
 import com.dashboard.exception.DatabaseException;
 import com.dashboard.exception.ReadExcelException;
 import com.dashboard.exception.ResourceNotFoundException;
@@ -42,6 +43,7 @@ import com.dashboard.model.ActivityModel;
 import com.dashboard.model.AuditLogModel;
 import com.dashboard.model.ExcelRowModel;
 import com.dashboard.repository.ProjectRepository;
+import com.dashboard.repository.UserRepository;
 import com.dashboard.service.AuditService;
 import com.dashboard.service.ExcelService;
 import com.dashboard.util.ExcelParserUtil;
@@ -55,10 +57,13 @@ public class ExcelServiceImpl implements ExcelService {
 
 	@Autowired
 	private AuditService auditService;
-	
+
 	@Autowired
 	private ProjectRepository projectRepository;
-	
+
+	@Autowired
+	private UserRepository userRepository;
+
 	@Autowired
 	private ApplicationContext context;
 
@@ -81,7 +86,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 			for (ExcelRowModel model : rows) {
 				WriteUtil.validateExcelRow(model);
-				
+
 				Project project = projectMap.get(model.getProjectName());
 
 				if (project == null) {
@@ -170,6 +175,7 @@ public class ExcelServiceImpl implements ExcelService {
 				activity.setProgress(model.getProgress());
 				activity.setExecutionStatus(model.getExecutionStatus());
 				activity.setScheduleHealth(model.getScheduleHealth());
+				activity.setRemark(model.getRemark());
 
 				// Audit for New Activity (Only for Existing Projects)
 
@@ -211,6 +217,10 @@ public class ExcelServiceImpl implements ExcelService {
 			logger.info("Excel upload completed successfully. Rows Processed: {}, New Projects Imported: {}",
 					rows.size(), newlyCreatedProjects.size());
 
+			assignProjectsToAdmins(newlyCreatedProjects);
+
+			logger.info("Successfully assigned {} new projects to admin users.", newlyCreatedProjects.size());
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Excel Uploaded Successfully", rows);
 
@@ -235,12 +245,40 @@ public class ExcelServiceImpl implements ExcelService {
 				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
 				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
 				|| !Objects.equals(oldActivity.getExecutionStatus(), newActivity.getExecutionStatus())
-				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth());
+				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth())
+				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
+	}
+
+	private void assignProjectsToAdmins(List<Project> newlyCreatedProjects) {
+
+		if (newlyCreatedProjects.isEmpty()) {
+			return;
+		}
+
+		List<String> projectNames = newlyCreatedProjects.stream().map(Project::getProjectName).toList();
+
+		List<User> admins = userRepository.findByRole("ADMIN");
+
+		for (User admin : admins) {
+
+			if (admin.getProjectNames() == null) {
+				admin.setProjectNames(new ArrayList<>());
+			}
+
+			for (String projectName : projectNames) {
+
+				if (!admin.getProjectNames().contains(projectName)) {
+					admin.getProjectNames().add(projectName);
+				}
+			}
+		}
+
+		userRepository.saveAll(admins);
 	}
 
 	@Override
 	public byte[] generateExcel(List<ActivityModel> reports) {
-		
+
 		if (reports == null || reports.isEmpty()) {
 			logger.warn("Excel export failed. No report data found.");
 
@@ -256,11 +294,11 @@ public class ExcelServiceImpl implements ExcelService {
 				throw new ResourceNotFoundException(ErrorCode.EXCEL_TEMPLATE_NOT_FOUND,
 						"Project schedule sheet not found in template", "Project schedule");
 			}
-			
+
 			Project project = projectRepository.findByProjectName(reports.get(0).getProjectName())
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
 							reports.get(0).getProjectName()));
-			
+
 			sheet.getRow(1).getCell(3).setCellValue(project.getBankName());
 			sheet.getRow(2).getCell(3).setCellValue(project.getProjectName());
 			sheet.getRow(3).getCell(3).setCellValue(project.getProjectManager());
@@ -293,6 +331,7 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 10, report.getActualStartDate());
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
 				WriteUtil.setCell(row, 13, report.getProgress());
+				WriteUtil.setCell(row, 16, report.getRemark());
 
 				currentRow++;
 			}

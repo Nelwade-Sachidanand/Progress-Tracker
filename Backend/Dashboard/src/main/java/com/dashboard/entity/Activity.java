@@ -30,4 +30,6 @@ public class Activity {
     private String executionStatus;
 
     private String scheduleHealth;
+    
+    private String remark;
 }
