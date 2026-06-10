@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,24 +32,41 @@ public class ReportServiceImpl implements ReportService {
 	@Autowired
 	private ActivityMapper mapper;
 
+	private static final Logger logger = LoggerFactory.getLogger(ReportServiceImpl.class);
+
 	@Override
 	public List<ActivityModel> generateReport(GenerateReportModel req) {
 
-		Project project = projectRepository.findByProjectName(req.getProjectName())
-				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-						req.getProjectName()));
+		logger.info("Generating report for project: {}", req.getProjectName());
+
+		Project project = projectRepository.findByProjectName(req.getProjectName()).orElseThrow(() -> {
+			logger.warn("Project not found: {}", req.getProjectName());
+
+			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+					req.getProjectName());
+		});
+
+		logger.info("Project found successfully: {}", project.getProjectName());
 
 		List<ActivityModel> rows = getActivities(project, req);
 
 		if (rows.isEmpty()) {
+
+			logger.warn("No report data found. Project: {}, Phase: {}, Milestone: {}, Task: {}", req.getProjectName(),
+					req.getPhaseName(), req.getMilestoneName(), req.getTaskName());
+
 			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No records found for selected filters",
 					req.getProjectName());
 		}
+
+		logger.info("Report generated successfully. Records found: {}", rows.size());
 
 		return rows;
 	}
 
 	private List<ActivityModel> getActivities(Project project, GenerateReportModel req) {
+
+		logger.debug("Applying filters for project: {}", project.getProjectName());
 
 		List<ActivityModel> rows = new ArrayList<>();
 
@@ -89,12 +108,15 @@ public class ReportServiceImpl implements ReportService {
 											req.getPlannedEndDate())) {
 								continue;
 							}
+
 							rows.add(mapper.toActivityModel(project, phase, milestone, task, subtask, activity));
 						}
 					}
 				}
 			}
 		}
+
+		logger.debug("Filtered activities count: {}", rows.size());
 
 		return rows;
 	}
