@@ -79,12 +79,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 						if (!subTask.getSubTaskName().equals(request.getSubTaskName())) {
 							continue;
 						}
+						if (subTask.getActivities() != null) {
+							for (Activity activity : subTask.getActivities()) {
+								if (activity.getActivityName().equals(request.getActivityName())) {
 
-						for (Activity activity : subTask.getActivities()) {
-							if (activity.getActivityName().equals(request.getActivityName())) {
-
-								activityToUpdate = activity;
-								break;
+									activityToUpdate = activity;
+									break;
+								}
 							}
 						}
 					}
@@ -114,7 +115,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 		activityToUpdate.setRemark(request.getRemark());
-				
+
 		if (!isActivityChanged(oldActivity, activityToUpdate)) {
 			logger.warn("No changes found for activity: {}", request.getActivityName());
 
