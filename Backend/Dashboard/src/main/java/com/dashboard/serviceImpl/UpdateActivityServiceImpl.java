@@ -79,12 +79,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 						if (!subTask.getSubTaskName().equals(request.getSubTaskName())) {
 							continue;
 						}
+						if (subTask.getActivities() != null) {
+							for (Activity activity : subTask.getActivities()) {
+								if (activity.getActivityName().equals(request.getActivityName())) {
 
-						for (Activity activity : subTask.getActivities()) {
-							if (activity.getActivityName().equals(request.getActivityName())) {
-
-								activityToUpdate = activity;
-								break;
+									activityToUpdate = activity;
+									break;
+								}
 							}
 						}
 					}
@@ -113,6 +114,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		activityToUpdate.setScheduleHealth(
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
+		activityToUpdate.setRemark(request.getRemark());
 
 		if (!isActivityChanged(oldActivity, activityToUpdate)) {
 			logger.warn("No changes found for activity: {}", request.getActivityName());
@@ -141,7 +143,8 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
 				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
 				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
-				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress());
+				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
+				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
 	}
 
 }
