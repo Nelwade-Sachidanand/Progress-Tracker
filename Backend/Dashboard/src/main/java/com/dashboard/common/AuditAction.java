@@ -30,4 +30,10 @@ public class AuditAction {
 
 	public static final String DELETE_PROJECT = "Delete_Project";
 
+	public static final String REQUEST_ACTIVITY_UPDATE = "Request_Activity_update";
+
+	public static final String APPROVE_ACTIVITY_UPDATE = "Approve_Activity_Update";
+
+	public static final String REJECT_ACTIVITY_UPDATE = "Reject_Activity_Update";
+
 }

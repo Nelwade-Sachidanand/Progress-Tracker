@@ -7,6 +7,8 @@ import lombok.Data;
 @Data
 public class ActivityModel {
 	
+	private String projectId;
+	
 	private String projectName;
 	
 	private String phaseName;

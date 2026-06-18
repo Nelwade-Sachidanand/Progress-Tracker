@@ -23,9 +23,9 @@ public class ProjectControlller {
 		return projectService.getAllProjects();
 	}
 
-	@DeleteMapping("/delete/{projectName}")
-	public Response deleteProject(@PathVariable String projectName) {
+	@DeleteMapping("/delete/{projectId}")
+    public Response deleteProject(@PathVariable String projectId) {
 
-		return projectService.deleteProject(projectName);
-	}
+        return projectService.deleteProject(projectId);
+    }
 }

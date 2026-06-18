@@ -1,7 +1,5 @@
 package com.dashboard.serviceImpl;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
 import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
@@ -17,6 +15,7 @@ import com.dashboard.common.Response;
 import com.dashboard.common.ResponseBuilder;
 import com.dashboard.common.StatusCode;
 import com.dashboard.entity.Activity;
+import com.dashboard.entity.ActivityUpdateRequest;
 import com.dashboard.entity.Milestone;
 import com.dashboard.entity.Phase;
 import com.dashboard.entity.Project;
@@ -25,6 +24,7 @@ import com.dashboard.entity.Task;
 import com.dashboard.exception.ResourceNotFoundException;
 import com.dashboard.exception.ValidationException;
 import com.dashboard.model.ActivityModel;
+import com.dashboard.repository.ActivityUpdateRequestRepository;
 import com.dashboard.repository.ProjectRepository;
 import com.dashboard.service.AuditService;
 import com.dashboard.service.UpdateActivityService;
@@ -44,6 +44,9 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	private ApplicationContext context;
 
 	@Autowired
+	private ActivityUpdateRequestRepository requestRepository;
+
+	@Autowired
 	private AuditService auditService;
 
 	@Override
@@ -52,11 +55,11 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		WriteUtil.validateRequest(request);
-		Project project = projectRepository.findByProjectName(request.getProjectName()).orElse(null);
+		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
 		if (project == null) {
-			logger.warn("Project not found. Project: {}", request.getProjectName());
+			logger.warn("Project not found. ProjectId: {}", request.getProjectId());
 			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					request.getProjectName());
+					request.getProjectId());
 		}
 		Activity activityToUpdate = null;
 
@@ -94,46 +97,108 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		}
 
 		if (activityToUpdate == null) {
-			logger.warn("Activity not found. Activity: {}, Project: {}", request.getActivityName(),
-					request.getProjectName());
+			logger.warn("Activity not found. Activity: {}, ProjectId: {}", request.getActivityName(),
+					request.getProjectId());
 			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
 					request.getActivityName());
 		}
 		Activity oldActivity = new Activity();
 
 		BeanUtils.copyProperties(activityToUpdate, oldActivity);
-		activityToUpdate.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
-		activityToUpdate.setPlannedStartDate(request.getPlannedStartDate());
-		activityToUpdate.setPlannedEndDate(request.getPlannedEndDate());
-		activityToUpdate.setActualStartDate(request.getActualStartDate());
-		activityToUpdate.setActualEndDate(request.getActualEndDate());
-		activityToUpdate.setActualPeriodWeek(
+
+		/*
+		 * Create Requested Activity
+		 */
+		Activity newActivity = new Activity();
+
+		newActivity.setActivityName(request.getActivityName());
+
+		newActivity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
+
+		newActivity.setPlannedStartDate(request.getPlannedStartDate());
+
+		newActivity.setPlannedEndDate(request.getPlannedEndDate());
+
+		newActivity.setActualStartDate(request.getActualStartDate());
+
+		newActivity.setActualEndDate(request.getActualEndDate());
+
+		newActivity.setActualPeriodWeek(
 				WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate()));
-		activityToUpdate.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
-		activityToUpdate.setProgress(request.getProgress());
-		activityToUpdate.setScheduleHealth(
+
+		newActivity.setProgress(request.getProgress());
+
+		newActivity.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
+
+		newActivity.setScheduleHealth(
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
-		activityToUpdate.setRemark(request.getRemark());
 
-		if (!isActivityChanged(oldActivity, activityToUpdate)) {
+		newActivity.setRemark(request.getRemark());
+
+		/*
+		 * Validate Changes
+		 */
+		if (!isActivityChanged(oldActivity, newActivity)) {
+
 			logger.warn("No changes found for activity: {}", request.getActivityName());
 
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
-		projectRepository.save(project);
+		/*
+		 * Create Approval Request
+		 */
+		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
 
-		String modifiedBy = UserContextUtil.getCurrentUser();
+		activityRequest.setProjectId(request.getProjectId());
 
-		auditService.saveAuditLog(AuditAction.UPDATE_ACTIVITY, AuditEntity.ACTIVITY, activityToUpdate.getActivityName(),
-				project.getProjectName(), oldActivity, activityToUpdate, modifiedBy);
+		activityRequest.setPhaseName(request.getPhaseName());
 
-		logger.info("Activity updated successfully. Activity: {}, Project: {}, Modified By: {}",
-				activityToUpdate.getActivityName(), project.getProjectName(), modifiedBy);
+		activityRequest.setMilestoneName(request.getMilestoneName());
+
+		activityRequest.setTaskName(request.getTaskName());
+
+		activityRequest.setSubTaskName(request.getSubTaskName());
+
+		activityRequest.setActivityName(request.getActivityName());
+
+		activityRequest.setOldActivity(oldActivity);
+
+		activityRequest.setNewActivity(newActivity);
+
+		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+
+		activityRequest.setStatus("PENDING");
+
+		activityRequest.setRequestedAt(java.time.LocalDateTime.now());
+		activityRequest.setRequestSource("MANUAL");
+
+		ActivityUpdateRequest existingRequest = requestRepository
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						request.getProjectId(), request.getPhaseName(), request.getMilestoneName(),
+						request.getTaskName(), request.getSubTaskName(), request.getActivityName(), "PENDING")
+				.orElse(null);
+
+		if (existingRequest != null) {
+
+			throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
+					"Activity update request already pending for approval");
+		}
+
+		requestRepository.save(activityRequest);
+
+		/*
+		 * Audit
+		 */
+		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, request.getActivityName(),
+				project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
+
+		logger.info("Activity update request submitted successfully. Activity: {}, Project: {}",
+				request.getActivityName(), project.getProjectName());
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Activity updated successfully", activityToUpdate);
+				"Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
 	}
 
 	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {

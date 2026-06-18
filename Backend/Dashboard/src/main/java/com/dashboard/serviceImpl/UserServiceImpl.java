@@ -67,7 +67,16 @@ public class UserServiceImpl implements UserService {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
 					"Username already exists", null);
 		}
+		if (userModel.getProjectIds() != null) {
 
+			for (String projectId : userModel.getProjectIds()) {
+
+				if (projectRepository.findById(projectId).isEmpty()) {
+
+					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
+				}
+			}
+		}
 		User user = new User();
 
 		BeanUtils.copyProperties(userModel, user);
@@ -126,14 +135,13 @@ public class UserServiceImpl implements UserService {
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
 
-		for (String projectName : user.getProjectNames()) {
-			Project project = projectRepository.findByProjectName(projectName)
-					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, " project not found",
-							projectName));
+		for (String projectId : user.getProjectIds()) {
+
+			Project project = projectRepository.findById(projectId).orElseThrow(
+					() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
 
 			projects.add(project);
 		}
-
 		String token = JwtUtil.generateToken(username, user.getRole());
 
 		LoginResponseModel responseModel = new LoginResponseModel();
@@ -159,18 +167,22 @@ public class UserServiceImpl implements UserService {
 		BeanUtils.copyProperties(user, oldUser);
 		boolean isUpdated = false;
 
-		// Update Projects
-		if (model.getProjectNames() != null) {
+		if (model.getProjectIds() != null) {
 
-			for (String projectName : model.getProjectNames()) {
-				if (projectRepository.findByProjectName(projectName).isEmpty()) {
-					logger.warn("User update failed. Project not found: {}", projectName);
-					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+			for (String projectId : model.getProjectIds()) {
+
+				if (projectRepository.findById(projectId).isEmpty()) {
+
+					logger.warn("User update failed. Project not found: {}", projectId);
+
+					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
 				}
 			}
 
-			if (!Objects.equals(user.getProjectNames(), model.getProjectNames())) {
-				user.setProjectNames(model.getProjectNames());
+			if (!Objects.equals(user.getProjectIds(), model.getProjectIds())) {
+
+				user.setProjectIds(model.getProjectIds());
+
 				isUpdated = true;
 			}
 		}

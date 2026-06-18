@@ -44,61 +44,54 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	@Transactional
-	public Response deleteProject(String projectName) {
+	public Response deleteProject(String projectId) {
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		String modifiedBy = UserContextUtil.getCurrentUser();
 
-		logger.info("Project deletion initiated. Project Name: {}, Requested By: {}", projectName, modifiedBy);
+		logger.info("Project deletion initiated. Project Id: {}, Requested By: {}", projectId, modifiedBy);
+
 		try {
+			Project project = projectRepository.findById(projectId).orElseThrow(() -> {
+				logger.warn("Project not found. Project Id: {}", projectId);
 
-			Project project = projectRepository.findByProjectName(projectName).orElseThrow(() -> {
-
-				logger.warn("Project deletion failed. Project not found. Project Name: {}, Requested By: {}",
-						projectName, modifiedBy);
-
-				return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found : ", projectName);
+				return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
 			});
 
-			List<User> users = userRepository.findByProjectNamesContaining(projectName);
-			logger.info("Found {} users mapped with project {}", users.size(), projectName);
+			List<User> users = userRepository.findByProjectIdsContaining(projectId);
+			logger.info("Found {} users mapped with project {}", users.size(), project.getProjectName());
 
 			for (User user : users) {
 
-				if (user.getProjectNames() != null) {
-					user.getProjectNames().remove(projectName);
-					logger.info("Updated {} users after project deletion", users.size());
+				if (user.getProjectIds() != null) {
+
+					user.getProjectIds().remove(projectId);
 				}
 			}
 
 			if (!users.isEmpty()) {
+
 				userRepository.saveAll(users);
 			}
 
 			projectRepository.delete(project);
-			logger.info("Project deleted successfully from database. Project Name: {}", projectName);
 
-			auditService.saveAuditLog(AuditAction.DELETE_PROJECT, AuditEntity.PROJECT, projectName, projectName,
-					project, null, modifiedBy);
+			auditService.saveAuditLog(AuditAction.DELETE_PROJECT, AuditEntity.PROJECT, project.getProjectName(),
+					project.getProjectName(), project, null, modifiedBy);
 
-			logger.info("Audit log created successfully for deleted project {}", projectName);
-
-			logger.info("Project deletion completed successfully. Project Name: {}, Deleted By: {}", projectName,
-					modifiedBy);
+			logger.info("Project deleted successfully. Project Name: {}", project.getProjectName());
 
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Project deleted successfully", null);
 
 		} catch (ResourceNotFoundException e) {
 
-			logger.warn("Project deletion aborted. Reason: {}", e.getMessage());
-
 			throw e;
 
 		} catch (Exception e) {
 
-			logger.error("Unexpected error while deleting project. Project Name: {}, Requested By: {}", projectName,
-					modifiedBy, e);
+			logger.error("Unable to delete project", e);
 
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to delete project");
 		}

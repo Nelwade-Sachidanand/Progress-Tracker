@@ -11,7 +11,7 @@ public class UserUpdateModel {
 
     private String username;
 
-    private List<String> projectNames;
+    private List<String> projectIds;
 
     private Boolean active;
 

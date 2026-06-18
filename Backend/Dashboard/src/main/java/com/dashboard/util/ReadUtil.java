@@ -5,11 +5,12 @@ import java.time.LocalDate;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 
 public class ReadUtil {
-	
+
 	public static Double getDouble(Cell cell, FormulaEvaluator evaluator) {
 
 		if (cell == null)
@@ -77,25 +78,42 @@ public class ReadUtil {
 	}
 
 	public static String getString(Cell cell, FormulaEvaluator evaluator) {
-		if (cell == null)
+
+		if (cell == null) {
 			return "";
+		}
+
 		try {
+
 			switch (cell.getCellType()) {
 
 			case STRING:
-				String str = cell.getStringCellValue().trim();
-				return str;
+				return cell.getStringCellValue().trim();
+
+			case NUMERIC:
+				return String.valueOf(cell.getNumericCellValue());
+
+			case BOOLEAN:
+				return String.valueOf(cell.getBooleanCellValue());
 
 			case FORMULA:
 
 				CellType cachedType = cell.getCachedFormulaResultType();
 
-				if (cachedType == CellType.STRING) {
-					String val = cell.getStringCellValue().trim();
-					return val;
-				}
+				switch (cachedType) {
 
-				return "";
+				case STRING:
+					return cell.getStringCellValue().trim();
+
+				case NUMERIC:
+					return String.valueOf(cell.getNumericCellValue());
+
+				case BOOLEAN:
+					return String.valueOf(cell.getBooleanCellValue());
+
+				default:
+					return "";
+				}
 
 			default:
 				return "";
@@ -103,14 +121,13 @@ public class ReadUtil {
 
 		} catch (Exception e) {
 			e.printStackTrace();
-//	    	throw new ReadExcelException("Error while reading in getString() : ", e.getMessage());
+			return "";
 		}
-		return null;
 	}
 
 	public static Double calculateActualPeriod(LocalDate taskStart, LocalDate taskEnd) {
 		if (taskStart == null || taskEnd == null) {
-			return  null;
+			return null;
 		}
 
 		int workingDays = 0;

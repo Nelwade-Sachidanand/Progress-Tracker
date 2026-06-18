@@ -31,7 +31,7 @@ public class ReportController {
 	public ResponseEntity<byte[]> export(@RequestBody GenerateReportModel request) {
 
 		List<ActivityModel> reports = reportService.generateReport(request);
-				
+				System.out.println(reports);
 		byte[] excel = excelService.generateExcel(reports);
 
 		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=report.xlsx")
