@@ -57,13 +57,12 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		boolean subtaskCreated = false;
 		boolean activityCreated = false;
 
-		Project project = projectRepository.findByProjectName(request.getProjectName()).orElse(null);
-
+		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
 		if (project == null) {
-			logger.warn("Project not found. Project: {}", request.getProjectName());
+			logger.warn("Project not found. Project: {}", request.getProjectId());
 
 			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					request.getProjectName());
+					request.getProjectId());
 		}
 		Phase phase = null;
 
@@ -163,7 +162,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			if (existingActivity != null) {
 				logger.warn("Activity already exists. Activity: {}, Project: {}", request.getActivityName(),
-						request.getProjectName());
+						project.getProjectName());
 
 				throw new ValidationException(ErrorCode.ACTIVITY_ALREADY_EXISTS, "Activity already exists");
 			}
@@ -231,7 +230,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		} else if (activityCreated) {
 			logger.info("New activity created. Activity: {}, Project: {}", activity.getActivityName(),
 					project.getProjectName());
-			
+
 			auditService.saveAuditLog(AuditAction.CREATE_ACTIVITY, AuditEntity.ACTIVITY, activity.getActivityName(),
 					project.getProjectName(), null, activity, username);
 		}

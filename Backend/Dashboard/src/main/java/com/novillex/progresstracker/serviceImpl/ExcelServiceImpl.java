@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.serviceImpl;
 
 import java.io.ByteArrayOutputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.Activity;
+import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 import com.novillex.progresstracker.entity.Milestone;
 import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
@@ -42,6 +44,7 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.AuditLogModel;
 import com.novillex.progresstracker.model.ExcelRowModel;
+import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -49,6 +52,7 @@ import com.novillex.progresstracker.service.ExcelService;
 import com.novillex.progresstracker.util.ExcelParserUtil;
 import com.novillex.progresstracker.util.UserContextUtil;
 import com.novillex.progresstracker.util.WriteUtil;
+
 
 @Service
 public class ExcelServiceImpl implements ExcelService {
@@ -67,6 +71,9 @@ public class ExcelServiceImpl implements ExcelService {
 	@Autowired
 	private ApplicationContext context;
 
+	@Autowired
+	private ActivityUpdateRequestRepository requestRepository;
+
 	@Override
 	public Response uploadExcel(MultipartFile file) {
 
@@ -77,7 +84,7 @@ public class ExcelServiceImpl implements ExcelService {
 		try {
 
 			List<ExcelRowModel> rows = ExcelParserUtil.parseExcel(file);
-
+			System.out.println(rows);
 			logger.info("Excel parsed successfully. Rows found: {}", rows.size());
 
 			Map<String, Project> projectMap = new HashMap<>();
@@ -85,7 +92,7 @@ public class ExcelServiceImpl implements ExcelService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				WriteUtil.validateExcelRow(model);
+				//WriteUtil.validateExcelRow(model);
 
 				Project project = projectMap.get(model.getProjectName());
 
@@ -148,35 +155,122 @@ public class ExcelServiceImpl implements ExcelService {
 				}
 				Activity activity = subTask.getActivities().stream()
 						.filter(a -> a.getActivityName().equals(model.getActivityName())).findFirst().orElse(null);
+
 				boolean isNewActivity = false;
 
 				Activity oldActivity = null;
+				Activity newActivity = new Activity();
+
+				newActivity.setActivityName(model.getActivityName());
+
+				newActivity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
+
+				newActivity.setPlannedStartDate(model.getPlannedStartDate());
+
+				newActivity.setPlannedEndDate(model.getPlannedEndDate());
+
+				newActivity.setActualStartDate(model.getActualStartDate());
+
+				newActivity.setActualEndDate(model.getActualEndDate());
+
+				newActivity.setActualPeriodWeek(model.getActualPeriodWeek());
+
+				newActivity.setProgress(model.getProgress());
+
+				newActivity.setExecutionStatus(model.getExecutionStatus());
+
+				newActivity.setScheduleHealth(model.getScheduleHealth());
+
+				newActivity.setRemark(model.getRemark());
 
 				if (activity == null) {
+
 					activity = new Activity();
-					activity.setActivityName(model.getActivityName());
+
+					BeanUtils.copyProperties(newActivity, activity);
+
 					subTask.getActivities().add(activity);
+
 					isNewActivity = true;
 
 				} else {
 
 					oldActivity = new Activity();
+
 					BeanUtils.copyProperties(activity, oldActivity);
+					if (isActivityChanged(oldActivity, newActivity)) {
+
+						ActivityUpdateRequest existingRequest = requestRepository
+								.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+										project.getId(), phase.getPhaseName(), milestone.getMilestoneName(),
+										task.getTaskName(), subTask.getSubTaskName(), activity.getActivityName(),
+										"PENDING")
+								.orElse(null);
+
+						if (existingRequest == null) {
+
+							ActivityUpdateRequest request = new ActivityUpdateRequest();
+
+							request.setProjectId(project.getId());
+
+							request.setPhaseName(phase.getPhaseName());
+
+							request.setMilestoneName(milestone.getMilestoneName());
+
+							request.setTaskName(task.getTaskName());
+
+							request.setSubTaskName(subTask.getSubTaskName());
+
+							request.setActivityName(activity.getActivityName());
+
+							request.setOldActivity(oldActivity);
+
+							request.setNewActivity(newActivity);
+
+							request.setRequestedBy(UserContextUtil.getCurrentUser());
+
+							request.setStatus("PENDING");
+
+							request.setRequestSource("EXCEL_UPLOAD");
+
+							request.setRequestedAt(LocalDateTime.now());
+
+							requestRepository.save(request);
+						}else {
+							
+							    logger.info(
+							        "Pending approval request already exists for activity {}",
+							        activity.getActivityName());
+							}
+					}
 				}
-
 				// Update Activity Fields
+				/*
+				 * activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
+				 * activity.setPlannedStartDate(model.getPlannedStartDate());
+				 * activity.setPlannedEndDate(model.getPlannedEndDate());
+				 * activity.setActualStartDate(model.getActualStartDate());
+				 * activity.setActualEndDate(model.getActualEndDate());
+				 * activity.setActualPeriodWeek(model.getActualPeriodWeek());
+				 * activity.setProgress(model.getProgress());
+				 * activity.setExecutionStatus(model.getExecutionStatus());
+				 * activity.setScheduleHealth(model.getScheduleHealth());
+				 * activity.setRemark(model.getRemark());
+				 */
 
-				activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
-				activity.setPlannedStartDate(model.getPlannedStartDate());
-				activity.setPlannedEndDate(model.getPlannedEndDate());
-				activity.setActualStartDate(model.getActualStartDate());
-				activity.setActualEndDate(model.getActualEndDate());
-				activity.setActualPeriodWeek(model.getActualPeriodWeek());
-				activity.setProgress(model.getProgress());
-				activity.setExecutionStatus(model.getExecutionStatus());
-				activity.setScheduleHealth(model.getScheduleHealth());
-				activity.setRemark(model.getRemark());
+				if (isNewActivity) {
 
+					activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
+					activity.setPlannedStartDate(model.getPlannedStartDate());
+					activity.setPlannedEndDate(model.getPlannedEndDate());
+					activity.setActualStartDate(model.getActualStartDate());
+					activity.setActualEndDate(model.getActualEndDate());
+					activity.setActualPeriodWeek(model.getActualPeriodWeek());
+					activity.setProgress(model.getProgress());
+					activity.setExecutionStatus(model.getExecutionStatus());
+					activity.setScheduleHealth(model.getScheduleHealth());
+					activity.setRemark(model.getRemark());
+				}
 				// Audit for New Activity (Only for Existing Projects)
 
 				if (isNewActivity && !newlyCreatedProjects.contains(project)) {
@@ -188,10 +282,10 @@ public class ExcelServiceImpl implements ExcelService {
 				// Audit for Updated Activity (Only for Existing Projects)
 
 				if (!isNewActivity && !newlyCreatedProjects.contains(project)
-						&& isActivityChanged(oldActivity, activity)) {
+						&& isActivityChanged(oldActivity, newActivity)) {
 
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
-							activity.getActivityName(), project.getProjectName(), oldActivity, activity));
+							activity.getActivityName(), project.getProjectName(), oldActivity, newActivity));
 				}
 			}
 			try {
@@ -255,20 +349,21 @@ public class ExcelServiceImpl implements ExcelService {
 			return;
 		}
 
-		List<String> projectNames = newlyCreatedProjects.stream().map(Project::getProjectName).toList();
+		List<String> projectIds = newlyCreatedProjects.stream().map(Project::getId).toList();
 
 		List<User> admins = userRepository.findByRole("ADMIN");
 
 		for (User admin : admins) {
 
-			if (admin.getProjectNames() == null) {
-				admin.setProjectNames(new ArrayList<>());
+			if (admin.getProjectIds() == null) {
+				admin.setProjectIds(new ArrayList<>());
 			}
 
-			for (String projectName : projectNames) {
+			for (String projectId : projectIds) {
 
-				if (!admin.getProjectNames().contains(projectName)) {
-					admin.getProjectNames().add(projectName);
+				if (!admin.getProjectIds().contains(projectId)) {
+
+					admin.getProjectIds().add(projectId);
 				}
 			}
 		}
@@ -284,7 +379,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No report data found", null);
 		}
-		ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
+		ClassPathResource resource = new ClassPathResource("templates/Project_Template 2.xlsx");
 
 		try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
 
@@ -295,10 +390,9 @@ public class ExcelServiceImpl implements ExcelService {
 						"Project schedule sheet not found in template", "Project schedule");
 			}
 
-			Project project = projectRepository.findByProjectName(reports.get(0).getProjectName())
+			Project project = projectRepository.findById(reports.get(0).getProjectId())
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-							reports.get(0).getProjectName()));
-
+							reports.get(0).getProjectId()));
 			sheet.getRow(1).getCell(3).setCellValue(project.getBankName());
 			sheet.getRow(2).getCell(3).setCellValue(project.getProjectName());
 			sheet.getRow(3).getCell(3).setCellValue(project.getProjectManager());
@@ -330,7 +424,9 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 9, report.getPlannedEndDate());
 				WriteUtil.setDate(row, 10, report.getActualStartDate());
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
+				//WriteUtil.setCell(row, 12, report.getActualPeriodWeek());
 				WriteUtil.setCell(row, 13, report.getProgress());
+				//WriteUtil.setCell(row, 15, report.getScheduleHealth());
 				WriteUtil.setCell(row, 16, report.getRemark());
 
 				currentRow++;
@@ -338,6 +434,8 @@ public class ExcelServiceImpl implements ExcelService {
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 			evaluator.evaluateAll();
+			workbook.setForceFormulaRecalculation(true);
+
 			ByteArrayOutputStream output = new ByteArrayOutputStream();
 
 			workbook.write(output);

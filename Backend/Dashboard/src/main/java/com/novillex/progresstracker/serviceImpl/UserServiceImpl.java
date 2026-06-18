@@ -68,14 +68,23 @@ public class UserServiceImpl implements UserService {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
 					"Username already exists", null);
 		}
+		if (userModel.getProjectIds() != null) {
 
+			for (String projectId : userModel.getProjectIds()) {
+
+				if (projectRepository.findById(projectId).isEmpty()) {
+
+					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
+				}
+			}
+		}
 		User user = new User();
 
 		BeanUtils.copyProperties(userModel, user);
 
 		user.setPassword(passwordEncoder.encode(userModel.getPassword()));
 
-		user.setActive(true);
+		user.setStatus(true);
 
 		User savedUser = userRepository.save(user);
 		logger.info("User registered successfully. Username: {}", savedUser.getUsername());
@@ -111,7 +120,7 @@ public class UserServiceImpl implements UserService {
 			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
 		}
 
-		if (!Boolean.TRUE.equals(user.getActive())) {
+		if (!Boolean.TRUE.equals(user.getStatus())) {
 			logger.warn("Login failed. User inactive: {}", username);
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "User is inactive",
 					null);
@@ -127,14 +136,13 @@ public class UserServiceImpl implements UserService {
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
 
-		for (String projectName : user.getProjectNames()) {
-			Project project = projectRepository.findByProjectName(projectName)
-					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, " project not found",
-							projectName));
+		for (String projectId : user.getProjectIds()) {
+
+			Project project = projectRepository.findById(projectId).orElseThrow(
+					() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
 
 			projects.add(project);
 		}
-
 		String token = JwtUtil.generateToken(username, user.getRole());
 
 		LoginResponseModel responseModel = new LoginResponseModel();
@@ -160,18 +168,22 @@ public class UserServiceImpl implements UserService {
 		BeanUtils.copyProperties(user, oldUser);
 		boolean isUpdated = false;
 
-		// Update Projects
-		if (model.getProjectNames() != null) {
+		if (model.getProjectIds() != null) {
 
-			for (String projectName : model.getProjectNames()) {
-				if (projectRepository.findByProjectName(projectName).isEmpty()) {
-					logger.warn("User update failed. Project not found: {}", projectName);
-					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectName);
+			for (String projectId : model.getProjectIds()) {
+
+				if (projectRepository.findById(projectId).isEmpty()) {
+
+					logger.warn("User update failed. Project not found: {}", projectId);
+
+					throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
 				}
 			}
 
-			if (!Objects.equals(user.getProjectNames(), model.getProjectNames())) {
-				user.setProjectNames(model.getProjectNames());
+			if (!Objects.equals(user.getProjectIds(), model.getProjectIds())) {
+
+				user.setProjectIds(model.getProjectIds());
+
 				isUpdated = true;
 			}
 		}
@@ -182,8 +194,8 @@ public class UserServiceImpl implements UserService {
 
 			isUpdated = true;
 		}
-		if (model.getActive() != null && !Objects.equals(user.getActive(), model.getActive())) {
-			user.setActive(model.getActive());
+		if (model.getActive() != null && !Objects.equals(user.getStatus(), model.getActive())) {
+			user.setStatus(null);
 			isUpdated = true;
 		}
 		if (model.getRole() != null && !model.getRole().isBlank() && !Objects.equals(user.getRole(), model.getRole())) {

@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class GenerateReportModel {
+	private String projectId;
 	private String projectName;
 	private String phaseName;
 	private String milestoneName;

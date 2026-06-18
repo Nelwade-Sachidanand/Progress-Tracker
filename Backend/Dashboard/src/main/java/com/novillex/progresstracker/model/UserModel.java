@@ -19,8 +19,8 @@ public class UserModel {
 
     private String role;
 
-    private List<String> projectNames;
+    private List<String> projectIds;
 
-    private Boolean active;
+    private Boolean status;
 
 }

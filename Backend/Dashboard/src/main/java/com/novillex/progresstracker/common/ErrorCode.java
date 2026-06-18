@@ -22,6 +22,8 @@ public class ErrorCode {
     public static final String USERNAME_REQUIRED = "VAL_013";
     public static final String NO_CHANGES_FOUND = "VAL_014";
     public static final String ACTIVITY_NAME_REQUIRED = "VAL_015";
+	public static final String REQUEST_ALREADY_PENDING = "VAL_016";
+
 
     // Resource Not Found
     public static final String PROJECT_NOT_FOUND = "PRJ_404";
@@ -32,7 +34,9 @@ public class ErrorCode {
     public static final String ACTIVITY_NOT_FOUND = "ACT_404";
     public static final String USER_NOT_FOUND = "USR_404";
     public static final String AUDIT_NOT_FOUND = "AUD_404";
+	public static final String REQUEST_NOT_FOUND = "REQ_404";
 
+    
     // Database
     public static final String DATABASE_ERROR = "DB_001";
 

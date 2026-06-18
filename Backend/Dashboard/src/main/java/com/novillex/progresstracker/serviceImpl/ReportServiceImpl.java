@@ -37,13 +37,11 @@ public class ReportServiceImpl implements ReportService {
 	@Override
 	public List<ActivityModel> generateReport(GenerateReportModel req) {
 
-		logger.info("Generating report for project: {}", req.getProjectName());
+		logger.info("Generating report for projectId: {}", req.getProjectId());
+		Project project = projectRepository.findById(req.getProjectId()).orElseThrow(() -> {
+			logger.warn("Project not found: {}", req.getProjectId());
 
-		Project project = projectRepository.findByProjectName(req.getProjectName()).orElseThrow(() -> {
-			logger.warn("Project not found: {}", req.getProjectName());
-
-			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					req.getProjectName());
+			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", req.getProjectId());
 		});
 
 		logger.info("Project found successfully: {}", project.getProjectName());

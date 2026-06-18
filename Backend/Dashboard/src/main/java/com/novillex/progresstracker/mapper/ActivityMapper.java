@@ -20,7 +20,7 @@ public class ActivityMapper {
 		ActivityModel row = new ActivityModel();
 
 		BeanUtils.copyProperties(activity, row);
-
+		row.setProjectId(project.getId());
 		row.setProjectName(project.getProjectName());
 		row.setPhaseName(phase.getPhaseName());
 		row.setMilestoneName(milestone.getMilestoneName());

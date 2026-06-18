@@ -4,6 +4,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -48,13 +50,17 @@ public class ExcelParserUtil {
 				Row row = sheet.getRow(i);
 
 				if (row == null)
-					continue;
+					break;
+				String phaseName = ReadUtil.getString(row.getCell(1), evaluator);
 
+				if (phaseName == null || phaseName.trim().isEmpty())  {
+					break;
+				}
 				model = new ExcelRowModel();
 				model.setBankName(bankName);
 				model.setProjectManager(managerName);
 				model.setProjectName(projectName);
-				model.setPhaseName(ReadUtil.getString(row.getCell(1), evaluator));
+				model.setPhaseName(phaseName);   // Missing in your code
 				model.setMilestoneName(ReadUtil.getString(row.getCell(2), evaluator));
 				model.setTaskName(ReadUtil.getString(row.getCell(3), evaluator));
 				model.setSubTaskName(ReadUtil.getString(row.getCell(4), evaluator));
@@ -72,7 +78,26 @@ public class ExcelParserUtil {
 				model.setExecutionStatus(ReadUtil.getString(row.getCell(14), evaluator));
 
 				model.setScheduleHealth(ReadUtil.getString(row.getCell(15), evaluator));
+				/*
+				 * Cell scheduleCell = row.getCell(15);
+				 * 
+				 * logger.info("Activity={}", model.getActivityName());
+				 * 
+				 * if (scheduleCell != null) {
+				 * 
+				 * logger.info("CellType={}", scheduleCell.getCellType());
+				 * 
+				 * if (scheduleCell.getCellType() == CellType.FORMULA) {
+				 * logger.info("Formula={}", scheduleCell.getCellFormula()); }
+				 * 
+				 * logger.info("CellToString={}", scheduleCell.toString()); }
+				 * 
+				 * model.setScheduleHealth(ReadUtil.getString(scheduleCell, evaluator));
+				 */
+				String remark = ReadUtil.getString(row.getCell(16), evaluator);
 
+				model.setRemark(remark == null || remark.trim().isEmpty() ? null : remark.trim());
+				logger.info("ScheduleHealth={}", model.getScheduleHealth());
 				rowList.add(model);
 			}
 
@@ -80,7 +105,6 @@ public class ExcelParserUtil {
 			logger.info("Excel parsing completed successfully. Total rows processed: {}", rowList.size());
 			return rowList;
 		} catch (Exception e) {
-			logger.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
 			logger.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);
 			throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR, "Error while processing Excel: " + e.getMessage());
 		}
