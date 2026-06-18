@@ -9,9 +9,16 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.dashboard.repository.ProjectRepository;
-import com.dashboard.repository.UserRepository;
-import com.dashboard.service.AuditService;
+import com.novillex.progresstracker.entity.Milestone;
+import com.novillex.progresstracker.entity.Phase;
+import com.novillex.progresstracker.entity.Project;
+import com.novillex.progresstracker.entity.Subtask;
+import com.novillex.progresstracker.entity.Task;
+import com.novillex.progresstracker.exception.ResourceNotFoundException;
+import com.novillex.progresstracker.model.ActivityModel;
+import com.novillex.progresstracker.repository.ProjectRepository;
+import com.novillex.progresstracker.service.AuditService;
+import com.novillex.progresstracker.serviceImpl.UpdateActivityServiceImpl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,18 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.dashboard.common.Response;
-import com.dashboard.common.ResponseBuilder;
-import com.dashboard.common.StatusCode;
-import com.dashboard.entity.Milestone;
-import com.dashboard.entity.Phase;
-import com.dashboard.entity.Project;
-import com.dashboard.entity.Subtask;
-import com.dashboard.entity.Task;
-import com.dashboard.entity.User;
-import com.dashboard.exception.DatabaseException;
-import com.dashboard.exception.ResourceNotFoundException;
-import com.dashboard.model.ActivityModel;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateActivityServiceImplTest {

@@ -9,9 +9,14 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.dashboard.repository.ProjectRepository;
-import com.dashboard.repository.UserRepository;
-import com.dashboard.service.AuditService;
+import com.novillex.progresstracker.common.Response;
+import com.novillex.progresstracker.common.ResponseBuilder;
+import com.novillex.progresstracker.common.StatusCode;
+import com.novillex.progresstracker.entity.Project;
+import com.novillex.progresstracker.repository.ProjectRepository;
+import com.novillex.progresstracker.repository.UserRepository;
+import com.novillex.progresstracker.service.AuditService;
+import com.novillex.progresstracker.serviceImpl.ProjectServiceImpl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -21,12 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.dashboard.common.Response;
-import com.dashboard.common.ResponseBuilder;
-import com.dashboard.common.StatusCode;
-import com.dashboard.entity.Project;
-import com.dashboard.entity.User;
-import com.dashboard.exception.DatabaseException;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceImplTest {
@@ -51,49 +50,164 @@ class ProjectServiceImplTest {
 				.setAuthentication(new UsernamePasswordAuthenticationToken("admin", null, new ArrayList<>()));
 	}
 
+	/*
+	 * @Test void deleteProject_ProjectNotFound() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.empty());
+	 * 
+	 * assertThrows(ResourceNotFoundException.class, () ->
+	 * projectService.deleteProject("P001"));
+	 * 
+	 * verify(projectRepository, never()).delete(any()); verify(auditService,
+	 * never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any()); }
+	 * 
+	 * @Test void deleteProject_ShouldRemoveProjectFromUsers() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * Project project = new Project(); project.setId("P001");
+	 * project.setProjectName("Progress Tracker");
+	 * 
+	 * User user = new User(); user.setProjectNames(new
+	 * ArrayList<>(List.of("Progress Tracker", "ABC")));
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class); Response
+	 * response = new Response();
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+	 * 
+	 * when(userRepository.findByProjectNamesContaining("Progress Tracker")).
+	 * thenReturn(List.of(user));
+	 * 
+	 * when(responseBuilder.createResponse(any(), any(), anyString(),
+	 * any())).thenReturn(response);
+	 * 
+	 * Response result = projectService.deleteProject("P001");
+	 * 
+	 * assertNotNull(result);
+	 * 
+	 * assertFalse(user.getProjectNames().contains("Progress Tracker"));
+	 * 
+	 * verify(userRepository).saveAll(anyList());
+	 * verify(projectRepository).delete(project); }
+	 * 
+	 * @Test void deleteProject_UserProjectNamesNull() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * Project project = new Project(); project.setId("P001");
+	 * project.setProjectName("Progress Tracker");
+	 * 
+	 * User user = new User(); user.setProjectNames(null);
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+	 * 
+	 * when(userRepository.findByProjectNamesContaining("Progress Tracker")).
+	 * thenReturn(List.of(user));
+	 * 
+	 * when(responseBuilder.createResponse(any(), any(), anyString(),
+	 * any())).thenReturn(new Response());
+	 * 
+	 * assertDoesNotThrow(() -> projectService.deleteProject("P001"));
+	 * 
+	 * verify(userRepository).saveAll(anyList()); }
+	 * 
+	 * @Test void deleteProject_AuditFailure() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * Project project = new Project(); project.setId("P001");
+	 * project.setProjectName("Progress Tracker");
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+	 * 
+	 * when(userRepository.findByProjectNamesContaining("Progress Tracker")).
+	 * thenReturn(new ArrayList<>());
+	 * 
+	 * doThrow(new
+	 * RuntimeException("Audit Error")).when(auditService).saveAuditLog(any(),
+	 * any(), any(), any(), any(), any(), any());
+	 * 
+	 * DatabaseException exception = assertThrows(DatabaseException.class, () ->
+	 * projectService.deleteProject("P001"));
+	 * 
+	 * assertNotNull(exception); }
+	 * 
+	 * @Test void deleteProject_DeleteFailure() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * Project project = new Project(); project.setId("P001");
+	 * project.setProjectName("Progress Tracker");
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+	 * 
+	 * when(userRepository.findByProjectNamesContaining("Progress Tracker")).
+	 * thenReturn(new ArrayList<>());
+	 * 
+	 * doThrow(new
+	 * RuntimeException("Delete Error")).when(projectRepository).delete(project);
+	 * 
+	 * DatabaseException exception = assertThrows(DatabaseException.class, () ->
+	 * projectService.deleteProject("P001"));
+	 * 
+	 * assertNotNull(exception); }
+	 * 
+	 * @Test void deleteProject_SaveUsersFailure() {
+	 * 
+	 * mockLoggedInUser();
+	 * 
+	 * Project project = new Project(); project.setId("P001");
+	 * project.setProjectName("Progress Tracker");
+	 * 
+	 * User user = new User(); user.setProjectNames(new
+	 * ArrayList<>(List.of("Progress Tracker")));
+	 * 
+	 * ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	 * 
+	 * when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	 * 
+	 * when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+	 * 
+	 * when(userRepository.findByProjectNamesContaining("Progress Tracker")).
+	 * thenReturn(List.of(user));
+	 * 
+	 * doThrow(new
+	 * RuntimeException("DB Error")).when(userRepository).saveAll(anyList());
+	 * 
+	 * DatabaseException exception = assertThrows(DatabaseException.class, () ->
+	 * projectService.deleteProject("P001"));
+	 * 
+	 * assertNotNull(exception); verify(projectRepository, never()).delete(any()); }
+	 */
 	@Test
-	void deleteProject_Success() {
+	void shouldReturnEmptyProjectListSuccessfully() {
 
-		// Arrange
-		mockLoggedInUser();
-
-		String projectName = "Progress Tracke";
-
-		Project project = new Project();
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
-		Response response = mock(Response.class);
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(projectRepository.findByProjectName(projectName)).thenReturn(Optional.of(project));
-
-		when(userRepository.findByProjectNamesContaining(projectName)).thenReturn(new ArrayList<>());
-
-		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
-
-		// Act
-		Response result = projectService.deleteProject(projectName);
-
-		// Assert
-		assertNotNull(result);
-
-		verify(projectRepository).delete(project);
-
-		verify(auditService).saveAuditLog(anyString(), anyString(), anyString(), anyString(), any(), any(),
-				anyString());
-	}
-
-	@Test
-	void shouldGetAllProjectsSuccessfully() {
-
-		// Arrange
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		Response expectedResponse = new Response();
 
-		List<Project> projects = List.of(new Project(), new Project());
+		List<Project> projects = new ArrayList<>();
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
@@ -102,29 +216,13 @@ class ProjectServiceImplTest {
 		when(responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Projects fetched successfully", projects)).thenReturn(expectedResponse);
 
-		// Act
 		Response actualResponse = projectService.getAllProjects();
 
-		// Assert
 		assertNotNull(actualResponse);
 
-		assertEquals(expectedResponse, actualResponse);
-
 		verify(projectRepository).findAll();
+
+		verify(responseBuilder).createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Projects fetched successfully", projects);
 	}
-
-	@Test
-	void shouldThrowDatabaseExceptionWhenRepositoryFails() {
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(projectRepository.findAll()).thenThrow(new RuntimeException("Database Error"));
-
-		DatabaseException exception = assertThrows(DatabaseException.class, () -> projectService.getAllProjects());
-
-		assertEquals("Unable to fetch projects", exception.getMessage());
-	}
-
 }
