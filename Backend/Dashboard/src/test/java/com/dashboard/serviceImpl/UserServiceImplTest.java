@@ -255,7 +255,7 @@ class UserServiceImplTest {
 		User user = new User();
 		user.setUsername("admin");
 		user.setPassword("encoded");
-		user.setActive(true);
+		user.setStatus(true);
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 		Response response = new Response();
@@ -283,7 +283,7 @@ class UserServiceImplTest {
 		User user = new User();
 		user.setUsername("admin");
 		user.setPassword("encoded");
-		user.setActive(false);
+		user.setStatus(false);
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 		Response response = new Response();
@@ -309,7 +309,7 @@ class UserServiceImplTest {
 		User user = new User();
 		user.setUsername("admin");
 		user.setPassword("encoded");
-		user.setActive(true);
+		user.setStatus(true);
 		user.setProjectIds(List.of("P1"));
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
@@ -332,7 +332,7 @@ class UserServiceImplTest {
 		user.setUsername("admin");
 		user.setFullname("Admin");
 		user.setRole("USER");
-		user.setActive(true);
+		user.setStatus(true);
 
 		UserUpdateModel model = new UserUpdateModel();
 		model.setUsername("admin");

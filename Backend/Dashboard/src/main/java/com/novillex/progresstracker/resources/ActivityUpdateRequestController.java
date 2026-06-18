@@ -36,4 +36,15 @@ public class ActivityUpdateRequestController {
 
 		return activityUpdateRequestService.rejectRequest(requestId, reason);
 	}
+	
+	
+	@PostMapping("/approve-all")
+	public Response approveAllRequests() {
+	    return activityUpdateRequestService.approveAllRequests();
+	}
+
+	@PostMapping("/reject-all/{reson}")
+	public Response rejectAllRequests(@PathVariable String reason) {
+	    return activityUpdateRequestService.rejectAllRequests(reason);
+	}
 }
