@@ -1,0 +1,19 @@
+package com.novillex.progresstracker.model;
+
+import java.util.List;
+
+import lombok.Data;
+
+@Data
+public class UserUpdateModel {
+	
+	private String fullname;
+
+    private String username;
+
+    private List<String> projectNames;
+
+    private Boolean active;
+
+    private String role;
+}
