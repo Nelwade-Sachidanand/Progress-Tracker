@@ -47,4 +47,7 @@ public class ErrorCode {
 	public static final String EXCEL_TEMPLATE_NOT_FOUND = "EXCEL_003";
 	public static final String NO_REPORT_DATA_FOUND = "VAL_033";
 	
+	//Notification
+	public static final String NOTIFICATION_NOT_FOUND = "NOT_404";
+	
 }

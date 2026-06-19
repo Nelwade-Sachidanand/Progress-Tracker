@@ -115,25 +115,31 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 	}
 
 	@Override
-	public Response approveAllRequests() {
+	public Response approveSelectedRequests(List<String> requestIds) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+		List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
 
 		if (requests.isEmpty()) {
 
-			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No pending requests found", null);
+			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
 		}
 
 		String approvedBy = UserContextUtil.getCurrentUser();
 
 		List<Activity> oldActivities = new ArrayList<>();
+
 		List<Activity> newActivities = new ArrayList<>();
 
 		for (ActivityUpdateRequest request : requests) {
 
+			if (!"PENDING".equals(request.getStatus())) {
+				continue;
+			}
+
 			oldActivities.add(request.getOldActivity());
+
 			newActivities.add(request.getNewActivity());
 
 			Project project = projectRepository.findById(request.getProjectId())
@@ -149,50 +155,56 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 			request.setStatus("APPROVED");
 			request.setApprovedBy(approvedBy);
 			request.setApprovedAt(LocalDateTime.now());
-
 		}
 
 		requestRepository.saveAll(requests);
+
 		auditService.saveAuditLog(AuditAction.APPROVE_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
-				"Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities,
-				UserContextUtil.getCurrentUser());
+				"Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities, approvedBy);
+
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				requests.size() + " requests approved successfully", requests.size());
 	}
 
 	@Override
-	public Response rejectAllRequests(String reason) {
+	public Response rejectSelectedRequests(List<String> requestIds, String reason) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+		List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
 
 		if (requests.isEmpty()) {
 
-			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No pending requests found", null);
+			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
 		}
 
 		String approvedBy = UserContextUtil.getCurrentUser();
 
 		List<Activity> oldActivities = new ArrayList<>();
+
 		List<Activity> newActivities = new ArrayList<>();
 
 		for (ActivityUpdateRequest request : requests) {
 
+			if (!"PENDING".equals(request.getStatus())) {
+				continue;
+			}
+
 			oldActivities.add(request.getOldActivity());
+
 			newActivities.add(request.getNewActivity());
 
 			request.setStatus("REJECTED");
 			request.setRejectionReason(reason);
 			request.setApprovedBy(approvedBy);
 			request.setApprovedAt(LocalDateTime.now());
-
 		}
 
 		requestRepository.saveAll(requests);
+
 		auditService.saveAuditLog(AuditAction.REJECTED_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
-				"Bulk Rejection (" + requests.size() + " Requests)", null, oldActivities, newActivities,
-				UserContextUtil.getCurrentUser());
+				"Bulk Rejection (" + requests.size() + " Requests)", null, oldActivities, newActivities, approvedBy);
+
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				requests.size() + " requests rejected successfully", requests.size());
 	}
@@ -240,7 +252,8 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		List<ActivityUpdateRequest> list = requestRepository.findAll();
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Requests Fetched Successfully", list);
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Requests Fetched Successfully", list);
 	}
 
 }

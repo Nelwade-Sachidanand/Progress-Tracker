@@ -32,7 +32,7 @@ public class ExcelParserUtil {
 			logger.info("Excel parsing started. File: {}", file.getOriginalFilename());
 			Workbook workbook = new XSSFWorkbook(inputStream);
 
-			Sheet sheet = workbook.getSheet("Project Schedule");
+			Sheet sheet = workbook.getSheet("FinWiz_Project_Schedule");
 
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 

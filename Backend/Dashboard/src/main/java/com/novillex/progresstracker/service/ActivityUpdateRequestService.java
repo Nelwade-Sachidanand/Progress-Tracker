@@ -1,9 +1,11 @@
 package com.novillex.progresstracker.service;
 
+import java.util.List;
+
 import com.novillex.progresstracker.common.Response;
 
 public interface ActivityUpdateRequestService {
-	
+
 	Response getAllRequests();
 
 	Response getPendingRequests();
@@ -12,7 +14,7 @@ public interface ActivityUpdateRequestService {
 
 	Response rejectRequest(String requestId, String reason);
 
-	Response approveAllRequests();
+	Response approveSelectedRequests(List<String> requestIds);
 
-	Response rejectAllRequests(String reason);
+	Response rejectSelectedRequests(List<String> requestIds, String reason);
 }

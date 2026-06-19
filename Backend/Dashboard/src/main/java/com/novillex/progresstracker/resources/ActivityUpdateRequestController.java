@@ -1,16 +1,19 @@
 package com.novillex.progresstracker.resources;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
+import com.novillex.progresstracker.model.BulkAuthRequestModel;
 import com.novillex.progresstracker.service.ActivityUpdateRequestService;
-
 
 @RestController
 @RequestMapping("/activity-request")
@@ -18,7 +21,7 @@ public class ActivityUpdateRequestController {
 
 	@Autowired
 	private ActivityUpdateRequestService activityUpdateRequestService;
-	
+
 	@GetMapping("/getAllRequests")
 	public Response getAllReqests() {
 		return activityUpdateRequestService.getAllRequests();
@@ -33,6 +36,8 @@ public class ActivityUpdateRequestController {
 	@PostMapping("/approve/{requestId}")
 	public Response approveRequest(@PathVariable String requestId) {
 
+		System.out.println(requestId);
+
 		return activityUpdateRequestService.approveRequest(requestId);
 	}
 
@@ -41,15 +46,17 @@ public class ActivityUpdateRequestController {
 
 		return activityUpdateRequestService.rejectRequest(requestId, reason);
 	}
-	
-	
-	@PostMapping("/approve-all")
-	public Response approveAllRequests() {
-	    return activityUpdateRequestService.approveAllRequests();
+
+	@PostMapping("/approve-selected")
+	public Response approveSelectedRequests(@RequestBody List<String> requestIds) {
+
+		return activityUpdateRequestService.approveSelectedRequests(requestIds);
 	}
 
-	@PostMapping("/reject-all/{reson}")
-	public Response rejectAllRequests(@PathVariable String reason) {
-	    return activityUpdateRequestService.rejectAllRequests(reason);
+	@PostMapping("/reject-selected")
+	public Response rejectSelectedRequests(@RequestBody BulkAuthRequestModel request) {
+
+		return activityUpdateRequestService.rejectSelectedRequests(request.getRequestIds(), request.getReason());
 	}
+
 }

@@ -23,7 +23,6 @@ INDEX VERSION 1.134+C:\Users\avinash.ghoghare\Desktop\Progress-Tracker\Backend\.
 177564186.index
 863717000.index
 3039081185.index
-2026792773.index
 3574657864.index
 2869496694.index
 1098057582.index
