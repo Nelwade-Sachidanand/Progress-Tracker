@@ -23,6 +23,8 @@ public class ErrorCode {
     public static final String NO_CHANGES_FOUND = "VAL_014";
     public static final String ACTIVITY_NAME_REQUIRED = "VAL_015";
 	public static final String REQUEST_ALREADY_PENDING = "VAL_016";
+	public static final String PROJECT_ID_REQUIRED = "VAL_017";
+
 
 
     // Resource Not Found

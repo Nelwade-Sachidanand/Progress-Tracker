@@ -189,6 +189,10 @@ public class WriteUtil {
 
 	public static void validateRequest(ActivityModel request) {
 
+		if (isBlank(request.getProjectId())) {
+			throw new ValidationException(ErrorCode.PROJECT_ID_REQUIRED, "Project id is required");
+		}
+
 		if (isBlank(request.getProjectName())) {
 			throw new ValidationException(ErrorCode.PROJECT_NAME_REQUIRED, "Project name is required");
 		}
