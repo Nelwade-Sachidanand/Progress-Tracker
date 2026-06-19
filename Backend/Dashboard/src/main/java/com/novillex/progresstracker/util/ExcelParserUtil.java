@@ -25,6 +25,9 @@ public class ExcelParserUtil {
 		List<ExcelRowModel> rowList = new ArrayList<>();
 
 		try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
+
+			logger.info("Excel parsing started. File: {}", file.getOriginalFilename());
+
 			Sheet sheet = workbook.getSheet("FinWiz_Project_Schedule");
 
 			if (sheet == null) {

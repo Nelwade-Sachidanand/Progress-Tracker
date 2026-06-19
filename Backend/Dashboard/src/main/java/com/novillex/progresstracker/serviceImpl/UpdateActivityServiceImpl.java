@@ -27,6 +27,7 @@ import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
+import com.novillex.progresstracker.service.NotificationService;
 import com.novillex.progresstracker.service.UpdateActivityService;
 import com.novillex.progresstracker.util.UserContextUtil;
 import com.novillex.progresstracker.util.WriteUtil;
@@ -49,6 +50,9 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 	@Autowired
 	private AuditService auditService;
+
+	@Autowired
+	private NotificationService notificationService;
 
 	@Override
 	public Response updateActivity(ActivityModel request) {
@@ -188,6 +192,10 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		}
 
 		requestRepository.save(activityRequest);
+
+		notificationService.createNotification("Activity Update Requested",
+				UserContextUtil.getCurrentUser() + " requested update for activity " + request.getActivityName(),
+				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization");
 
 		/*
 		 * Audit
