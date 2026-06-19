@@ -36,4 +36,8 @@ public class AuditAction {
 
 	public static final String REJECT_ACTIVITY_UPDATE = "Reject_Activity_Update";
 
+	public static final String APPROVE_ALL_ACTIVITY_UPDATES = "Approved_All_Activity_Update";
+
+	public static final String REJECTED_ALL_ACTIVITY_UPDATES = "Rejected_All_Activity_Updates";
+
 }

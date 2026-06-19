@@ -7,7 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 
-
 public interface ActivityUpdateRequestRepository extends MongoRepository<ActivityUpdateRequest, String> {
 
 	Optional<ActivityUpdateRequest> findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(

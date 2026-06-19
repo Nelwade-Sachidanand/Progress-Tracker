@@ -18,6 +18,11 @@ public class ActivityUpdateRequestController {
 
 	@Autowired
 	private ActivityUpdateRequestService activityUpdateRequestService;
+	
+	@GetMapping("/getAllRequests")
+	public Response getAllReqests() {
+		return activityUpdateRequestService.getAllRequests();
+	}
 
 	@GetMapping("/pending")
 	public Response getPendingRequests() {
@@ -35,5 +40,16 @@ public class ActivityUpdateRequestController {
 	public Response rejectRequest(@PathVariable String requestId, @RequestParam String reason) {
 
 		return activityUpdateRequestService.rejectRequest(requestId, reason);
+	}
+	
+	
+	@PostMapping("/approve-all")
+	public Response approveAllRequests() {
+	    return activityUpdateRequestService.approveAllRequests();
+	}
+
+	@PostMapping("/reject-all/{reson}")
+	public Response rejectAllRequests(@PathVariable String reason) {
+	    return activityUpdateRequestService.rejectAllRequests(reason);
 	}
 }

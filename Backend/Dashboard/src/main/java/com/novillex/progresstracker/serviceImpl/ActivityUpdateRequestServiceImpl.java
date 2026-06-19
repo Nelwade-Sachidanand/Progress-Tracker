@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.serviceImpl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.BeanUtils;
@@ -28,7 +29,6 @@ import com.novillex.progresstracker.service.ActivityUpdateRequestService;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.util.UserContextUtil;
 
-
 @Service
 public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestService {
 
@@ -43,8 +43,6 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 	@Autowired
 	private AuditService auditService;
-	
-	
 
 	@Override
 	public Response getPendingRequests() {
@@ -116,6 +114,89 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 				"Request rejected successfully", request);
 	}
 
+	@Override
+	public Response approveAllRequests() {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+
+		if (requests.isEmpty()) {
+
+			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No pending requests found", null);
+		}
+
+		String approvedBy = UserContextUtil.getCurrentUser();
+
+		List<Activity> oldActivities = new ArrayList<>();
+		List<Activity> newActivities = new ArrayList<>();
+
+		for (ActivityUpdateRequest request : requests) {
+
+			oldActivities.add(request.getOldActivity());
+			newActivities.add(request.getNewActivity());
+
+			Project project = projectRepository.findById(request.getProjectId())
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+							request.getProjectId()));
+
+			Activity activity = findActivity(project, request);
+
+			BeanUtils.copyProperties(request.getNewActivity(), activity);
+
+			projectRepository.save(project);
+
+			request.setStatus("APPROVED");
+			request.setApprovedBy(approvedBy);
+			request.setApprovedAt(LocalDateTime.now());
+
+		}
+
+		requestRepository.saveAll(requests);
+		auditService.saveAuditLog(AuditAction.APPROVE_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
+				"Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities,
+				UserContextUtil.getCurrentUser());
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				requests.size() + " requests approved successfully", requests.size());
+	}
+
+	@Override
+	public Response rejectAllRequests(String reason) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+
+		if (requests.isEmpty()) {
+
+			throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No pending requests found", null);
+		}
+
+		String approvedBy = UserContextUtil.getCurrentUser();
+
+		List<Activity> oldActivities = new ArrayList<>();
+		List<Activity> newActivities = new ArrayList<>();
+
+		for (ActivityUpdateRequest request : requests) {
+
+			oldActivities.add(request.getOldActivity());
+			newActivities.add(request.getNewActivity());
+
+			request.setStatus("REJECTED");
+			request.setRejectionReason(reason);
+			request.setApprovedBy(approvedBy);
+			request.setApprovedAt(LocalDateTime.now());
+
+		}
+
+		requestRepository.saveAll(requests);
+		auditService.saveAuditLog(AuditAction.REJECTED_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
+				"Bulk Rejection (" + requests.size() + " Requests)", null, oldActivities, newActivities,
+				UserContextUtil.getCurrentUser());
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				requests.size() + " requests rejected successfully", requests.size());
+	}
+
 	private Activity findActivity(Project project, ActivityUpdateRequest request) {
 
 		for (Phase phase : project.getPhases()) {
@@ -152,6 +233,14 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 		throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
 				request.getActivityName());
+	}
+
+	@Override
+	public Response getAllRequests() {
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		List<ActivityUpdateRequest> list = requestRepository.findAll();
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Requests Fetched Successfully", list);
 	}
 
 }
