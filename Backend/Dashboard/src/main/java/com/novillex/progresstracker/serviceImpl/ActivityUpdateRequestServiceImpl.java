@@ -17,6 +17,7 @@ import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.Activity;
 import com.novillex.progresstracker.entity.ActivityUpdateRequest;
+import com.novillex.progresstracker.entity.AuditLog;
 import com.novillex.progresstracker.entity.Milestone;
 import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
@@ -24,6 +25,7 @@ import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
+import com.novillex.progresstracker.repository.AuditLogRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.ActivityUpdateRequestService;
 import com.novillex.progresstracker.service.AuditService;
@@ -43,7 +45,11 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 	@Autowired
 	private AuditService auditService;
-
+	
+	
+	@Autowired
+	AuditLogRepository auditLogRepository;
+	
 	@Override
 	public Response getPendingRequests() {
 
@@ -197,6 +203,8 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 				requests.size() + " requests rejected successfully", requests.size());
 	}
 
+
+
 	private Activity findActivity(Project project, ActivityUpdateRequest request) {
 
 		for (Phase phase : project.getPhases()) {
@@ -240,7 +248,8 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		List<ActivityUpdateRequest> list = requestRepository.findAll();
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Requests Fetched Successfully", list);
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Requests Fetched Successfully", list);
 	}
 
 }

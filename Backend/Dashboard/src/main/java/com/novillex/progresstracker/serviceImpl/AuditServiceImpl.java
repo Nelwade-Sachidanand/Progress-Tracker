@@ -98,4 +98,6 @@ public class AuditServiceImpl implements AuditService {
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while fetching audit logs");
 		}
 	}
+	
+	
 }

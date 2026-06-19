@@ -15,4 +15,8 @@ public interface ActivityUpdateRequestService {
 	Response approveAllRequests();
 
 	Response rejectAllRequests(String reason);
+	
+	//Response rollbackActivity(String auditId);
+	
+
 }

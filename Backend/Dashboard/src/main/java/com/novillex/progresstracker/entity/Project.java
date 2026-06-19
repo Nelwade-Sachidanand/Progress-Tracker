@@ -14,6 +14,8 @@ public class Project {
     @Id
     private String id;
     
+    private String projectInformationId;
+    
     private String bankName;
     
     private String projectManager;

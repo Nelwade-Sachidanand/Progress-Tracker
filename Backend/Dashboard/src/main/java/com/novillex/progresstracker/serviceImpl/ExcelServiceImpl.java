@@ -35,6 +35,7 @@ import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 import com.novillex.progresstracker.entity.Milestone;
 import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
+import com.novillex.progresstracker.entity.ProjectInformation;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.entity.User;
@@ -45,6 +46,7 @@ import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.AuditLogModel;
 import com.novillex.progresstracker.model.ExcelRowModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
+import com.novillex.progresstracker.repository.ProjectInformationRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -52,7 +54,6 @@ import com.novillex.progresstracker.service.ExcelService;
 import com.novillex.progresstracker.util.ExcelParserUtil;
 import com.novillex.progresstracker.util.UserContextUtil;
 import com.novillex.progresstracker.util.WriteUtil;
-
 
 @Service
 public class ExcelServiceImpl implements ExcelService {
@@ -74,6 +75,9 @@ public class ExcelServiceImpl implements ExcelService {
 	@Autowired
 	private ActivityUpdateRequestRepository requestRepository;
 
+	@Autowired
+	private ProjectInformationRepository projectInformationRepository;
+
 	@Override
 	public Response uploadExcel(MultipartFile file) {
 
@@ -84,6 +88,18 @@ public class ExcelServiceImpl implements ExcelService {
 		try {
 
 			List<ExcelRowModel> rows = ExcelParserUtil.parseExcel(file);
+
+			if (rows.isEmpty()) {
+				throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR, "No data found in Excel");
+			}
+
+			String projectName = rows.get(0).getProjectName();
+
+			ProjectInformation projectInfo = projectInformationRepository.findByProjectName(projectName)
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
+							"Project information not found. Please create project information first.", projectName));
+			Project existingProject = projectRepository.findByProjectInformationId(projectInfo.getId()).orElse(null);
+
 			System.out.println(rows);
 			logger.info("Excel parsed successfully. Rows found: {}", rows.size());
 
@@ -92,24 +108,34 @@ public class ExcelServiceImpl implements ExcelService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				//WriteUtil.validateExcelRow(model);
+				// WriteUtil.validateExcelRow(model);
 
 				Project project = projectMap.get(model.getProjectName());
 
 				if (project == null) {
-					project = projectRepository.findByProjectName(model.getProjectName()).orElse(null);
+					project = existingProject;
 
 					if (project == null) {
+
 						project = new Project();
-						project.setBankName(model.getBankName());
-						project.setProjectManager(model.getProjectManager());
-						project.setProjectName(model.getProjectName());
+
+						project.setProjectInformationId(projectInfo.getId());
+
+						project.setProjectName(projectInfo.getProjectName());
+
+						project.setBankName(projectInfo.getBankName());
+
+						project.setProjectManager(projectInfo.getProjectManager());
+
 						project.setPhases(new ArrayList<>());
+
 						newlyCreatedProjects.add(project);
 
 					} else if (project.getPhases() == null) {
+
 						project.setPhases(new ArrayList<>());
 					}
+
 					projectMap.put(model.getProjectName(), project);
 				}
 
@@ -213,12 +239,11 @@ public class ExcelServiceImpl implements ExcelService {
 							request.setRequestedAt(LocalDateTime.now());
 
 							requestRepository.save(request);
-						}else {
-							
-							    logger.info(
-							        "Pending approval request already exists for activity {}",
-							        activity.getActivityName());
-							}
+						} else {
+
+							logger.info("Pending approval request already exists for activity {}",
+									activity.getActivityName());
+						}
 					}
 				}
 				// Update Activity Fields
@@ -360,7 +385,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 		try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
 
-			Sheet sheet = workbook.getSheet("Project schedule");
+			Sheet sheet = workbook.getSheet("FinWiz_Project_Schedule");
 			if (sheet == null) {
 
 				throw new ResourceNotFoundException(ErrorCode.EXCEL_TEMPLATE_NOT_FOUND,
@@ -401,9 +426,9 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 9, report.getPlannedEndDate());
 				WriteUtil.setDate(row, 10, report.getActualStartDate());
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
-				//WriteUtil.setCell(row, 12, report.getActualPeriodWeek());
+				// WriteUtil.setCell(row, 12, report.getActualPeriodWeek());
 				WriteUtil.setCell(row, 13, report.getProgress());
-				//WriteUtil.setCell(row, 15, report.getScheduleHealth());
+				// WriteUtil.setCell(row, 15, report.getScheduleHealth());
 				WriteUtil.setCell(row, 16, report.getRemark());
 
 				currentRow++;

@@ -11,4 +11,5 @@ public interface AuditService {
 			Object newObject, String modifiedBy);
 	
 	Response getAuditLogs();
+	
 }

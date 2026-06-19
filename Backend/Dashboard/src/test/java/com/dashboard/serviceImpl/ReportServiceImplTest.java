@@ -194,7 +194,9 @@ class ReportServiceImplTest {
 
 		GenerateReportModel request = new GenerateReportModel();
 		request.setProjectId("P001");
-		request.setMilestoneName("Milestone1");
+		List<String> milestone=new ArrayList<String>();
+		
+		request.setMilestoneNames(milestone);
 
 		Activity activity = new Activity();
 		activity.setActivityName("Activity1");

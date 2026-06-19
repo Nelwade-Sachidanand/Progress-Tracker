@@ -4,8 +4,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -26,19 +24,19 @@ public class ExcelParserUtil {
 
 		List<ExcelRowModel> rowList = new ArrayList<>();
 
-		try {
+		try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
+			Sheet sheet = workbook.getSheet("FinWiz_Project_Schedule");
 
-			InputStream inputStream = file.getInputStream();
-			logger.info("Excel parsing started. File: {}", file.getOriginalFilename());
-			Workbook workbook = new XSSFWorkbook(inputStream);
-
-			Sheet sheet = workbook.getSheet("Project Schedule");
-
+			if (sheet == null) {
+				throw new ReadExcelException(ErrorCode.EXCEL_READ_ERROR,
+						"Sheet 'FinWiz_Project_Schedule' not found in Excel");
+			}
 			FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
 
 			ExcelRowModel model;
 
 			String projectName = sheet.getRow(2).getCell(3).getStringCellValue();
+
 			String bankName = sheet.getRow(1).getCell(3).getStringCellValue();
 			String managerName = sheet.getRow(3).getCell(3).getStringCellValue();
 
@@ -53,14 +51,14 @@ public class ExcelParserUtil {
 					break;
 				String phaseName = ReadUtil.getString(row.getCell(1), evaluator);
 
-				if (phaseName == null || phaseName.trim().isEmpty())  {
+				if (phaseName == null || phaseName.trim().isEmpty()) {
 					break;
 				}
 				model = new ExcelRowModel();
 				model.setBankName(bankName);
 				model.setProjectManager(managerName);
 				model.setProjectName(projectName);
-				model.setPhaseName(phaseName);   // Missing in your code
+				model.setPhaseName(phaseName); // Missing in your code
 				model.setMilestoneName(ReadUtil.getString(row.getCell(2), evaluator));
 				model.setTaskName(ReadUtil.getString(row.getCell(3), evaluator));
 				model.setSubTaskName(ReadUtil.getString(row.getCell(4), evaluator));

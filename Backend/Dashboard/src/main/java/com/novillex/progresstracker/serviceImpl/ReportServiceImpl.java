@@ -51,7 +51,7 @@ public class ReportServiceImpl implements ReportService {
 		if (rows.isEmpty()) {
 
 			logger.warn("No report data found. Project: {}, Phase: {}, Milestone: {}, Task: {}", req.getProjectName(),
-					req.getPhaseName(), req.getMilestoneName(), req.getTaskName());
+					req.getPhaseName(), req.getMilestoneNames(), req.getTaskName());
 
 			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No records found for selected filters",
 					req.getProjectName());
@@ -76,10 +76,13 @@ public class ReportServiceImpl implements ReportService {
 
 			for (Milestone milestone : phase.getMilestones()) {
 
-				if (hasText(req.getMilestoneName())
-						&& !milestone.getMilestoneName().equalsIgnoreCase(req.getMilestoneName())) {
-					continue;
-				}
+		        if (req.getMilestoneNames() != null
+		                && !req.getMilestoneNames().isEmpty()
+		                && req.getMilestoneNames().stream()
+		                        .noneMatch(m -> m.equalsIgnoreCase(
+		                                milestone.getMilestoneName()))) {
+		            continue;
+		        }
 
 				for (Task task : milestone.getTasks()) {
 
