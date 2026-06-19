@@ -160,27 +160,16 @@ public class ExcelServiceImpl implements ExcelService {
 
 				Activity oldActivity = null;
 				Activity newActivity = new Activity();
-
 				newActivity.setActivityName(model.getActivityName());
-
 				newActivity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
-
 				newActivity.setPlannedStartDate(model.getPlannedStartDate());
-
 				newActivity.setPlannedEndDate(model.getPlannedEndDate());
-
 				newActivity.setActualStartDate(model.getActualStartDate());
-
 				newActivity.setActualEndDate(model.getActualEndDate());
-
 				newActivity.setActualPeriodWeek(model.getActualPeriodWeek());
-
 				newActivity.setProgress(model.getProgress());
-
 				newActivity.setExecutionStatus(model.getExecutionStatus());
-
 				newActivity.setScheduleHealth(model.getScheduleHealth());
-
 				newActivity.setRemark(model.getRemark());
 
 				if (activity == null) {
@@ -210,29 +199,17 @@ public class ExcelServiceImpl implements ExcelService {
 						if (existingRequest == null) {
 
 							ActivityUpdateRequest request = new ActivityUpdateRequest();
-
 							request.setProjectId(project.getId());
-
 							request.setPhaseName(phase.getPhaseName());
-
 							request.setMilestoneName(milestone.getMilestoneName());
-
 							request.setTaskName(task.getTaskName());
-
 							request.setSubTaskName(subTask.getSubTaskName());
-
 							request.setActivityName(activity.getActivityName());
-
 							request.setOldActivity(oldActivity);
-
 							request.setNewActivity(newActivity);
-
 							request.setRequestedBy(UserContextUtil.getCurrentUser());
-
 							request.setStatus("PENDING");
-
 							request.setRequestSource("EXCEL_UPLOAD");
-
 							request.setRequestedAt(LocalDateTime.now());
 
 							requestRepository.save(request);
