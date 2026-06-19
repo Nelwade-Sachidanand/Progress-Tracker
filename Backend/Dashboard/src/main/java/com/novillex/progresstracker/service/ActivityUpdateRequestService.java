@@ -15,7 +15,8 @@ public interface ActivityUpdateRequestService {
 	Response rejectRequest(String requestId, String reason);
 
 	Response approveSelectedRequests(List<String> requestIds);	
-	//Response rollbackActivity(String auditId);
+	
+	Response rollbackActivity(String auditId);
 	
 	Response rejectSelectedRequests(List<String> requestIds, String reason);
 }

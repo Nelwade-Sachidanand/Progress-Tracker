@@ -16,7 +16,9 @@ public class AuditLogModel {
     private String entityName;
 
     private String projectName;
-
+    
+    private String projectId;
+    
     private Object oldData;
 
     private Object newData;

@@ -40,4 +40,12 @@ public class AuditAction {
 
 	public static final String REJECTED_ALL_ACTIVITY_UPDATES = "REJECTED_ALL_ACTIVITY_UPDATES";
 
+	public static final String ROLLBACK_ACTIVITY = "ROLLBACK_ACTIVITY";
+
+	public static final String CREATE_PROJECT_INFORMATION = "CREATE_PROJECT_INFORMATION";
+
+	public static final String DELETE_PROJECT_INFORMATION = "DELETE_PROJECT_INFORMATION";
+
+	public static final String UPDATE_PROJECT_INFORMATION = "UPDATE_PROJECT_INFORMATION";
+
 }

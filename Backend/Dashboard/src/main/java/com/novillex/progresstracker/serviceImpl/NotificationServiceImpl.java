@@ -2,6 +2,8 @@ package com.novillex.progresstracker.serviceImpl;
 
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.novillex.progresstracker.entity.Notification;
@@ -14,23 +16,37 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
+	
+	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
+
 
 	private final NotificationRepository notificationRepository;
 
 	@Override
 	public void createNotification(String title, String message, String type, String referenceId, String redirectUrl) {
 
-		Notification notification = new Notification();
+		try {
 
-		notification.setTitle(title);
-		notification.setMessage(message);
-		notification.setType(type);
-		notification.setReferenceId(referenceId);
-		notification.setRedirectUrl(redirectUrl);
-		notification.setCreatedBy(UserContextUtil.getCurrentUser());
-		notification.setRead(false);
-		notification.setCreatedAt(LocalDateTime.now());
+			Notification notification = new Notification();
 
-		notificationRepository.save(notification);
+			notification.setTitle(title);
+			notification.setMessage(message);
+			notification.setType(type);
+			notification.setReferenceId(referenceId);
+			notification.setRedirectUrl(redirectUrl);
+			notification.setCreatedBy(UserContextUtil.getCurrentUser());
+			notification.setRead(false);
+			notification.setCreatedAt(LocalDateTime.now());
+
+			notificationRepository.save(notification);
+
+			logger.debug("Notification created successfully. Type={}, ReferenceId={}", type, referenceId);
+
+		} catch (Exception ex) {
+
+			logger.error("Failed to create notification. Type={}, ReferenceId={}", type, referenceId, ex);
+
+			throw ex;
+		}
 	}
 }

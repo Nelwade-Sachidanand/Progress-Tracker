@@ -273,21 +273,19 @@ public class ExcelServiceImpl implements ExcelService {
 					activity.setScheduleHealth(model.getScheduleHealth());
 					activity.setRemark(model.getRemark());
 				}
-				// Audit for New Activity (Only for Existing Projects)
 
 				if (isNewActivity && !newlyCreatedProjects.contains(project)) {
 
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_CREATE_ACTIVITY, AuditEntity.ACTIVITY,
-							activity.getActivityName(), project.getProjectName(), null, activity));
+							activity.getActivityName(), project.getProjectName(),null, null, activity));
 				}
 
-				// Audit for Updated Activity (Only for Existing Projects)
 
 				if (!isNewActivity && !newlyCreatedProjects.contains(project)
 						&& isActivityChanged(oldActivity, newActivity)) {
 
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
-							activity.getActivityName(), project.getProjectName(), oldActivity, newActivity));
+							activity.getActivityName(), project.getProjectName(),project.getId(), oldActivity, newActivity));
 				}
 			}
 			try {

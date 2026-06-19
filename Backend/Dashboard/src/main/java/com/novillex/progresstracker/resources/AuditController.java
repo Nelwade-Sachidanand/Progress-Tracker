@@ -26,10 +26,10 @@ public class AuditController {
 		return auditService.getAuditLogs();
 	}
 
-	/*
-	 * @PostMapping("/rollback/{auditId}") public Response
-	 * rollbackActivity(@PathVariable String auditId) {
-	 * 
-	 * return activityUpdateRequestService.rollbackActivity(auditId); }
-	 */
+	
+	  @PostMapping("/rollback/{auditId}") public Response
+	  rollbackActivity(@PathVariable String auditId) {
+	  
+	  return activityUpdateRequestService.rollbackActivity(auditId); }
+	 
 }
