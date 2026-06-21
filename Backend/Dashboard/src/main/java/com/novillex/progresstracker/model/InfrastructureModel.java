@@ -5,13 +5,11 @@ import lombok.Data;
 @Data
 public class InfrastructureModel {
 
-    private String licenseType;
+	private String currentLicenseType;
 
-    private String currentDcDrVendor;
+    private String currentDCVendor;
 
     private String currentDatabase;
 
-    private Integer customerOnboardingPerMonth;
-
-    private Integer loanIssuePerMonth;
+    private String databaseVersion;
 }

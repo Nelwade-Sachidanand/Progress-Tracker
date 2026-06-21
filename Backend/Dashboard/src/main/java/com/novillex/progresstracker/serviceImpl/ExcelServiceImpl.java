@@ -100,7 +100,7 @@ public class ExcelServiceImpl implements ExcelService {
 							"Project information not found. Please create project information first.", projectName));
 			Project existingProject = projectRepository.findByProjectInformationId(projectInfo.getId()).orElse(null);
 
-			System.out.println(rows);
+//			System.out.println(rows);
 			logger.info("Excel parsed successfully. Rows found: {}", rows.size());
 
 			Map<String, Project> projectMap = new HashMap<>();

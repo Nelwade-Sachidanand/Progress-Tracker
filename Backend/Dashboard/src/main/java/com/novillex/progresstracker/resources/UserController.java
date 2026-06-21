@@ -10,13 +10,18 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
+import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.model.LoginModel;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
 import com.novillex.progresstracker.service.UserService;
+import com.novillex.progresstracker.util.JwtUtil;
+
+import io.jsonwebtoken.Claims;
 
 @RestController
 @RequestMapping("/user")
@@ -65,5 +70,22 @@ public class UserController {
 		logger.info("Delete user request received. Username: {}", username);
 
 		return userService.deleteUser(username);
+	}
+
+	@PostMapping("/refresh")
+	public Response refreshToken(@RequestParam String refreshToken) {
+		
+		logger.info("Refreshing Token");
+
+		Claims claims = JwtUtil.extractClaims(refreshToken);
+
+		String username = claims.getSubject();
+
+		String role = (String) claims.get("role");
+
+		String newAccessToken = JwtUtil.generateAccessToken(username, role);
+
+		return new Response(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Token refreshed successfully",
+				newAccessToken);
 	}
 }

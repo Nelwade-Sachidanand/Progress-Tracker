@@ -5,9 +5,15 @@ import lombok.Data;
 @Data
 public class BusinessStatisticsModel {
 
-    private Integer totalActiveCustomers;
+	private Integer totalActiveCustomers;
 
-    private Integer accountsAcrossBusinesses;
+    private Integer totalAccounts;
+
+    private Integer totalUsers;
+
+    private Integer concurrentUsers;
+
+    private Integer accountsPerYear;
 
     private Integer dailyTransactions;
 
@@ -15,11 +21,9 @@ public class BusinessStatisticsModel {
 
     private Integer upiTransactions;
 
-    private Integer totalUsers;
+    private String businessMix;
 
-    private Integer concurrentUsers;
+    private Integer customerOnboarding;
 
-    private Integer accountsIncreasedPerYear;
-
-    private String otherInformation;
+    private Integer loanIssues;
 }

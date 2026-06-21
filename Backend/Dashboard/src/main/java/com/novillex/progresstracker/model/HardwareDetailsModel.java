@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class HardwareDetailsModel {
 
-    private String serverType;
+	private String serverType;
 
     private Integer units;
 

@@ -3,6 +3,7 @@ package com.novillex.progresstracker.serviceImpl;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -37,6 +38,9 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 	@Autowired
 	AuditService auditService;
+	
+	@Autowired
+	private ModelMapper modelMapper;
 
 	@Override
 	public Response createProjectInformation(ProjectInformationModel model) {
@@ -56,9 +60,15 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 						"Project information already exists", model.getProjectName());
 			});
 
-			ProjectInformation project = new ProjectInformation();
+//			ModelMapper mapper = new ModelMapper();
 
-			BeanUtils.copyProperties(model, project);
+			ProjectInformation project = modelMapper.map(model, ProjectInformation.class);
+
+			System.out.println("MODEL => " + model.getDigitalChannels());
+			System.out.println("PROJECT => " + project.getDigitalChannels());
+
+			System.out.println("MODEL CONTACT => " + model.getContactDetails());
+			System.out.println("PROJECT CONTACT => " + project.getContactDetails());
 
 			project.setStatus("ACTIVE");
 			project.setCreatedBy(UserContextUtil.getCurrentUser());

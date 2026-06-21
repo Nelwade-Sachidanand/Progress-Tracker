@@ -143,12 +143,16 @@ public class UserServiceImpl implements UserService {
 
 			projects.add(project);
 		}
-		String token = JwtUtil.generateToken(username, user.getRole());
+		String accessToken = JwtUtil.generateAccessToken(user.getUsername(), user.getRole());
+
+		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(),user.getRole());
 
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
-		responseModel.setToken(token);
+		responseModel.setAccessToken(accessToken);
+		responseModel.setRefreshToken(refreshToken);
+		
 		logger.info("Login successful. Username: {}, Role: {}", username, user.getRole());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);

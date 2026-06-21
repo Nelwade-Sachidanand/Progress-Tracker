@@ -18,41 +18,36 @@ import com.novillex.progresstracker.service.ProjectInformationService;
 @RequestMapping("/project-information")
 public class ProjectInformationController {
 
-    @Autowired
-    private ProjectInformationService projectInformationService;
+	@Autowired
+	private ProjectInformationService projectInformationService;
 
-    @PostMapping("/create")
-    public Response createProjectInformation(
-            @RequestBody ProjectInformationModel model) {
+	@PostMapping("/create")
+	public Response createProjectInformation(@RequestBody ProjectInformationModel model) {
+		System.out.println(model);
+		return projectInformationService.createProjectInformation(model);
+	}
 
-        return projectInformationService.createProjectInformation(model);
-    }
+	@GetMapping("/all")
+	public Response getAllProjectInformation() {
 
-    @GetMapping("/all")
-    public Response getAllProjectInformation() {
+		return projectInformationService.getAllProjectInformation();
+	}
 
-        return projectInformationService.getAllProjectInformation();
-    }
+	@GetMapping("/{id}")
+	public Response getProjectInformationById(@PathVariable String id) {
 
-    @GetMapping("/{id}")
-    public Response getProjectInformationById(
-            @PathVariable String id) {
+		return projectInformationService.getProjectInformationById(id);
+	}
 
-        return projectInformationService.getProjectInformationById(id);
-    }
+	@PutMapping("/update/{id}")
+	public Response updateProjectInformation(@PathVariable String id, @RequestBody ProjectInformationModel model) {
 
-    @PutMapping("/update/{id}")
-    public Response updateProjectInformation(
-            @PathVariable String id,
-            @RequestBody ProjectInformationModel model) {
+		return projectInformationService.updateProjectInformation(id, model);
+	}
 
-        return projectInformationService.updateProjectInformation(id, model);
-    }
+	@DeleteMapping("/delete/{id}")
+	public Response deleteProjectInformation(@PathVariable String id) {
 
-    @DeleteMapping("/delete/{id}")
-    public Response deleteProjectInformation(
-            @PathVariable String id) {
-
-        return projectInformationService.deleteProjectInformation(id);
-    }
+		return projectInformationService.deleteProjectInformation(id);
+	}
 }

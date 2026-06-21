@@ -7,17 +7,9 @@ public class CbsInformation {
 
     private String previousCBSVendor;
 
+    private String previousVendorPeriod;
+
     private String existingCBSVendor;
 
     private String cbsSince;
-
-    private Integer totalUsers;
-
-    private Integer totalAccounts;
-
-    private String totalBusinessMix;
-
-    private Boolean wantToChangeCBS;
-
-    private String changeCBSWhen;
 }
