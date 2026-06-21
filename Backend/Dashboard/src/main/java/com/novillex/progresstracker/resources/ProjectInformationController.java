@@ -23,7 +23,6 @@ public class ProjectInformationController {
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@RequestBody ProjectInformationModel model) {
-		System.out.println(model);
 		return projectInformationService.createProjectInformation(model);
 	}
 

@@ -22,11 +22,8 @@ public class GlobalExceptionHandler {
 
 		logger.error("Excel processing error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 
-		Response response = responseBuilder.createResponse(
-				ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(),
-				null);
+		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(), null);
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
@@ -36,11 +33,8 @@ public class GlobalExceptionHandler {
 
 		logger.warn("Resource not found. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 
-		Response response = responseBuilder.createResponse(
-				ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(),
-				ex.getResourceName());
+		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(), ex.getResourceName());
 
 		return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 	}
@@ -50,11 +44,8 @@ public class GlobalExceptionHandler {
 
 		logger.warn("Validation failed. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 
-		Response response = responseBuilder.createResponse(
-				ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(),
-				null);
+		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(), null);
 
 		return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
 	}
@@ -64,10 +55,7 @@ public class GlobalExceptionHandler {
 
 		logger.error("Database error. Code: {}, Message: {}", ex.getErrorCode(), ex.getErrorMessage());
 
-		return responseBuilder.createResponse(
-				ex.getErrorCode(),
-				StatusCode.ERROR_STATUS_TYPE,
-				ex.getErrorMessage(),
+		return responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE, ex.getErrorMessage(),
 				null);
 	}
 
@@ -76,11 +64,8 @@ public class GlobalExceptionHandler {
 
 		logger.error("Unexpected application error", ex);
 
-		Response response = responseBuilder.createResponse(
-				StatusCode.ERROR,
-				StatusCode.ERROR_STATUS_TYPE,
-				"Something went wrong: " + ex.getMessage(),
-				null);
+		Response response = responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+				"Something went wrong: " + ex.getMessage(), null);
 
 		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 	}

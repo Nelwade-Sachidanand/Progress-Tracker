@@ -8,8 +8,9 @@ import org.springframework.stereotype.Repository;
 import com.novillex.progresstracker.entity.ProjectInformation;
 
 @Repository
-public interface ProjectInformationRepository
-        extends MongoRepository<ProjectInformation, String> {
+public interface ProjectInformationRepository extends MongoRepository<ProjectInformation, String> {
 
-    Optional<ProjectInformation> findByProjectName(String projectName);
+	Optional<ProjectInformation> findByProjectName(String projectName);
+
+	Optional<ProjectInformation> findByProjectNameAndBankName(String projectName, String bankName);
 }
