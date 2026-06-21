@@ -94,10 +94,13 @@ public class ExcelServiceImpl implements ExcelService {
 			}
 
 			String projectName = rows.get(0).getProjectName();
+			String bankName = rows.get(0).getBankName();
 
-			ProjectInformation projectInfo = projectInformationRepository.findByProjectName(projectName)
+			ProjectInformation projectInfo = projectInformationRepository
+					.findByProjectNameAndBankName(projectName, bankName)
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
-							"Project information not found. Please create project information first.", projectName));
+							"Project information not found for project and bank", projectName));
+			
 			Project existingProject = projectRepository.findByProjectInformationId(projectInfo.getId()).orElse(null);
 
 			System.out.println(rows);
@@ -277,15 +280,15 @@ public class ExcelServiceImpl implements ExcelService {
 				if (isNewActivity && !newlyCreatedProjects.contains(project)) {
 
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_CREATE_ACTIVITY, AuditEntity.ACTIVITY,
-							activity.getActivityName(), project.getProjectName(),null, null, activity));
+							activity.getActivityName(), project.getProjectName(), null, null, activity));
 				}
-
 
 				if (!isNewActivity && !newlyCreatedProjects.contains(project)
 						&& isActivityChanged(oldActivity, newActivity)) {
 
 					auditLogs.add(new AuditLogModel(AuditAction.UPLOAD_UPDATE_ACTIVITY, AuditEntity.ACTIVITY,
-							activity.getActivityName(), project.getProjectName(),project.getId(), oldActivity, newActivity));
+							activity.getActivityName(), project.getProjectName(), project.getId(), oldActivity,
+							newActivity));
 				}
 			}
 			try {

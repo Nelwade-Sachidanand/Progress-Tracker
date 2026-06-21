@@ -18,6 +18,7 @@ public class AuditController {
 	@Autowired
 	private AuditService auditService;
 	
+	@Autowired
 	private ActivityUpdateRequestService activityUpdateRequestService;
 
 	@GetMapping("/getAllAudit")
@@ -27,8 +28,8 @@ public class AuditController {
 	}
 
 	
-	  @PostMapping("/rollback/{auditId}") public Response
-	  rollbackActivity(@PathVariable String auditId) {
+	  @PostMapping("/rollback/{auditId}") 
+	  public Response rollbackActivity(@PathVariable String auditId) {
 	  
 	  return activityUpdateRequestService.rollbackActivity(auditId); }
 	 
