@@ -36,10 +36,11 @@ public class NotificationController {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		List<Notification> notifications = notificationRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+		List<Notification> notifications = notificationRepository
+				.findByReadFalse(Sort.by(Sort.Direction.DESC, "createdAt"));
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Notifications fetched successfully", notifications);
+				"Unread notifications fetched successfully", notifications);
 	}
 
 	@PutMapping("/{id}/read")
