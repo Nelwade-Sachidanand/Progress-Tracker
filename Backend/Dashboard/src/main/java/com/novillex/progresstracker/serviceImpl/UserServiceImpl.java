@@ -136,13 +136,15 @@ public class UserServiceImpl implements UserService {
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
 
-		for (String projectId : user.getProjectIds()) {
-
-			Project project = projectRepository.findById(projectId).orElseThrow(
-					() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
-
-			projects.add(project);
-		}
+		
+		  for (String projectId : user.getProjectIds()) {
+		  
+		  Project project = projectRepository.findById(projectId).orElseThrow( () ->
+		  new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
+		  "Project not found", projectId));
+		  
+		  projects.add(project); }
+		 
 		String accessToken = JwtUtil.generateAccessToken(user.getUsername(), user.getRole());
 
 		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(),user.getRole());

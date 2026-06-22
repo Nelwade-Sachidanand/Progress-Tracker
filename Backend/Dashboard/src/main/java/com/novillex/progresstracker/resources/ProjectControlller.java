@@ -8,12 +8,14 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.model.ProjectIdsRequest;
+import com.novillex.progresstracker.model.UpdateMilestoneWeightageRequest;
 import com.novillex.progresstracker.service.ProjectService;
 
 @RestController
@@ -39,5 +41,17 @@ public class ProjectControlller {
 	public Response getProjectNames(@RequestBody ProjectIdsRequest request) {
 
 		return projectService.getProjectNames(request.getProjectIds());
+	}
+
+	@PutMapping("/milestone-weightages")
+	public Response updateMilestoneWeightages(@RequestBody UpdateMilestoneWeightageRequest request) {
+
+		return projectService.updateMilestoneWeightages(request);
+	}
+
+	@GetMapping("/milestone-weightages/{projectId}")
+	public Response getMilestoneWeightages(@PathVariable String projectId) {
+
+		return projectService.getMilestoneWeightages(projectId);
 	}
 }

@@ -1,5 +1,6 @@
 package com.novillex.progresstracker.serviceImpl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,10 +18,15 @@ import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
+import com.novillex.progresstracker.entity.Milestone;
+import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
+import com.novillex.progresstracker.model.MilestoneWeightageModel;
+import com.novillex.progresstracker.model.MilestoneWeightageResponse;
+import com.novillex.progresstracker.model.UpdateMilestoneWeightageRequest;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
@@ -125,15 +131,88 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public Response getProjectNames(List<String> projectIds) {
-		
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		List<Project> projects = projectRepository.findByIdIn(projectIds);
 
-		Map<String, String> projectMap = projects.stream().collect(Collectors.toMap(Project::getId, Project::getProjectName));
+		Map<String, String> projectMap = projects.stream()
+				.collect(Collectors.toMap(Project::getId, Project::getProjectName));
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Project Names Fetched successfully", projectMap);
 
+	}
+
+	@Override
+	public Response updateMilestoneWeightages(UpdateMilestoneWeightageRequest request) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		Project project = projectRepository.findById(request.getProjectId())
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+						request.getProjectId()));
+
+		double totalWeightage = request.getMilestones().stream().mapToDouble(MilestoneWeightageModel::getWeightage)
+				.sum();
+
+		if (totalWeightage != 100) {
+
+			throw new IllegalArgumentException("Total milestone weightage must be exactly 100");
+		}
+
+		Phase phase = project.getPhases().stream()
+				.filter(p -> p.getPhaseName().equalsIgnoreCase(request.getPhaseName())).findFirst()
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
+						request.getPhaseName()));
+
+		for (MilestoneWeightageModel milestoneReq : request.getMilestones()) {
+
+			Milestone milestone = phase.getMilestones().stream()
+					.filter(m -> m.getMilestoneName().equalsIgnoreCase(milestoneReq.getMilestoneName())).findFirst()
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND,
+							"Milestone not found", milestoneReq.getMilestoneName()));
+
+			milestone.setWeightage(milestoneReq.getWeightage());
+		}
+
+		projectRepository.save(project);
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Milestone weightages updated successfully", project);
+	}
+
+	@Override
+	public Response getMilestoneWeightages(String projectId) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		Project project = projectRepository.findById(projectId).orElseThrow(
+				() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
+
+		List<MilestoneWeightageResponse> milestoneList = new ArrayList<>();
+
+		for (Phase phase : project.getPhases()) {
+
+			if (phase.getMilestones() == null) {
+				continue;
+			}
+
+			for (Milestone milestone : phase.getMilestones()) {
+
+				MilestoneWeightageResponse response = new MilestoneWeightageResponse();
+
+				response.setPhaseName(phase.getPhaseName());
+
+				response.setMilestoneName(milestone.getMilestoneName());
+
+				response.setWeightage(milestone.getWeightage() == null ? 0.0 : milestone.getWeightage());
+
+				milestoneList.add(response);
+			}
+		}
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Milestone weightages fetched successfully", milestoneList);
 	}
 
 }

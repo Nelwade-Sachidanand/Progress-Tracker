@@ -8,9 +8,9 @@ import lombok.Data;
 public class Milestone {
 
 	private String milestoneName;
-	
-    private Double weightage;
 
+	private Double weightage = 0.0;
+	
 	private List<Task> tasks;
 
 }
