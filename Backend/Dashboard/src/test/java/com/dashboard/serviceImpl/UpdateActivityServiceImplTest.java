@@ -341,5 +341,151 @@ class UpdateActivityServiceImplTest {
 		assertThrows(ResourceNotFoundException.class, () -> updateActivityService.updateActivity(request));
 
 	}
+	
+	@Test
+	void shouldThrowValidationException_WhenProjectIdIsNull() {
 
+	    ActivityModel request = new ActivityModel();
+
+	    request.setProjectId(null);
+
+	    assertThrows(ValidationException.class,
+	            () -> updateActivityService.updateActivity(request));
+	}
+	
+	@Test
+	void shouldThrowDatabaseException_WhenSaveRequestFails() {
+
+	    SecurityContextHolder.getContext()
+	            .setAuthentication(
+	                    new UsernamePasswordAuthenticationToken(
+	                            "admin", null));
+
+	    ActivityModel request = new ActivityModel();
+
+	    request.setProjectId("P001");
+	    request.setProjectName("Demo");
+	    request.setPhaseName("Phase1");
+	    request.setMilestoneName("Milestone1");
+	    request.setTaskName("Task1");
+	    request.setSubTaskName("SubTask1");
+	    request.setActivityName("Activity1");
+
+	    request.setProgress(80);
+
+	    Activity activity = new Activity();
+
+	    activity.setActivityName("Activity1");
+	    activity.setProgress(20);
+
+	    Subtask subtask = new Subtask();
+
+	    subtask.setSubTaskName("SubTask1");
+	    subtask.setActivities(List.of(activity));
+
+	    Task task = new Task();
+	    task.setTaskName("Task1");
+	    task.setSubTasks(List.of(subtask));
+
+	    Milestone milestone = new Milestone();
+	    milestone.setMilestoneName("Milestone1");
+	    milestone.setTasks(List.of(task));
+
+	    Phase phase = new Phase();
+	    phase.setPhaseName("Phase1");
+	    phase.setMilestones(List.of(milestone));
+
+	    Project project = new Project();
+	    project.setPhases(List.of(phase));
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
+
+	    when(projectRepository.findById("P001"))
+	            .thenReturn(Optional.of(project));
+
+	    when(requestRepository
+	            .findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+	                    any(), any(), any(),
+	                    any(), any(), any(), any()))
+	            .thenReturn(Optional.empty());
+
+	    doThrow(new RuntimeException("DB error"))
+	            .when(requestRepository)
+	            .save(any());
+
+	    assertThrows(Exception.class,
+	            () -> updateActivityService.updateActivity(request));
+	}
+	
+	
+	@Test
+	void shouldVerifyNotificationCreation() {
+
+	    SecurityContextHolder.getContext()
+	            .setAuthentication(
+	                    new UsernamePasswordAuthenticationToken(
+	                            "admin", null));
+
+	    ActivityModel request = new ActivityModel();
+
+	    request.setProjectId("P001");
+	    request.setProjectName("Demo");
+	    request.setPhaseName("Phase1");
+	    request.setMilestoneName("Milestone1");
+	    request.setTaskName("Task1");
+	    request.setSubTaskName("SubTask1");
+	    request.setActivityName("Activity1");
+
+	    request.setProgress(90);
+
+	    Activity activity = new Activity();
+
+	    activity.setActivityName("Activity1");
+	    activity.setProgress(20);
+
+	    Subtask subtask = new Subtask();
+
+	    subtask.setSubTaskName("SubTask1");
+	    subtask.setActivities(List.of(activity));
+
+	    Task task = new Task();
+	    task.setTaskName("Task1");
+	    task.setSubTasks(List.of(subtask));
+
+	    Milestone milestone = new Milestone();
+	    milestone.setMilestoneName("Milestone1");
+	    milestone.setTasks(List.of(task));
+
+	    Phase phase = new Phase();
+	    phase.setPhaseName("Phase1");
+	    phase.setMilestones(List.of(milestone));
+
+	    Project project = new Project();
+	    project.setPhases(List.of(phase));
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
+
+	    when(projectRepository.findById("P001"))
+	            .thenReturn(Optional.of(project));
+
+	    when(requestRepository
+	            .findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+	                    any(), any(), any(),
+	                    any(), any(), any(), any()))
+	            .thenReturn(Optional.empty());
+
+	    updateActivityService.updateActivity(request);
+
+	    verify(notificationService)
+	            .createNotification(
+	                    anyString(),
+	                    anyString(),
+	                    anyString(),
+	                    any(),
+	                    anyString());
+	}
+
+	
 }

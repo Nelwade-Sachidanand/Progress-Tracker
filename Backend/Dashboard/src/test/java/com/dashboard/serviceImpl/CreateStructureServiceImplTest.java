@@ -456,5 +456,4 @@ public class CreateStructureServiceImplTest {
 		assertEquals(1, project.getPhases().size());
 	}
 
-	
 }
