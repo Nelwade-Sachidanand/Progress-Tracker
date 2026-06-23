@@ -34,7 +34,6 @@ import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.serviceImpl.UserServiceImpl;
 
-
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
