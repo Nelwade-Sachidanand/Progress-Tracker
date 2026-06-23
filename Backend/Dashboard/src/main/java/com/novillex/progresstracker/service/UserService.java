@@ -20,6 +20,6 @@ public interface UserService {
 	
 	Response updateUser(UserUpdateModel model);
 	
-	Response deleteUser(String username);
+	Response deleteUser(String userId);
 
 }

@@ -130,31 +130,30 @@ public class UserServiceImpl implements UserService {
 
 		if (!isPasswordValid) {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
-					"Invalid username or password", null);
+					"Invalid password", null);
 		}
 
 		user.setPassword(null);
 		List<Project> projects = new ArrayList<>();
 
-		
-		  for (String projectId : user.getProjectIds()) {
-		  
-		  Project project = projectRepository.findById(projectId).orElseThrow( () ->
-		  new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
-		  "Project not found", projectId));
-		  
-		  projects.add(project); }
-		 
+		for (String projectId : user.getProjectIds()) {
+
+			Project project = projectRepository.findById(projectId).orElseThrow(
+					() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
+
+			projects.add(project);
+		}
+
 		String accessToken = JwtUtil.generateAccessToken(user.getUsername(), user.getRole());
 
-		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(),user.getRole());
+		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(), user.getRole());
 
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
 		responseModel.setAccessToken(accessToken);
 		responseModel.setRefreshToken(refreshToken);
-		
+
 		logger.info("Login successful. Username: {}, Role: {}", username, user.getRole());
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);
@@ -164,7 +163,7 @@ public class UserServiceImpl implements UserService {
 	public Response updateUser(UserUpdateModel model) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		User user = userRepository.findByUsername(model.getUsername()).orElse(null);
+		User user = userRepository.findById(model.getUserId()).orElse(null);
 		if (user == null) {
 			logger.warn("User update failed. User not found: {}", model.getUsername());
 			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", model.getUsername());
@@ -192,6 +191,18 @@ public class UserServiceImpl implements UserService {
 
 				isUpdated = true;
 			}
+		}
+		if (model.getUsername() != null && !model.getUsername().isBlank()
+				&& !Objects.equals(user.getUsername(), model.getUsername())) {
+			user.setUsername(model.getUsername());
+			
+			isUpdated = true;
+		}
+		if (model.getPassword() != null && !model.getPassword().isBlank()
+				&& !Objects.equals(user.getPassword(), model.getPassword())) {
+			user.setPassword(passwordEncoder.encode(model.getPassword()));
+			
+			isUpdated = true;
 		}
 		if (model.getFullname() != null && !model.getFullname().isBlank()
 				&& !Objects.equals(user.getFullname(), model.getFullname())) {
@@ -225,18 +236,18 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public Response deleteUser(String username) {
+	public Response deleteUser(String userId) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		if (username == null || username.isBlank()) {
-			logger.warn("Delete user failed. Username is empty");
+		if (userId == null || userId.isBlank()) {
+			logger.warn("Delete user failed. userId is empty");
 			throw new ValidationException(ErrorCode.USERNAME_REQUIRED, "Username is required");
 		}
 
-		User user = userRepository.findByUsername(username).orElse(null);
+		User user = userRepository.findById(userId).orElse(null);
 		if (user == null) {
-			logger.warn("Delete user failed. User not found: {}", username);
-			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
+			logger.warn("Delete user failed. User not found: {}", userId);
+			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", userId);
 		}
 		User deletedUser = new User();
 		BeanUtils.copyProperties(user, deletedUser);
@@ -245,7 +256,7 @@ public class UserServiceImpl implements UserService {
 			userRepository.delete(user);
 
 		} catch (Exception e) {
-			logger.error("Failed to delete user: {}", username, e);
+			logger.error("Failed to delete user: {}", userId, e);
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to delete user");
 		}
 

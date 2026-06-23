@@ -6,35 +6,59 @@ import java.time.LocalDate;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
 
 public class ReadUtil {
 
 	public static Double getDouble(Cell cell, FormulaEvaluator evaluator) {
 
-		if (cell == null)
+		if (cell == null) {
 			return null;
+		}
+
 		try {
+
 			switch (cell.getCellType()) {
 
 			case NUMERIC:
 				return cell.getNumericCellValue();
 
 			case FORMULA:
-				return Double.parseDouble(cell.getStringCellValue());
+
+				CellValue cellValue = evaluator.evaluate(cell);
+
+				if (cellValue == null) {
+					return null;
+				}
+
+				switch (cellValue.getCellType()) {
+
+				case NUMERIC:
+					return cellValue.getNumberValue();
+
+				case STRING:
+					String value = cellValue.getStringValue();
+					return value.isBlank() ? null : Double.parseDouble(value);
+
+				default:
+					return null;
+				}
 
 			case STRING:
 				String val = cell.getStringCellValue();
-				return val.isEmpty() ? null : Double.parseDouble(val);
+				return val.isBlank() ? null : Double.parseDouble(val);
 
 			default:
 				return null;
 			}
+
 		} catch (Exception e) {
-//	    	throw new ReadExcelException("Error while reading in getDouble() : ", e.getMessage());
+			e.printStackTrace();
+			return null;
 		}
-		return null;
 	}
 
 	public static Integer getInt(Cell cell, FormulaEvaluator evaluator) {
@@ -98,18 +122,18 @@ public class ReadUtil {
 
 			case FORMULA:
 
-				CellType cachedType = cell.getCachedFormulaResultType();
+				CellValue cellValue = evaluator.evaluate(cell);
 
-				switch (cachedType) {
+				switch (cellValue.getCellType()) {
 
 				case STRING:
-					return cell.getStringCellValue().trim();
+					return cellValue.getStringValue().trim();
 
 				case NUMERIC:
-					return String.valueOf(cell.getNumericCellValue());
+					return String.valueOf(cellValue.getNumberValue());
 
 				case BOOLEAN:
-					return String.valueOf(cell.getBooleanCellValue());
+					return String.valueOf(cellValue.getBooleanValue());
 
 				default:
 					return "";
@@ -125,24 +149,24 @@ public class ReadUtil {
 		}
 	}
 
-	public static Double calculateActualPeriod(LocalDate taskStart, LocalDate taskEnd) {
-		if (taskStart == null || taskEnd == null) {
-			return null;
-		}
-
-		int workingDays = 0;
-
-		LocalDate currentDate = taskStart;
-		while (!currentDate.isAfter(taskEnd)) {
-
-			DayOfWeek day = currentDate.getDayOfWeek();
-			if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
-				workingDays++;
-			}
-
-			currentDate = currentDate.plusDays(1);
-		}
-
-		return (double) workingDays / 5;
-	}
+//	public static Double calculateActualPeriod(LocalDate taskStart, LocalDate taskEnd) {
+//		if (taskStart == null || taskEnd == null) {
+//			return null;
+//		}
+//
+//		int workingDays = 0;
+//
+//		LocalDate currentDate = taskStart;
+//		while (!currentDate.isAfter(taskEnd)) {
+//
+//			DayOfWeek day = currentDate.getDayOfWeek();
+//			if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) {
+//				workingDays++;
+//			}
+//
+//			currentDate = currentDate.plusDays(1);
+//		}
+//
+//		return (double) workingDays / 5;
+//	}
 }

@@ -17,5 +17,7 @@ public interface ProjectService {
 	public Response updateMilestoneWeightages(UpdateMilestoneWeightageRequest request);
 	
 	public Response getMilestoneWeightages(String projectId);
+	
+	public Response getProjectsByUserId(String userId);
 
 }

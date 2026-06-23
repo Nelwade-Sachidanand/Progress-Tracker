@@ -64,12 +64,12 @@ public class UserController {
 		return userService.updateUser(model);
 	}
 
-	@DeleteMapping("/deleteUser/{username}")
-	public Response deleteUser(@PathVariable String username) {
+	@DeleteMapping("/deleteUser/{userId}")
+	public Response deleteUser(@PathVariable String userId) {
 
-		logger.info("Delete user request received. Username: {}", username);
+		logger.info("Delete user request received. Username: {}", userId);
 
-		return userService.deleteUser(username);
+		return userService.deleteUser(userId);
 	}
 
 	@PostMapping("/refresh")
