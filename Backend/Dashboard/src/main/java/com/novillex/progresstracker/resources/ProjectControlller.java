@@ -1,9 +1,10 @@
 package com.novillex.progresstracker.resources;
 
-import java.util.Map;
+import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,36 +23,80 @@ import com.novillex.progresstracker.service.ProjectService;
 @RequestMapping("/projects")
 public class ProjectControlller {
 
+	private static final Logger logger = LoggerFactory.getLogger(ProjectControlller.class);
+
 	@Autowired
 	private ProjectService projectService;
 
 	@GetMapping("/getAll")
 	public Response getAllProjects() {
 
-		return projectService.getAllProjects();
+		logger.info("Get all projects request received");
+
+		Response response = projectService.getAllProjects();
+
+		logger.info("Get all projects request completed");
+
+		return response;
+	}
+
+	@GetMapping("/user/{userId}/projects")
+	public Response getProjectsByUserId(@PathVariable String userId) {
+
+		logger.info("Get projects by user request received. UserId={}", userId);
+
+		Response response = projectService.getProjectsByUserId(userId);
+
+		logger.info("Get projects by user request completed. UserId={}", userId);
+
+		return response;
 	}
 
 	@DeleteMapping("/delete/{projectId}")
 	public Response deleteProject(@PathVariable String projectId) {
 
-		return projectService.deleteProject(projectId);
+		logger.info("Delete project request received. ProjectId={}", projectId);
+
+		Response response = projectService.deleteProject(projectId);
+
+		logger.info("Delete project request completed. ProjectId={}", projectId);
+
+		return response;
 	}
 
 	@PostMapping("/getNames")
 	public Response getProjectNames(@RequestBody ProjectIdsRequest request) {
 
-		return projectService.getProjectNames(request.getProjectIds());
+		logger.info("Get project names request received. ProjectIds={}", request.getProjectIds());
+
+		Response response = projectService.getProjectNames(request.getProjectIds());
+
+		logger.info("Get project names request completed");
+
+		return response;
 	}
 
 	@PutMapping("/milestone-weightages")
 	public Response updateMilestoneWeightages(@RequestBody UpdateMilestoneWeightageRequest request) {
 
-		return projectService.updateMilestoneWeightages(request);
+		logger.info("Update milestone weightages request received. ProjectId={}", request.getProjectId());
+
+		Response response = projectService.updateMilestoneWeightages(request);
+
+		logger.info("Update milestone weightages request completed. ProjectId={}", request.getProjectId());
+
+		return response;
 	}
 
 	@GetMapping("/milestone-weightages/{projectId}")
 	public Response getMilestoneWeightages(@PathVariable String projectId) {
 
-		return projectService.getMilestoneWeightages(projectId);
+		logger.info("Get milestone weightages request received. ProjectId={}", projectId);
+
+		Response response = projectService.getMilestoneWeightages(projectId);
+
+		logger.info("Get milestone weightages request completed. ProjectId={}", projectId);
+
+		return response;
 	}
 }

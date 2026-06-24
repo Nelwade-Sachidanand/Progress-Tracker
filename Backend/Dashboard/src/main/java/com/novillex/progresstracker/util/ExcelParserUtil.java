@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.Name;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +27,9 @@ public class ExcelParserUtil {
 
 		try (InputStream inputStream = file.getInputStream(); Workbook workbook = new XSSFWorkbook(inputStream)) {
 
+			for (Name name : workbook.getAllNames()) {
+				System.out.println("Name: " + name.getNameName() + " RefersTo: " + name.getRefersToFormula());
+			}
 			logger.info("Excel parsing started. File: {}", file.getOriginalFilename());
 
 			Sheet sheet = workbook.getSheet("FinWiz_Project_Schedule");
@@ -71,9 +75,9 @@ public class ExcelParserUtil {
 				model.setPlannedEndDate(ReadUtil.getLocalDate(row.getCell(9)));
 				model.setActualStartDate(ReadUtil.getLocalDate(row.getCell(10)));
 				model.setActualEndDate(ReadUtil.getLocalDate(row.getCell(11)));
-				model.setActualPeriodWeek(
-						ReadUtil.calculateActualPeriod(model.getActualStartDate(), model.getActualEndDate()));
-
+//				model.setActualPeriodWeek(
+//						ReadUtil.calculateActualPeriod(model.getActualStartDate(), model.getActualEndDate()));
+				model.setActualPeriodWeek(ReadUtil.getDouble(row.getCell(12), evaluator));
 				model.setProgress(ReadUtil.getInt(row.getCell(13), evaluator));
 
 				model.setExecutionStatus(ReadUtil.getString(row.getCell(14), evaluator));
@@ -98,12 +102,14 @@ public class ExcelParserUtil {
 				String remark = ReadUtil.getString(row.getCell(16), evaluator);
 
 				model.setRemark(remark == null || remark.trim().isEmpty() ? null : remark.trim());
-				logger.info("ScheduleHealth={}", model.getScheduleHealth());
+//				logger.info("ScheduleHealth={}", model.getScheduleHealth());
+//				System.out.println(model);
 				rowList.add(model);
 			}
 
 			workbook.close();
 			logger.info("Excel parsing completed successfully. Total rows processed: {}", rowList.size());
+
 			return rowList;
 		} catch (Exception e) {
 			logger.error("Failed to parse Excel file: {}", file.getOriginalFilename(), e);

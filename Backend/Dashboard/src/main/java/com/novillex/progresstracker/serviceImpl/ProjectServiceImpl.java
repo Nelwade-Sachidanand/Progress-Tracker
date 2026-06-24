@@ -134,13 +134,27 @@ public class ProjectServiceImpl implements ProjectService {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		List<Project> projects = projectRepository.findByIdIn(projectIds);
+		logger.info("Fetching project names. ProjectIds={}", projectIds);
 
-		Map<String, String> projectMap = projects.stream()
-				.collect(Collectors.toMap(Project::getId, Project::getProjectName));
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Project Names Fetched successfully", projectMap);
+		try {
 
+			List<Project> projects = projectRepository.findByIdIn(projectIds);
+
+			Map<String, String> projectMap = projects.stream()
+					.collect(Collectors.toMap(Project::getId, Project::getProjectName));
+
+			logger.info("Project names fetched successfully. RequestedCount={}, FoundCount={}", projectIds.size(),
+					projectMap.size());
+
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Project Names Fetched successfully", projectMap);
+
+		} catch (Exception e) {
+
+			logger.error("Failed to fetch project names. ProjectIds={}", projectIds, e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch project names");
+		}
 	}
 
 	@Override
@@ -148,37 +162,76 @@ public class ProjectServiceImpl implements ProjectService {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		Project project = projectRepository.findById(request.getProjectId())
-				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-						request.getProjectId()));
+		logger.info("Updating milestone weightages. ProjectId={}, PhaseName={}", request.getProjectId(),
+				request.getPhaseName());
 
-		double totalWeightage = request.getMilestones().stream().mapToDouble(MilestoneWeightageModel::getWeightage)
-				.sum();
+		try {
 
-		if (totalWeightage != 100) {
+			Project project = projectRepository.findById(request.getProjectId()).orElseThrow(() -> {
 
-			throw new IllegalArgumentException("Total milestone weightage must be exactly 100");
+				logger.warn("Project not found. ProjectId={}", request.getProjectId());
+
+				return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+						request.getProjectId());
+			});
+
+			double totalWeightage = request.getMilestones().stream().mapToDouble(MilestoneWeightageModel::getWeightage)
+					.sum();
+
+			logger.info("Total milestone weightage calculated. TotalWeightage={}", totalWeightage);
+
+			if (totalWeightage != 100) {
+
+				logger.warn("Invalid milestone weightage. Expected=100, Actual={}", totalWeightage);
+
+				throw new IllegalArgumentException("Total milestone weightage must be exactly 100");
+			}
+
+			Phase phase = project.getPhases().stream()
+					.filter(p -> p.getPhaseName().equalsIgnoreCase(request.getPhaseName())).findFirst()
+					.orElseThrow(() -> {
+
+						logger.warn("Phase not found. PhaseName={}", request.getPhaseName());
+
+						return new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
+								request.getPhaseName());
+					});
+
+			for (MilestoneWeightageModel milestoneReq : request.getMilestones()) {
+
+				Milestone milestone = phase.getMilestones().stream()
+						.filter(m -> m.getMilestoneName().equalsIgnoreCase(milestoneReq.getMilestoneName())).findFirst()
+						.orElseThrow(() -> {
+
+							logger.warn("Milestone not found. MilestoneName={}", milestoneReq.getMilestoneName());
+
+							return new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND, "Milestone not found",
+									milestoneReq.getMilestoneName());
+						});
+
+				logger.info("Updating milestone weightage. Milestone={}, Weightage={}", milestoneReq.getMilestoneName(),
+						milestoneReq.getWeightage());
+
+				milestone.setWeightage(milestoneReq.getWeightage());
+			}
+
+			projectRepository.save(project);
+
+			logger.info("Milestone weightages updated successfully. ProjectId={}", request.getProjectId());
+
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Milestone weightages updated successfully", project);
+
+		} catch (ResourceNotFoundException e) {
+
+			throw e;
+
+		} catch (Exception e) {
+
+			logger.error("Failed to update milestone weightages. ProjectId={}", request.getProjectId(), e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to update milestone weightages");
 		}
-
-		Phase phase = project.getPhases().stream()
-				.filter(p -> p.getPhaseName().equalsIgnoreCase(request.getPhaseName())).findFirst()
-				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
-						request.getPhaseName()));
-
-		for (MilestoneWeightageModel milestoneReq : request.getMilestones()) {
-
-			Milestone milestone = phase.getMilestones().stream()
-					.filter(m -> m.getMilestoneName().equalsIgnoreCase(milestoneReq.getMilestoneName())).findFirst()
-					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND,
-							"Milestone not found", milestoneReq.getMilestoneName()));
-
-			milestone.setWeightage(milestoneReq.getWeightage());
-		}
-
-		projectRepository.save(project);
-
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Milestone weightages updated successfully", project);
 	}
 
 	@Override
@@ -186,33 +239,103 @@ public class ProjectServiceImpl implements ProjectService {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		Project project = projectRepository.findById(projectId).orElseThrow(
-				() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
+		logger.info("Fetching milestone weightages. ProjectId={}", projectId);
 
-		List<MilestoneWeightageResponse> milestoneList = new ArrayList<>();
+		try {
 
-		for (Phase phase : project.getPhases()) {
+			Project project = projectRepository.findById(projectId).orElseThrow(() -> {
 
-			if (phase.getMilestones() == null) {
-				continue;
+				logger.warn("Project not found. ProjectId={}", projectId);
+
+				return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId);
+			});
+
+			List<MilestoneWeightageResponse> milestoneList = new ArrayList<>();
+
+			for (Phase phase : project.getPhases()) {
+
+				if (phase.getMilestones() == null) {
+					continue;
+				}
+
+				for (Milestone milestone : phase.getMilestones()) {
+
+					MilestoneWeightageResponse response = new MilestoneWeightageResponse();
+
+					response.setPhaseName(phase.getPhaseName());
+
+					response.setMilestoneName(milestone.getMilestoneName());
+
+					response.setWeightage(milestone.getWeightage() == null ? 0.0 : milestone.getWeightage());
+
+					milestoneList.add(response);
+				}
 			}
 
-			for (Milestone milestone : phase.getMilestones()) {
+			logger.info("Milestone weightages fetched successfully. ProjectId={}, Count={}", projectId,
+					milestoneList.size());
 
-				MilestoneWeightageResponse response = new MilestoneWeightageResponse();
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Milestone weightages fetched successfully", milestoneList);
 
-				response.setPhaseName(phase.getPhaseName());
+		} catch (ResourceNotFoundException e) {
 
-				response.setMilestoneName(milestone.getMilestoneName());
+			throw e;
 
-				response.setWeightage(milestone.getWeightage() == null ? 0.0 : milestone.getWeightage());
+		} catch (Exception e) {
 
-				milestoneList.add(response);
-			}
+			logger.error("Failed to fetch milestone weightages. ProjectId={}", projectId, e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch milestone weightages");
 		}
+	}
 
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Milestone weightages fetched successfully", milestoneList);
+	@Override
+	public Response getProjectsByUserId(String userId) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		logger.info("Fetching projects for user. UserId={}", userId);
+
+		try {
+
+			User user = userRepository.findById(userId).orElseThrow(() -> {
+
+				logger.warn("User not found. UserId={}", userId);
+
+				return new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", userId);
+			});
+
+			List<String> projectIds = user.getProjectIds();
+
+			logger.info("User found. Username={}, ProjectCount={}", user.getUsername(),
+					projectIds == null ? 0 : projectIds.size());
+
+			if (projectIds == null || projectIds.isEmpty()) {
+
+				logger.info("No projects assigned to user. UserId={}", userId);
+
+				return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+						"No projects assigned to user", new ArrayList<>());
+			}
+
+			List<Project> projects = projectRepository.findAllById(projectIds);
+
+			logger.info("Projects fetched successfully. UserId={}, ProjectCount={}", userId, projects.size());
+
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Projects fetched successfully", projects);
+
+		} catch (ResourceNotFoundException e) {
+
+			throw e;
+
+		} catch (Exception e) {
+
+			logger.error("Failed to fetch projects for user. UserId={}", userId, e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch projects");
+		}
 	}
 
 }
