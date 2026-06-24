@@ -17,6 +17,7 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
+import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.mapper.ActivityMapper;
 import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.GenerateReportModel;
@@ -38,6 +39,9 @@ public class ReportServiceImpl implements ReportService {
 	public List<ActivityModel> generateReport(GenerateReportModel req) {
 
 		logger.info("Generating report for projectId: {}", req.getProjectId());
+		
+		validateReportRequest(req);
+		
 		Project project = projectRepository.findById(req.getProjectId()).orElseThrow(() -> {
 			logger.warn("Project not found: {}", req.getProjectId());
 
@@ -62,6 +66,45 @@ public class ReportServiceImpl implements ReportService {
 		return rows;
 	}
 
+	private void validateReportRequest(GenerateReportModel model) {
+
+		if (model.getProjectId() == null || model.getProjectId().isBlank()) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select a project");
+		}
+
+		if (model.getProjectName() == null || model.getProjectName().isBlank()) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Project Name is required");
+		}
+		
+		if (model.getPhaseName() == null || model.getPhaseName().isBlank()) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select a phase first");
+		}
+
+		if (model.getActivityName() != null && !model.getActivityName().isBlank()) {
+
+			if (model.getSubtaskName() == null || model.getSubtaskName().isBlank()) {
+
+				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Subtask before Activity");
+			}
+		}
+
+		if (model.getSubtaskName() != null && !model.getSubtaskName().isBlank()) {
+
+			if (model.getTaskName() == null || model.getTaskName().isBlank()) {
+
+				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Task before Subtask");
+			}
+		}
+
+		if (model.getTaskName() != null && !model.getTaskName().isBlank()) {
+
+			if (model.getMilestoneNames() == null || model.getMilestoneNames().isEmpty()) {
+
+				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Milestone before Task");
+			}
+		}
+	}
+
 	private List<ActivityModel> getActivities(Project project, GenerateReportModel req) {
 
 		logger.debug("Applying filters for project: {}", project.getProjectName());
@@ -76,13 +119,10 @@ public class ReportServiceImpl implements ReportService {
 
 			for (Milestone milestone : phase.getMilestones()) {
 
-		        if (req.getMilestoneNames() != null
-		                && !req.getMilestoneNames().isEmpty()
-		                && req.getMilestoneNames().stream()
-		                        .noneMatch(m -> m.equalsIgnoreCase(
-		                                milestone.getMilestoneName()))) {
-		            continue;
-		        }
+				if (req.getMilestoneNames() != null && !req.getMilestoneNames().isEmpty() && req.getMilestoneNames()
+						.stream().noneMatch(m -> m.equalsIgnoreCase(milestone.getMilestoneName()))) {
+					continue;
+				}
 
 				for (Task task : milestone.getTasks()) {
 

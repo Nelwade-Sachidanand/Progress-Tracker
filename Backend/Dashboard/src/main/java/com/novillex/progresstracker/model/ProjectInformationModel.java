@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 
@@ -16,13 +18,18 @@ public class ProjectInformationModel {
     private String id;
 
     // Bank Details
+    @NotBlank(message = "Project Name is required")
     private String projectName;
+    
+    @NotBlank(message = "Bank Name is required")
     private String bankName;
     private String projectManager;
     private String salesPerson;
     private String headOfficeAddress;
     private String headOfficeContactNo;
     private Integer noOfBranches;
+    
+    @NotBlank(message = "Type Of Bank is required")
     private String bankType;
 
     // Management Details

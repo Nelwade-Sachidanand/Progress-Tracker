@@ -60,15 +60,8 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 						"Project information already exists", model.getProjectName());
 			});
 
-//			ModelMapper mapper = new ModelMapper();
 
 			ProjectInformation project = modelMapper.map(model, ProjectInformation.class);
-
-			System.out.println("MODEL => " + model.getDigitalChannels());
-			System.out.println("PROJECT => " + project.getDigitalChannels());
-
-			System.out.println("MODEL CONTACT => " + model.getContactDetails());
-			System.out.println("PROJECT CONTACT => " + project.getContactDetails());
 
 			project.setStatus("ACTIVE");
 			project.setCreatedBy(UserContextUtil.getCurrentUser());

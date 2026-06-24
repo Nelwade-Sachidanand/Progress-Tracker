@@ -14,16 +14,25 @@ import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.service.ProjectInformationService;
 
+import jakarta.validation.Valid;
+import jakarta.validation.Validator;
+
 @RestController
 @RequestMapping("/project-information")
 public class ProjectInformationController {
 
 	@Autowired
 	private ProjectInformationService projectInformationService;
+	
+//	@Autowired
+//	private Validator validator;
 
 	@PostMapping("/create")
-	public Response createProjectInformation(@RequestBody ProjectInformationModel model) {
-		return projectInformationService.createProjectInformation(model);
+	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
+
+//		System.out.println(validator);
+
+	    return projectInformationService.createProjectInformation(model);
 	}
 
 	@GetMapping("/all")
