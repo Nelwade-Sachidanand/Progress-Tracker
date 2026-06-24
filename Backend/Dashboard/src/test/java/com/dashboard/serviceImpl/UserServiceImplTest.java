@@ -34,7 +34,6 @@ import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.serviceImpl.UserServiceImpl;
 
-
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
@@ -379,5 +378,230 @@ class UserServiceImplTest {
 
 		assertThrows(ValidationException.class, () -> userService.deleteUser(null));
 	}
+	
+	@Test
+	void login_Success() {
 
+	    LoginModel model = new LoginModel();
+	    model.setUsername("admin");
+	    model.setPassword("123");
+
+	    User user = new User();
+	    user.setUsername("admin");
+	    user.setPassword("encoded");
+	    user.setStatus(true);
+	    user.setProjectIds(List.of());
+
+	    Response response = new Response();
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(mock(ResponseBuilder.class));
+
+	    ResponseBuilder builder =
+	            context.getBean(ResponseBuilder.class);
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenReturn(Optional.of(user));
+
+	    when(passwordEncoder.matches("123", "encoded"))
+	            .thenReturn(true);
+
+	    when(builder.createResponse(any(), any(),
+	            anyString(), any()))
+	            .thenReturn(response);
+
+	    Response result = userService.login(model);
+
+	    assertNotNull(result);
+
+	    verify(userRepository)
+	            .findByUsername("admin");
+	}
+	
+	@Test
+	void updateUser_Success() {
+
+	    mockLoggedInUser();
+
+	    User existingUser = new User();
+
+	    existingUser.setUsername("admin");
+	    existingUser.setFullname("Old Name");
+	    existingUser.setRole("USER");
+
+	    UserUpdateModel model = new UserUpdateModel();
+
+	    model.setUsername("admin");
+	    model.setFullname("New Name");
+	    model.setRole("ADMIN");
+
+	    Response response = new Response();
+
+	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenReturn(Optional.of(existingUser));
+
+	    when(userRepository.save(any(User.class)))
+	            .thenReturn(existingUser);
+
+	    when(responseBuilder.createResponse(any(),
+	            any(),
+	            anyString(),
+	            any()))
+	            .thenReturn(response);
+
+	    Response result = userService.updateUser(model);
+
+	    assertNotNull(result);
+
+	    verify(userRepository).save(any(User.class));
+
+	    verify(auditService)
+	            .saveAuditLog(any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any());
+	}
+	
+	@Test
+	void updateUser_UserNotFound() {
+
+	    UserUpdateModel model = new UserUpdateModel();
+
+	    model.setUsername("admin");
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(mock(ResponseBuilder.class));
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenReturn(Optional.empty());
+
+	    assertThrows(ResourceNotFoundException.class,
+	            () -> userService.updateUser(model));
+	}
+	
+	@Test
+	void login_ShouldThrowException_WhenRepositoryFails() {
+
+	    LoginModel model = new LoginModel();
+
+	    model.setUsername("admin");
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(mock(ResponseBuilder.class));
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenThrow(new RuntimeException("DB failure"));
+
+	    assertThrows(Exception.class,
+	            () -> userService.login(model));
+	}
+	
+	@Test
+	void register_ShouldAssignProjectsCorrectly() {
+
+	    UserModel model = new UserModel();
+
+	    model.setUsername("admin");
+	    model.setPassword("123");
+	    model.setProjectIds(List.of("P1", "P2"));
+
+	    Project p1 = new Project();
+	    Project p2 = new Project();
+
+	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenReturn(Optional.empty());
+
+	    when(projectRepository.findById("P1"))
+	            .thenReturn(Optional.of(p1));
+
+	    when(projectRepository.findById("P2"))
+	            .thenReturn(Optional.of(p2));
+
+	    when(passwordEncoder.encode(any()))
+	            .thenReturn("encoded");
+
+	    when(userRepository.save(any()))
+	            .thenAnswer(i -> i.getArgument(0));
+
+	    when(responseBuilder.createResponse(
+	            any(),
+	            any(),
+	            anyString(),
+	            any()))
+	            .thenReturn(new Response());
+
+	    userService.register(model);
+
+	    verify(projectRepository)
+	            .findById("P1");
+
+	    verify(projectRepository)
+	            .findById("P2");
+
+	    verify(userRepository)
+	            .save(any(User.class));
+	}
+	
+	@Test
+	void getAllUsers_ShouldThrowException_WhenRepositoryFails() {
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(mock(ResponseBuilder.class));
+
+	    when(userRepository.findAll())
+	            .thenThrow(new RuntimeException("DB issue"));
+
+	    assertThrows(Exception.class,
+	            () -> userService.getAllUsers());
+	}
+
+	
+	@Test
+	void deleteUser_ShouldAuditSuccessfully() {
+
+	    mockLoggedInUser();
+
+	    User user = new User();
+	    user.setUsername("admin");
+
+	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
+
+	    when(userRepository.findByUsername("admin"))
+	            .thenReturn(Optional.of(user));
+
+	    when(responseBuilder.createResponse(
+	            any(),
+	            any(),
+	            anyString(),
+	            any()))
+	            .thenReturn(new Response());
+
+	    userService.deleteUser("admin");
+
+	    verify(auditService, times(1))
+	            .saveAuditLog(
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any(),
+	                    any());
+	}
 }

@@ -23,22 +23,20 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.AuditLogRepository;
 import com.novillex.progresstracker.serviceImpl.AuditServiceImpl;
 
-
 @ExtendWith(MockitoExtension.class)
 class AuditServiceImplTest {
 
-    @Mock
-    private AuditLogRepository auditLogRepository;
+	@Mock
+	private AuditLogRepository auditLogRepository;
 
-    @Mock
-    private ObjectMapper objectMapper;
+	@Mock
+	private ObjectMapper objectMapper;
 
-    @Mock
-    private ApplicationContext context;
+	@Mock
+	private ApplicationContext context;
 
-    @InjectMocks
-    private AuditServiceImpl auditService;
-
+	@InjectMocks
+	private AuditServiceImpl auditService;
 
 	@Test
 	void saveAuditLog_ShouldSaveSuccessfully() throws Exception {
@@ -46,33 +44,20 @@ class AuditServiceImplTest {
 	    when(objectMapper.writeValueAsString(any()))
 	            .thenReturn("{\"name\":\"test\"}");
 
-	    auditService.saveAuditLog(
-	            "CREATE",
-	            "PROJECT",
-	            "Demo Project",
-	            "Demo Project",
-	            new Object(),
-	            new Object(),
-	            "admin");
+	    auditService.saveAuditLog("CREATE","PROJECT","Demo Project","Demo Project",new Object(),
+	            new Object(),"admin");
 
 	    verify(auditLogRepository).save(any(AuditLog.class));
 	}
-	
+
 	@Test
 	void saveAuditLog_ShouldSaveNullOldAndNewData() {
 
-	    auditService.saveAuditLog(
-	            "CREATE",
-	            "PROJECT",
-	            "Demo Project",
-	            "Demo Project",
-	            null,
-	            null,
-	            "admin");
+		auditService.saveAuditLog("CREATE", "PROJECT", "Demo Project", "Demo Project", null, null, "admin");
 
-	    verify(auditLogRepository).save(any(AuditLog.class));
+		verify(auditLogRepository).save(any(AuditLog.class));
 	}
-	
+
 	@Test
 	void saveAuditLog_ShouldThrowDatabaseException_WhenSerializationFails()
 	        throws Exception {
@@ -82,17 +67,10 @@ class AuditServiceImplTest {
 
 	    assertThrows(
 	            DatabaseException.class,
-	            () -> auditService.saveAuditLog(
-	                    "CREATE",
-	                    "PROJECT",
-	                    "Demo Project",
-	                    "Demo Project",
-	                    new Object(),
-	                    new Object(),
-	                    "admin"));
+	            () -> auditService.saveAuditLog( "CREATE", "PROJECT","Demo Project","Demo Project",new Object(),
+	                    new Object(),"admin"));
 	}
-	
-	
+
 	@Test
 	void saveAuditLog_ShouldThrowDatabaseException_WhenRepositorySaveFails()
 	        throws Exception {
@@ -106,80 +84,57 @@ class AuditServiceImplTest {
 
 	    assertThrows(
 	            DatabaseException.class,
-	            () -> auditService.saveAuditLog(
-	                    "CREATE",
-	                    "PROJECT",
-	                    "Demo Project",
-	                    "Demo Project",
-	                    new Object(),
-	                    new Object(),
-	                    "admin"));
+	            () -> auditService.saveAuditLog("CREATE","PROJECT",	"Demo Project","Demo Project",new Object(),
+	                    new Object(),"admin"));
 	}
-	
+
 	@Test
 	void getAuditLogs_ShouldReturnLogsSuccessfully() {
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-	    Response response = new Response();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
-	    AuditLog log = new AuditLog();
+		AuditLog log = new AuditLog();
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(auditLogRepository.findAll())
-	            .thenReturn(List.of(log));
+		when(auditLogRepository.findAll()).thenReturn(List.of(log));
 
-	    when(responseBuilder.createResponse(
-	            any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(response);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-	    Response result = auditService.getAuditLogs();
+		Response result = auditService.getAuditLogs();
 
-	    assertNotNull(result);
+		assertNotNull(result);
 
-	    verify(auditLogRepository).findAll();
+		verify(auditLogRepository).findAll();
 	}
-	
-	
+
 	@Test
 	void getAuditLogs_ShouldThrowResourceNotFound_WhenNoLogsFound() {
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(auditLogRepository.findAll())
-	            .thenReturn(new ArrayList<>());
+		when(auditLogRepository.findAll()).thenReturn(new ArrayList<>());
 
-	    assertThrows(
-	            ResourceNotFoundException.class,
-	            () -> auditService.getAuditLogs());
+		assertThrows(ResourceNotFoundException.class, () -> auditService.getAuditLogs());
 
-	    verify(auditLogRepository).findAll();
+		verify(auditLogRepository).findAll();
 	}
-	
-	
+
 	@Test
 	void getAuditLogs_ShouldThrowDatabaseException_WhenRepositoryFails() {
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(auditLogRepository.findAll())
-	            .thenThrow(new RuntimeException("DB Error"));
+		when(auditLogRepository.findAll()).thenThrow(new RuntimeException("DB Error"));
 
-	    assertThrows(
-	            DatabaseException.class,
-	            () -> auditService.getAuditLogs());
+		assertThrows(DatabaseException.class, () -> auditService.getAuditLogs());
 
-	    verify(auditLogRepository).findAll();
+		verify(auditLogRepository).findAll();
 	}
 
 }

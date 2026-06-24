@@ -57,215 +57,156 @@ class ProjectServiceImplTest {
 	void clearContext() {
 		SecurityContextHolder.clearContext();
 	}
-	
-	
+
 	@Test
 	void deleteProject_ProjectNotFound() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findById("P001"))
-	            .thenReturn(Optional.empty());
+		when(projectRepository.findById("P001")).thenReturn(Optional.empty());
 
-	    assertThrows(
-	            ResourceNotFoundException.class,
-	            () -> projectService.deleteProject("P001"));
+		assertThrows(ResourceNotFoundException.class, () -> projectService.deleteProject("P001"));
 
-	    verify(projectRepository, never()).delete(any());
+		verify(projectRepository, never()).delete(any());
 	}
-	
+
 	@Test
 	void deleteProject_Success() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    Project project = new Project();
-	    project.setId("P001");
-	    project.setProjectName("Demo");
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo");
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-	    Response response = mock(Response.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = mock(Response.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findById("P001"))
-	            .thenReturn(Optional.of(project));
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-	    when(userRepository.findByProjectIdsContaining("P001"))
-	            .thenReturn(new ArrayList<>());
+		when(userRepository.findByProjectIdsContaining("P001")).thenReturn(new ArrayList<>());
 
-	    when(responseBuilder.createResponse(
-	            any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(response);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-	    Response result =
-	            projectService.deleteProject("P001");
+		Response result = projectService.deleteProject("P001");
 
-	    assertNotNull(result);
+		assertNotNull(result);
 
-	    verify(projectRepository).delete(project);
+		verify(projectRepository).delete(project);
 
-	    verify(auditService).saveAuditLog(
-	            any(),
-	            any(),
-	            any(),
-	            any(),
-	            any(),
-	            any(),
-	            any());
+		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
-	
-	
+
 	@Test
 	void deleteProject_RemoveProjectFromUsers() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    Project project = new Project();
-	    project.setId("P001");
-	    project.setProjectName("Demo");
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo");
 
-	    User user = new User();
-	    user.setProjectIds(
-	            new ArrayList<>(List.of("P001", "P002")));
+		User user = new User();
+		user.setProjectIds(new ArrayList<>(List.of("P001", "P002")));
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findById("P001"))
-	            .thenReturn(Optional.of(project));
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-	    when(userRepository.findByProjectIdsContaining("P001"))
-	            .thenReturn(List.of(user));
+		when(userRepository.findByProjectIdsContaining("P001")).thenReturn(List.of(user));
 
-	    when(responseBuilder.createResponse(
-	            any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(new Response());
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
-	    projectService.deleteProject("P001");
+		projectService.deleteProject("P001");
 
-	    assertFalse(
-	            user.getProjectIds().contains("P001"));
+		assertFalse(user.getProjectIds().contains("P001"));
 
-	    verify(userRepository).saveAll(anyList());
+		verify(userRepository).saveAll(anyList());
 	}
-	
+
 	@Test
 	void deleteProject_SaveUsersFailure() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    Project project = new Project();
-	    project.setId("P001");
+		Project project = new Project();
+		project.setId("P001");
 
-	    User user = new User();
-	    user.setProjectIds(
-	            new ArrayList<>(List.of("P001")));
+		User user = new User();
+		user.setProjectIds(new ArrayList<>(List.of("P001")));
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findById("P001"))
-	            .thenReturn(Optional.of(project));
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-	    when(userRepository.findByProjectIdsContaining("P001"))
-	            .thenReturn(List.of(user));
+		when(userRepository.findByProjectIdsContaining("P001")).thenReturn(List.of(user));
 
-	    doThrow(new RuntimeException())
-	            .when(userRepository)
-	            .saveAll(anyList());
+		doThrow(new RuntimeException()).when(userRepository).saveAll(anyList());
 
-	    assertThrows(
-	            DatabaseException.class,
-	            () -> projectService.deleteProject("P001"));
+		assertThrows(DatabaseException.class, () -> projectService.deleteProject("P001"));
 	}
-	
+
 	@Test
 	void deleteProject_DeleteFailure() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    Project project = new Project();
-	    project.setId("P001");
+		Project project = new Project();
+		project.setId("P001");
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findById("P001"))
-	            .thenReturn(Optional.of(project));
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-	    when(userRepository.findByProjectIdsContaining("P001"))
-	            .thenReturn(new ArrayList<>());
+		when(userRepository.findByProjectIdsContaining("P001")).thenReturn(new ArrayList<>());
 
-	    doThrow(new RuntimeException())
-	            .when(projectRepository)
-	            .delete(project);
+		doThrow(new RuntimeException()).when(projectRepository).delete(project);
 
-	    assertThrows(
-	            DatabaseException.class,
-	            () -> projectService.deleteProject("P001"));
+		assertThrows(DatabaseException.class, () -> projectService.deleteProject("P001"));
 	}
-	
+
 	@Test
 	void getAllProjects_Success() {
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    List<Project> projects =
-	            List.of(new Project(), new Project());
+		List<Project> projects = List.of(new Project(), new Project());
 
-	    Response expectedResponse = new Response();
+		Response expectedResponse = new Response();
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findAll())
-	            .thenReturn(projects);
+		when(projectRepository.findAll()).thenReturn(projects);
 
-	    when(responseBuilder.createResponse(
-	            StatusCode.SUCCESS,
-	            StatusCode.SUCCESS_STATUS_TYPE,
-	            "Projects fetched successfully",
-	            projects))
-	            .thenReturn(expectedResponse);
+		when(responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Projects fetched successfully", projects)).thenReturn(expectedResponse);
 
-	    Response result =
-	            projectService.getAllProjects();
+		Response result = projectService.getAllProjects();
 
-	    assertEquals(expectedResponse, result);
+		assertEquals(expectedResponse, result);
 	}
-	
+
 	@Test
 	void getAllProjects_DatabaseFailure() {
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(projectRepository.findAll())
-	            .thenThrow(new RuntimeException());
+		when(projectRepository.findAll()).thenThrow(new RuntimeException());
 
-	    assertThrows(
-	            DatabaseException.class,
-	            () -> projectService.getAllProjects());
+		assertThrows(DatabaseException.class, () -> projectService.getAllProjects());
 	}
 }
