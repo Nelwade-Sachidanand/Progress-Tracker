@@ -431,6 +431,8 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setCell(row, 13, report.getProgress());
 				// WriteUtil.setCell(row, 15, report.getScheduleHealth());
 				WriteUtil.setCell(row, 16, report.getRemark());
+				
+				row.setHeight((short) -1); // Auto height (if supported)
 
 				currentRow++;
 			}

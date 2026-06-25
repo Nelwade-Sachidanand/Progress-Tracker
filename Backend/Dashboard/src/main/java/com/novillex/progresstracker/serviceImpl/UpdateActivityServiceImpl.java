@@ -25,6 +25,7 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
+import com.novillex.progresstracker.model.AddRemarkModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -181,7 +182,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		activityRequest.setChangeReason(request.getChangeReason());
 
 		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
-		
+
 		System.out.println(UserContextUtil.getCurrentUserId());
 
 		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
@@ -202,7 +203,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
 					"Activity update request already pending for approval");
 		}
-		
+
 		requestRepository.save(activityRequest);
 
 		notificationService.createNotification("Activity Update Requested",
@@ -217,6 +218,85 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
+	}
+
+	@Override
+	public Response addRemark(AddRemarkModel model) {
+		
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
+				model.getActivityName());
+
+
+		Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
+			logger.error("Project not found with id: {}", model.getProjectId());
+			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",model.getActivityName());
+		});
+
+		boolean activityFound = false;
+
+		for (Phase phase : project.getPhases()) {
+
+			if (!phase.getPhaseName().equals(model.getPhaseName())) {
+				continue;
+			}
+
+			for (Milestone milestone : phase.getMilestones()) {
+
+				if (!milestone.getMilestoneName().equals(model.getMilestoneName())) {
+					continue;
+				}
+
+				for (Task task : milestone.getTasks()) {
+
+					if (!task.getTaskName().equals(model.getTaskName())) {
+						continue;
+					}
+
+					for (Subtask subTask : task.getSubTasks()) {
+
+						if (!subTask.getSubTaskName().equals(model.getSubTaskName())) {
+							continue;
+						}
+
+						for (Activity activity : subTask.getActivities()) {
+
+							if (!activity.getActivityName().equals(model.getActivityName())) {
+								continue;
+							}
+
+							String existingRemark = activity.getRemark();
+
+							if (existingRemark == null || existingRemark.isBlank()) {
+								activity.setRemark(model.getRemark());
+							} else {
+								activity.setRemark(existingRemark + System.lineSeparator() + model.getRemark());
+							}
+
+							activityFound = true;
+
+							logger.info("Remark added successfully for activity '{}'", activity.getActivityName());
+
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (!activityFound) {
+			logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
+
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",model.getActivityName());
+		}
+
+		projectRepository.save(project);
+
+		logger.info("Project '{}' updated successfully after adding remark.", project.getProjectName());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Remark added successfully", null);
 	}
 
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
+import com.novillex.progresstracker.model.AddRemarkModel;
 import com.novillex.progresstracker.service.CreateStructureService;
 import com.novillex.progresstracker.service.UpdateActivityService;
 
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 
 @RestController
-@RequestMapping("/dashboard")
+@RequestMapping("/activity")
 public class ActivityController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ActivityController.class);
@@ -33,25 +34,14 @@ public class ActivityController {
 	private CreateStructureService createStructureService;
 	
 	
-	@PutMapping("/update/activity/request")
+	@PutMapping("/update/request")
 	public Response updateActivityRequest(@Valid @RequestBody ActivityUpdateRequestModel request) {
 		
 		logger.info("Update Activity Request received for Activity: {}", request.getActivityName());
 		return updateActivityService.updateActivityRequest(request);
 	}
-	
 
-//	@PutMapping("/update/activity")
-//	public Response updateActivity(@RequestBody ActivityModel updateActivity) {
-//
-//		logger.info("Update Activity request received for project: {}, activity: {}",
-//				updateActivity.getProjectName(),
-//				updateActivity.getActivityName());
-//
-//		return updateActivityService.updateActivity(updateActivity);
-//	}
-
-	@PostMapping("/create/activity")
+	@PostMapping("/create")
 	public Response createStructure(@RequestBody ActivityModel request) {
 
 		logger.info("Create Activity request received for project: {}, activity: {}",
@@ -59,5 +49,13 @@ public class ActivityController {
 				request.getActivityName());
 
 		return createStructureService.createStructure(request);
+	}
+	
+	@PostMapping("/add/remark")
+	public Response addRemark(@Valid @RequestBody AddRemarkModel addRemarkModel) {
+		
+		logger.info("Add Remark request received for activity : {},", addRemarkModel.getActivityName());
+		
+		return updateActivityService.addRemark(addRemarkModel);
 	}
 }
