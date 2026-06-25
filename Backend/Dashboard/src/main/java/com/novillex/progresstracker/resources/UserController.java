@@ -82,8 +82,10 @@ public class UserController {
 		String username = claims.getSubject();
 
 		String role = (String) claims.get("role");
+		
+		String userId = (String) claims.get("userId");
 
-		String newAccessToken = JwtUtil.generateAccessToken(username, role);
+		String newAccessToken = JwtUtil.generateAccessToken(userId,username, role);
 
 		return new Response(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Token refreshed successfully",
 				newAccessToken);

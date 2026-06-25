@@ -24,6 +24,7 @@ import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.ActivityModel;
+import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -54,12 +55,20 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	@Autowired
 	private NotificationService notificationService;
 
-	@Override
-	public Response updateActivity(ActivityModel request) {
+	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
+		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
+				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
+				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
+				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
+				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
+				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
+				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress());
+	}
 
+	@Override
+	public Response updateActivityRequest(ActivityUpdateRequestModel request) {
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		WriteUtil.validateRequest(request);
 		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
 		if (project == null) {
 			logger.warn("Project not found. ProjectId: {}", request.getProjectId());
@@ -139,8 +148,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
-		newActivity.setRemark(request.getRemark());
-
 		/*
 		 * Validate Changes
 		 */
@@ -150,7 +157,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
-
 		/*
 		 * Create Approval Request
 		 */
@@ -172,7 +178,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		activityRequest.setNewActivity(newActivity);
 
+		activityRequest.setChangeReason(request.getChangeReason());
+
 		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+		
+		System.out.println(UserContextUtil.getCurrentUserId());
+
+		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
 
 		activityRequest.setStatus("PENDING");
 
@@ -190,12 +202,12 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
 					"Activity update request already pending for approval");
 		}
-
+		
 		requestRepository.save(activityRequest);
 
 		notificationService.createNotification("Activity Update Requested",
 				UserContextUtil.getCurrentUser() + " requested update for activity " + request.getActivityName(),
-				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization");
+				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
 
 		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, request.getActivityName(),
 				project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
@@ -205,17 +217,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
-	}
-
-	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
-		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
-				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
-				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
-				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
-				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
-				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
-				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
-				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
 	}
 
 }

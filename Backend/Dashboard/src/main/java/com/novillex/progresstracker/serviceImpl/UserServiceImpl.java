@@ -129,8 +129,8 @@ public class UserServiceImpl implements UserService {
 		boolean isPasswordValid = passwordEncoder.matches(password, user.getPassword());
 
 		if (!isPasswordValid) {
-			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
-					"Invalid password", null);
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
+					null);
 		}
 
 		user.setPassword(null);
@@ -144,10 +144,10 @@ public class UserServiceImpl implements UserService {
 			projects.add(project);
 		}
 
-		String accessToken = JwtUtil.generateAccessToken(user.getUsername(), user.getRole());
+		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
-		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(), user.getRole());
-
+		String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
+		
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
@@ -195,13 +195,13 @@ public class UserServiceImpl implements UserService {
 		if (model.getUsername() != null && !model.getUsername().isBlank()
 				&& !Objects.equals(user.getUsername(), model.getUsername())) {
 			user.setUsername(model.getUsername());
-			
+
 			isUpdated = true;
 		}
 		if (model.getPassword() != null && !model.getPassword().isBlank()
 				&& !Objects.equals(user.getPassword(), model.getPassword())) {
 			user.setPassword(passwordEncoder.encode(model.getPassword()));
-			
+
 			isUpdated = true;
 		}
 		if (model.getFullname() != null && !model.getFullname().isBlank()

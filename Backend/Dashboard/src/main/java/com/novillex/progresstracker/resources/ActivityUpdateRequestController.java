@@ -36,8 +36,6 @@ public class ActivityUpdateRequestController {
 	@PostMapping("/approve/{requestId}")
 	public Response approveRequest(@PathVariable String requestId) {
 
-		//System.out.println(requestId);
-
 		return activityUpdateRequestService.approveRequest(requestId);
 	}
 

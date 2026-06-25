@@ -25,6 +25,8 @@ public class ErrorCode {
 	public static final String REQUEST_ALREADY_PENDING = "VAL_016";
 	public static final String PROJECT_ID_REQUIRED = "VAL_017";
 	public static final String PROJECT_ALREADY_EXISTS = "VAL_018";
+	public static final String INVALID_REQUEST = "INV_019";
+	public static final String INVALID_PASSWORD = "VAL_020";
 
 
 
@@ -52,6 +54,6 @@ public class ErrorCode {
 	
 	//Notification
 	public static final String NOTIFICATION_NOT_FOUND = "NOT_404";
-	public static final String INVALID_REQUEST = "INV_400";
+	
 	
 }

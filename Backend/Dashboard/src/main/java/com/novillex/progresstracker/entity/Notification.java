@@ -26,6 +26,8 @@ public class Notification {
 
     private String createdBy;
 
+    private String recipientUserId;
+
     private boolean read;
 
     private LocalDateTime createdAt;

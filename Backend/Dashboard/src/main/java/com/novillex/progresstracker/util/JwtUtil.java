@@ -14,16 +14,16 @@ public class JwtUtil {
 
 	private static final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
-	public static String generateAccessToken(String username, String role) {
+	public static String generateAccessToken(String userId, String username, String role) {
 
-		return Jwts.builder().setSubject(username).claim("role", role).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)).signWith(key, SignatureAlgorithm.HS256)
-				.compact();
+		return Jwts.builder().setSubject(username).claim("userId", userId).claim("role", role).setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+				.signWith(key, SignatureAlgorithm.HS256).compact();
 	}
 
-	public static String generateRefreshToken(String username, String role) {
+	public static String generateRefreshToken(String userId, String username, String role) {
 
-		return Jwts.builder().setSubject(username).claim("role", role).setIssuedAt(new Date())
+		return Jwts.builder().setSubject(username).claim("userId", userId).claim("role", role).setIssuedAt(new Date())
 				.setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7))
 				.signWith(key, SignatureAlgorithm.HS256).compact();
 	}

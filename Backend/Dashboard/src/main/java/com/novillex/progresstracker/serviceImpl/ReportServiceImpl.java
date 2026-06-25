@@ -39,9 +39,9 @@ public class ReportServiceImpl implements ReportService {
 	public List<ActivityModel> generateReport(GenerateReportModel req) {
 
 		logger.info("Generating report for projectId: {}", req.getProjectId());
-		
+
 		validateReportRequest(req);
-		
+
 		Project project = projectRepository.findById(req.getProjectId()).orElseThrow(() -> {
 			logger.warn("Project not found: {}", req.getProjectId());
 
@@ -75,33 +75,33 @@ public class ReportServiceImpl implements ReportService {
 		if (model.getProjectName() == null || model.getProjectName().isBlank()) {
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Project Name is required");
 		}
-		
-		if (model.getPhaseName() == null || model.getPhaseName().isBlank()) {
-			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select a phase first");
+
+		boolean phaseSelected = model.getPhaseName() != null && !model.getPhaseName().isBlank();
+
+		boolean milestoneSelected = model.getMilestoneNames() != null && !model.getMilestoneNames().isEmpty();
+
+		boolean taskSelected = model.getTaskName() != null && !model.getTaskName().isBlank();
+
+		boolean subTaskSelected = model.getSubtaskName() != null && !model.getSubtaskName().isBlank();
+
+		boolean activitySelected = model.getActivityName() != null && !model.getActivityName().isBlank();
+
+		// If anything below phase is selected, phase is mandatory
+		if ((milestoneSelected || taskSelected || subTaskSelected || activitySelected) && !phaseSelected) {
+
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Phase first");
 		}
 
-		if (model.getActivityName() != null && !model.getActivityName().isBlank()) {
-
-			if (model.getSubtaskName() == null || model.getSubtaskName().isBlank()) {
-
-				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Subtask before Activity");
-			}
+		if (taskSelected && !milestoneSelected) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Milestone before Task");
 		}
 
-		if (model.getSubtaskName() != null && !model.getSubtaskName().isBlank()) {
-
-			if (model.getTaskName() == null || model.getTaskName().isBlank()) {
-
-				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Task before Subtask");
-			}
+		if (subTaskSelected && !taskSelected) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Task before Subtask");
 		}
 
-		if (model.getTaskName() != null && !model.getTaskName().isBlank()) {
-
-			if (model.getMilestoneNames() == null || model.getMilestoneNames().isEmpty()) {
-
-				throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Milestone before Task");
-			}
+		if (activitySelected && !subTaskSelected) {
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Subtask before Activity");
 		}
 	}
 
