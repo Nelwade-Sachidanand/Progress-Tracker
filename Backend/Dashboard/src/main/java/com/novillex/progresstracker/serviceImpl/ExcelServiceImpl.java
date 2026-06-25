@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
@@ -432,7 +433,13 @@ public class ExcelServiceImpl implements ExcelService {
 				// WriteUtil.setCell(row, 15, report.getScheduleHealth());
 				WriteUtil.setCell(row, 16, report.getRemark());
 				
-				row.setHeight((short) -1); // Auto height (if supported)
+				CellStyle style = workbook.createCellStyle();
+				Cell cell = row.getCell(16);
+				style.cloneStyleFrom(cell.getCellStyle());
+				style.setWrapText(true);
+				cell.setCellStyle(style);
+				
+//				row.setHeight((short) -1); // Auto height (if supported)
 
 				currentRow++;
 			}
