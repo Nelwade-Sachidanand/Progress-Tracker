@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
@@ -23,22 +24,23 @@ public class ProjectInformationController {
 
 	@Autowired
 	private ProjectInformationService projectInformationService;
-	
-//	@Autowired
-//	private Validator validator;
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
 
-//		System.out.println(validator);
-
-	    return projectInformationService.createProjectInformation(model);
+		return projectInformationService.createProjectInformation(model);
 	}
 
 	@GetMapping("/all")
 	public Response getAllProjectInformation() {
 
 		return projectInformationService.getAllProjectInformation();
+	}
+
+	@GetMapping("/getProjectInformation")
+	public Response getProjectInformation(@RequestParam String bankName, @RequestParam String projectName) {
+
+		return projectInformationService.getProjectInformation(bankName, projectName);
 	}
 
 	@GetMapping("/{id}")

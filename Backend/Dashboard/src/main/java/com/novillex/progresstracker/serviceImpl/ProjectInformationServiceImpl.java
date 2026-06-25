@@ -38,7 +38,7 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 	@Autowired
 	AuditService auditService;
-	
+
 	@Autowired
 	private ModelMapper modelMapper;
 
@@ -59,7 +59,6 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 				throw new ResourceNotFoundException(ErrorCode.PROJECT_ALREADY_EXISTS,
 						"Project information already exists", model.getProjectName());
 			});
-
 
 			ProjectInformation project = modelMapper.map(model, ProjectInformation.class);
 
@@ -136,6 +135,26 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 			throw ex;
 		}
+	}
+
+	@Override
+	public Response getProjectInformation(String bankName, String projectName) {
+
+		logger.info("Fetching project information. BankName={}, ProjectName={}", bankName, projectName);
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		ProjectInformation project = repository.findByProjectNameAndBankName(projectName, bankName).orElseThrow(() -> {
+
+			logger.warn("Project information not found. BankName={}, ProjectName={}", bankName, projectName);
+
+			return new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Project information not found",projectName);
+		});
+
+		logger.info("Project information fetched successfully. BankName={}, ProjectName={}", bankName, projectName);
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Project information fetched successfully", project);
 	}
 
 	@Override

@@ -183,8 +183,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
 
-		System.out.println(UserContextUtil.getCurrentUserId());
-
 		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
 
 		activityRequest.setStatus("PENDING");

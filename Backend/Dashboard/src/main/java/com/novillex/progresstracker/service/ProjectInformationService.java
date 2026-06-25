@@ -14,4 +14,6 @@ public interface ProjectInformationService {
 	Response updateProjectInformation(String id, ProjectInformationModel model);
 
 	Response deleteProjectInformation(String id);
-}
+	
+	Response getProjectInformation(String bankName, String projectName);
+	}

@@ -76,7 +76,6 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 	}
 
 	@Override
-	@Transactional
 	public Response approveRequest(String requestId) {
 
 		logger.info("Activity update approval initiated. RequestId={}, RequestedBy={}", requestId,

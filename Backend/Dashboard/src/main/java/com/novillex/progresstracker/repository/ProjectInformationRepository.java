@@ -13,4 +13,5 @@ public interface ProjectInformationRepository extends MongoRepository<ProjectInf
 	Optional<ProjectInformation> findByProjectName(String projectName);
 
 	Optional<ProjectInformation> findByProjectNameAndBankName(String projectName, String bankName);
+	
 }
