@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,6 +29,7 @@ public class ProjectControlller {
 	@Autowired
 	private ProjectService projectService;
 
+	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/getAll")
 	public Response getAllProjects() {
 
@@ -51,7 +53,8 @@ public class ProjectControlller {
 
 		return response;
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/delete/{projectId}")
 	public Response deleteProject(@PathVariable String projectId) {
 
@@ -75,7 +78,8 @@ public class ProjectControlller {
 
 		return response;
 	}
-
+	
+	@PreAuthorize("hasAnyRole('ADMIN','IMPLEMENTATION USER')")
 	@PutMapping("/milestone-weightages")
 	public Response updateMilestoneWeightages(@RequestBody UpdateMilestoneWeightageRequest request) {
 
@@ -87,7 +91,8 @@ public class ProjectControlller {
 
 		return response;
 	}
-
+	
+	@PreAuthorize("hasAnyRole('ADMIN','IMPLEMENTATION USER')")
 	@GetMapping("/milestone-weightages/{projectId}")
 	public Response getMilestoneWeightages(@PathVariable String projectId) {
 

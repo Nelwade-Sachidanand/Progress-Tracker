@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.resources;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import com.novillex.progresstracker.service.RollbackService;
 
 @RestController
 @RequestMapping("/authorization")
+@PreAuthorize("hasRole('ADMIN')")
 public class RollbackController {
 	
 	@Autowired
