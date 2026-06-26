@@ -296,5 +296,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Remark added successfully", null);
 	}
+	
 
 }

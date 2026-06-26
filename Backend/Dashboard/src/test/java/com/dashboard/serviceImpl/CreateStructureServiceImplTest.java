@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
+import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.entity.Activity;
 import com.novillex.progresstracker.entity.Milestone;
@@ -454,6 +455,60 @@ public class CreateStructureServiceImplTest {
 		assertNotNull(project.getPhases());
 
 		assertEquals(1, project.getPhases().size());
+	}
+
+	@Test
+	void createStructure_ShouldReturnResponseFromResponseBuilder() {
+
+		mockLoggedInUser();
+
+		ActivityModel request = new ActivityModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase1");
+		request.setMilestoneName("Milestone1");
+		request.setTaskName("Task1");
+		request.setSubTaskName("SubTask1");
+		request.setActivityName("Activity1");
+		request.setProgress(50);
+
+		Subtask subtask = new Subtask();
+		subtask.setSubTaskName("SubTask1");
+		subtask.setActivities(new ArrayList<>());
+
+		Task task = new Task();
+		task.setTaskName("Task1");
+		task.setSubTasks(new ArrayList<>(List.of(subtask)));
+
+		Milestone milestone = new Milestone();
+		milestone.setMilestoneName("Milestone1");
+		milestone.setTasks(new ArrayList<>(List.of(task)));
+
+		Phase phase = new Phase();
+		phase.setPhaseName("Phase1");
+		phase.setMilestones(new ArrayList<>(List.of(milestone)));
+
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo Project");
+		project.setPhases(new ArrayList<>(List.of(phase)));
+
+		Response expectedResponse = mock(Response.class);
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), eq(project))).thenReturn(expectedResponse);
+
+		Response actual = createStructureService.createStructure(request);
+
+		assertSame(expectedResponse, actual);
+
+		verify(responseBuilder).createResponse(any(), any(), eq("Activity created successfully"), eq(project));
 	}
 
 }
