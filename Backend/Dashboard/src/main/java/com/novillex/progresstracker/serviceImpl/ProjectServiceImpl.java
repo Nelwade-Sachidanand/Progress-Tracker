@@ -162,8 +162,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		logger.info("Updating milestone weightages. ProjectId={}, PhaseName={}", request.getProjectId(),
-				request.getPhaseName());
+		logger.info("Updating milestone weightages. ProjectId={}", request.getProjectId());
 
 		try {
 
@@ -187,30 +186,17 @@ public class ProjectServiceImpl implements ProjectService {
 				throw new IllegalArgumentException("Total milestone weightage must be exactly 100");
 			}
 
-			Phase phase = project.getPhases().stream()
-					.filter(p -> p.getPhaseName().equalsIgnoreCase(request.getPhaseName())).findFirst()
-					.orElseThrow(() -> {
-
-						logger.warn("Phase not found. PhaseName={}", request.getPhaseName());
-
-						return new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
-								request.getPhaseName());
-					});
-
 			for (MilestoneWeightageModel milestoneReq : request.getMilestones()) {
+
+				Phase phase = project.getPhases().stream()
+						.filter(p -> p.getPhaseName().equalsIgnoreCase(milestoneReq.getPhaseName())).findFirst()
+						.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
+								milestoneReq.getPhaseName()));
 
 				Milestone milestone = phase.getMilestones().stream()
 						.filter(m -> m.getMilestoneName().equalsIgnoreCase(milestoneReq.getMilestoneName())).findFirst()
-						.orElseThrow(() -> {
-
-							logger.warn("Milestone not found. MilestoneName={}", milestoneReq.getMilestoneName());
-
-							return new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND, "Milestone not found",
-									milestoneReq.getMilestoneName());
-						});
-
-				logger.info("Updating milestone weightage. Milestone={}, Weightage={}", milestoneReq.getMilestoneName(),
-						milestoneReq.getWeightage());
+						.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND,
+								"Milestone not found", milestoneReq.getMilestoneName()));
 
 				milestone.setWeightage(milestoneReq.getWeightage());
 			}

@@ -437,6 +437,9 @@ public class ExcelServiceImpl implements ExcelService {
 				style.setWrapText(true);
 				cell.setCellStyle(style);
 				row.setHeight((short)-1);
+				
+//				row.setHeight((short) -1); // Auto height (if supported)
+
 				currentRow++;
 			}
 
