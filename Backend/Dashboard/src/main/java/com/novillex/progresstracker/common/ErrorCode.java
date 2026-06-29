@@ -54,6 +54,7 @@ public class ErrorCode {
 	
 	//Notification
 	public static final String NOTIFICATION_NOT_FOUND = "NOT_404";
+	public static final String MILESTONE_WEIGHTAGE_NOT_DEFINED = "MILESTONE_WEIGHTAGE_NOT_DEFINED";
 	
 	
 }
