@@ -26,14 +26,14 @@ import io.jsonwebtoken.Claims;
 
 @RestController
 @RequestMapping("/user")
-@PreAuthorize("hasRole('ADMIN')")
 public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
 	@Autowired
 	private UserService userService;
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/register")
 	public Response registerUser(@RequestBody UserModel userModel) {
 
@@ -43,6 +43,7 @@ public class UserController {
 	}
 	
 	
+	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/getAllUsers")
 	public Response getAllUsers() {
 
@@ -50,7 +51,8 @@ public class UserController {
 
 		return userService.getAllUsers();
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
 
@@ -58,7 +60,8 @@ public class UserController {
 
 		return userService.updateUser(model);
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/deleteUser/{userId}")
 	public Response deleteUser(@PathVariable String userId) {
 

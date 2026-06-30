@@ -29,7 +29,7 @@ public class ProjectInformationController {
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
-
+		
 		return projectInformationService.createProjectInformation(model);
 	}
 

@@ -198,6 +198,12 @@ public class UserServiceImpl implements UserService {
 
 			isUpdated = true;
 		}
+		if (model.getEmail() != null && !model.getEmail().isBlank()
+				&& !Objects.equals(user.getEmail(), model.getEmail())) {
+			user.setEmail(model.getEmail());
+
+			isUpdated = true;
+		}
 		if (model.getPassword() != null && !model.getPassword().isBlank()
 				&& !Objects.equals(user.getPassword(), model.getPassword())) {
 			user.setPassword(passwordEncoder.encode(model.getPassword()));
