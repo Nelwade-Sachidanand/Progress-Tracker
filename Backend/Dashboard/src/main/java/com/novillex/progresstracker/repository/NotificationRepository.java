@@ -7,11 +7,14 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import com.novillex.progresstracker.entity.Notification;
 import org.springframework.data.domain.Sort;
 
-
 public interface NotificationRepository extends MongoRepository<Notification, String> {
 
-	long countByReadFalse();
+	long countByRecipientUserIdAndReadFalse(String recipientUserId);
 	
-	List<Notification> findByReadFalse(Sort sort);
+	long countByRecipientUserIdIsNullAndReadFalse();
 
+	List<Notification> findByRecipientUserIdAndReadFalse(String recipientUserId, Sort sort);
+	
+	List<Notification> findByRecipientUserIdIsNullAndReadFalse(Sort sort);
+	
 }

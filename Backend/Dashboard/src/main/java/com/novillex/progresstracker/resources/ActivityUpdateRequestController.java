@@ -3,6 +3,7 @@ package com.novillex.progresstracker.resources;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import com.novillex.progresstracker.service.ActivityUpdateRequestService;
 
 @RestController
 @RequestMapping("/activity-request")
+@PreAuthorize("hasRole('ADMIN')")
 public class ActivityUpdateRequestController {
 
 	@Autowired
@@ -35,8 +37,6 @@ public class ActivityUpdateRequestController {
 
 	@PostMapping("/approve/{requestId}")
 	public Response approveRequest(@PathVariable String requestId) {
-
-		//System.out.println(requestId);
 
 		return activityUpdateRequestService.approveRequest(requestId);
 	}

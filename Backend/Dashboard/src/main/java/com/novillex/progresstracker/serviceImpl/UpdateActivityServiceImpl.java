@@ -24,6 +24,8 @@ import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.ActivityModel;
+import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
+import com.novillex.progresstracker.model.AddRemarkModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -54,12 +56,20 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	@Autowired
 	private NotificationService notificationService;
 
-	@Override
-	public Response updateActivity(ActivityModel request) {
+	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
+		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
+				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
+				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
+				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
+				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
+				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
+				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress());
+	}
 
+	@Override
+	public Response updateActivityRequest(ActivityUpdateRequestModel request) {
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		WriteUtil.validateRequest(request);
 		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
 		if (project == null) {
 			logger.warn("Project not found. ProjectId: {}", request.getProjectId());
@@ -76,6 +86,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			for (Milestone milestone : phase.getMilestones()) {
 				if (!milestone.getMilestoneName().equals(request.getMilestoneName())) {
 					continue;
+				}
+
+				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
+					logger.warn("Milestone weightage is not defined. Milestone: {}", milestone.getMilestoneName());
+
+					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
+							"Milestone weightage is not defined. Please assign milestone weightage first.");
 				}
 
 				for (Task task : milestone.getTasks()) {
@@ -136,8 +153,10 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
-		newActivity.setRemark(request.getRemark());
 
+		/*
+		 * Validate Changes
+		 */
 		if (!isActivityChanged(oldActivity, newActivity)) {
 
 			logger.warn("No changes found for activity: {}", request.getActivityName());
@@ -145,6 +164,9 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
+		/*
+		 * Create Approval Request
+		 */
 		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
 
 		activityRequest.setProjectId(request.getProjectId());
@@ -163,7 +185,11 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		activityRequest.setNewActivity(newActivity);
 
+		activityRequest.setChangeReason(request.getChangeReason());
+
 		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+
+		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
 
 		activityRequest.setStatus("PENDING");
 
@@ -186,7 +212,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		notificationService.createNotification("Activity Update Requested",
 				UserContextUtil.getCurrentUser() + " requested update for activity " + request.getActivityName(),
-				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization");
+				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
 
 		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, request.getActivityName(),
 				project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
@@ -198,15 +224,84 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				"Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
 	}
 
-	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
-		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
-				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
-				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
-				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
-				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
-				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
-				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
-				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
+	@Override
+	public Response addRemark(AddRemarkModel model) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
+				model.getActivityName());
+
+		Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
+			logger.error("Project not found with id: {}", model.getProjectId());
+			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+					model.getActivityName());
+		});
+
+		boolean activityFound = false;
+
+		for (Phase phase : project.getPhases()) {
+
+			if (!phase.getPhaseName().equals(model.getPhaseName())) {
+				continue;
+			}
+
+			for (Milestone milestone : phase.getMilestones()) {
+
+				if (!milestone.getMilestoneName().equals(model.getMilestoneName())) {
+					continue;
+				}
+
+				for (Task task : milestone.getTasks()) {
+
+					if (!task.getTaskName().equals(model.getTaskName())) {
+						continue;
+					}
+
+					for (Subtask subTask : task.getSubTasks()) {
+
+						if (!subTask.getSubTaskName().equals(model.getSubTaskName())) {
+							continue;
+						}
+
+						for (Activity activity : subTask.getActivities()) {
+
+							if (!activity.getActivityName().equals(model.getActivityName())) {
+								continue;
+							}
+
+							String existingRemark = activity.getRemark();
+
+							if (existingRemark == null || existingRemark.isBlank()) {
+								activity.setRemark(model.getRemark());
+							} else {
+								activity.setRemark(existingRemark + System.lineSeparator() + model.getRemark());
+							}
+
+							activityFound = true;
+
+							logger.info("Remark added successfully for activity '{}'", activity.getActivityName());
+
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (!activityFound) {
+			logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
+
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+					model.getActivityName());
+		}
+
+		projectRepository.save(project);
+
+		logger.info("Project '{}' updated successfully after adding remark.", project.getProjectName());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Remark added successfully", null);
 	}
 
 }

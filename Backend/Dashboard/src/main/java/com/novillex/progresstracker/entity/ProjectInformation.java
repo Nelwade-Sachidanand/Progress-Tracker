@@ -53,4 +53,6 @@ public class ProjectInformation {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+    
+    private String updatedBy;
 }

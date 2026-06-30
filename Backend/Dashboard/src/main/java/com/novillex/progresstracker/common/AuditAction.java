@@ -48,4 +48,6 @@ public class AuditAction {
 
 	public static final String UPDATE_PROJECT_INFORMATION = "UPDATE_PROJECT_INFORMATION";
 
+	public static final String ROLLBACK_ACTIVITY_UPDATE = "ROLLBACK_ACTIVITY";
+
 }

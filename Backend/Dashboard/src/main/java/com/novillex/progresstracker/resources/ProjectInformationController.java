@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.resources;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
@@ -19,26 +21,28 @@ import jakarta.validation.Validator;
 
 @RestController
 @RequestMapping("/project-information")
+@PreAuthorize("hasRole('ADMIN')")
 public class ProjectInformationController {
 
 	@Autowired
 	private ProjectInformationService projectInformationService;
-	
-//	@Autowired
-//	private Validator validator;
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
-
-//		System.out.println(validator);
-
-	    return projectInformationService.createProjectInformation(model);
+		
+		return projectInformationService.createProjectInformation(model);
 	}
 
 	@GetMapping("/all")
 	public Response getAllProjectInformation() {
 
 		return projectInformationService.getAllProjectInformation();
+	}
+
+	@GetMapping("/getProjectInformation")
+	public Response getProjectInformation(@RequestParam String bankName, @RequestParam String projectName) {
+
+		return projectInformationService.getProjectInformation(bankName, projectName);
 	}
 
 	@GetMapping("/{id}")

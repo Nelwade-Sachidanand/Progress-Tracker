@@ -144,10 +144,10 @@ public class UserServiceImpl implements UserService {
 			projects.add(project);
 		}
 
-		String accessToken = JwtUtil.generateAccessToken(user.getUsername(), user.getRole());
+		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
-		String refreshToken = JwtUtil.generateRefreshToken(user.getUsername(), user.getRole());
-
+		String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
+		
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
@@ -195,6 +195,12 @@ public class UserServiceImpl implements UserService {
 		if (model.getUsername() != null && !model.getUsername().isBlank()
 				&& !Objects.equals(user.getUsername(), model.getUsername())) {
 			user.setUsername(model.getUsername());
+
+			isUpdated = true;
+		}
+		if (model.getEmail() != null && !model.getEmail().isBlank()
+				&& !Objects.equals(user.getEmail(), model.getEmail())) {
+			user.setEmail(model.getEmail());
 
 			isUpdated = true;
 		}

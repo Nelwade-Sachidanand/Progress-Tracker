@@ -18,6 +18,7 @@ import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.Notification;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.NotificationRepository;
+import com.novillex.progresstracker.util.UserContextUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,8 +37,22 @@ public class NotificationController {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		List<Notification> notifications = notificationRepository
-				.findByReadFalse(Sort.by(Sort.Direction.DESC, "createdAt"));
+		String userId = UserContextUtil.getCurrentUserId();
+
+		String role = UserContextUtil.getCurrentUserRole();
+
+		List<Notification> notifications;
+
+		if ("ADMIN".equalsIgnoreCase(role)) {
+
+			notifications = notificationRepository
+					.findByRecipientUserIdIsNullAndReadFalse(Sort.by(Sort.Direction.DESC, "createdAt"));
+
+		} else {
+
+			notifications = notificationRepository.findByRecipientUserIdAndReadFalse(userId,
+					Sort.by(Sort.Direction.DESC, "createdAt"));
+		}
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Unread notifications fetched successfully", notifications);
@@ -74,15 +89,31 @@ public class NotificationController {
 				"All notifications marked as read", notifications.size());
 	}
 
-	@GetMapping("/count")
+	@GetMapping("/unread-count")
 	public Response getUnreadCount() {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		long unreadCount = notificationRepository.countByReadFalse();
+		String userId = UserContextUtil.getCurrentUserId();
+
+		String role = UserContextUtil.getCurrentUserRole();
+		
+		System.out.println("userId = "+userId);
+		System.out.println("role = "+role);
+
+		long count = 0;
+
+		if ("ADMIN".equalsIgnoreCase(role)) {
+
+			count = notificationRepository.countByRecipientUserIdIsNullAndReadFalse();
+
+		} else {
+
+			count = notificationRepository.countByRecipientUserIdAndReadFalse(userId);
+		}
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Unread notification count fetched successfully", unreadCount);
+				"Unread count fetched successfully", count);
 	}
 
 }

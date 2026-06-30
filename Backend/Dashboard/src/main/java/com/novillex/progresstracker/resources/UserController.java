@@ -3,6 +3,7 @@ package com.novillex.progresstracker.resources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +32,8 @@ public class UserController {
 
 	@Autowired
 	private UserService userService;
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/register")
 	public Response registerUser(@RequestBody UserModel userModel) {
 
@@ -39,15 +41,9 @@ public class UserController {
 
 		return userService.register(userModel);
 	}
-
-	@PostMapping("/login")
-	public Response login(@RequestBody LoginModel loginModel) {
-
-		logger.info("Login request received. Username: {}", loginModel.getUsername());
-
-		return userService.login(loginModel);
-	}
-
+	
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/getAllUsers")
 	public Response getAllUsers() {
 
@@ -55,7 +51,8 @@ public class UserController {
 
 		return userService.getAllUsers();
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
 
@@ -63,7 +60,8 @@ public class UserController {
 
 		return userService.updateUser(model);
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/deleteUser/{userId}")
 	public Response deleteUser(@PathVariable String userId) {
 
@@ -82,8 +80,10 @@ public class UserController {
 		String username = claims.getSubject();
 
 		String role = (String) claims.get("role");
+		
+		String userId = (String) claims.get("userId");
 
-		String newAccessToken = JwtUtil.generateAccessToken(username, role);
+		String newAccessToken = JwtUtil.generateAccessToken(userId,username, role);
 
 		return new Response(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Token refreshed successfully",
 				newAccessToken);

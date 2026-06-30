@@ -8,13 +8,15 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
 
 @Data
-@Document(collection = "activity_update_requests")
-public class ActivityUpdateRequest {
+@Document(collection = "activity_history")
+public class ActivityHistory {
 
     @Id
     private String id;
 
     private String projectId;
+
+    private String requestId;
 
     private String phaseName;
 
@@ -30,27 +32,13 @@ public class ActivityUpdateRequest {
 
     private Activity newActivity;
 
-    private String requestedBy;
-    
-    private String requestedByUserId;
-
     private String approvedBy;
-
-    private String status;
-
-    private LocalDateTime requestedAt;
 
     private LocalDateTime approvedAt;
 
-    private String rejectionReason;
-    
-    private String requestSource;
-    
-    private String changeReason;
-    
-    private String rollbackReason;
+    private Boolean restored = false;
 
-    private String rolledBackBy;
+    private String restoredBy;
 
-    private LocalDateTime rolledBackAt;
+    private LocalDateTime restoredAt;
 }

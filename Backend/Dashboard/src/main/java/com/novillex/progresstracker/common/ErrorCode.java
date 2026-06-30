@@ -25,6 +25,8 @@ public class ErrorCode {
 	public static final String REQUEST_ALREADY_PENDING = "VAL_016";
 	public static final String PROJECT_ID_REQUIRED = "VAL_017";
 	public static final String PROJECT_ALREADY_EXISTS = "VAL_018";
+	public static final String INVALID_REQUEST = "INV_019";
+	public static final String INVALID_PASSWORD = "VAL_020";
 
 
 
@@ -43,15 +45,29 @@ public class ErrorCode {
     // Database
     public static final String DATABASE_ERROR = "DB_001";
 
-    // Excel
-    public static final String EXCEL_READ_ERROR = "EXCEL_READ_ERROR";
-    public static final String EXCEL_EXPORT_ERROR = "EXCEL_EXPORT_ERROR";
+ // Excel
+    public static final String EXCEL_READ_ERROR = "EXL_001";
+    public static final String EXCEL_EXPORT_ERROR = "EXL_002";
+    public static final String EXCEL_TEMPLATE_NOT_FOUND = "EXL_404";
+
+    // Validation
     public static final String BANK_NAME_REQUIRED = "VAL_021";
-	public static final String EXCEL_TEMPLATE_NOT_FOUND = "EXCEL_003";
-	public static final String NO_REPORT_DATA_FOUND = "VAL_033";
+    public static final String NO_REPORT_DATA_FOUND = "VAL_033";
+
+    // Notification
+    public static final String NOTIFICATION_NOT_FOUND = "NOT_404";
+    public static final String MILESTONE_WEIGHTAGE_NOT_DEFINED = "NOT_001";
 	
-	//Notification
-	public static final String NOTIFICATION_NOT_FOUND = "NOT_404";
-	public static final String INVALID_REQUEST = "INV_400";
+	// File
+	public static final String FILE_NOT_FOUND = "FILE_404";
+	public static final String INVALID_FILE_TYPE = "FILE_001";
+	public static final String FILE_SIZE_EXCEEDED = "FILE_002";
+	public static final String FILE_UPLOAD_FAILED = "FILE_003";
+	public static final String DOCUMENT_NOT_FOUND = "DOC_404";
+	public static final String FILE_ALREADY_EXISTS = "FILE_004";
+	
+	
+	public static final String INTERNAL_SERVER_ERROR = "ERR_500";
+	
 	
 }
