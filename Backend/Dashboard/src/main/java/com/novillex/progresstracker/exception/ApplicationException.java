@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class DatabaseException extends RuntimeException {
+public class ApplicationException extends RuntimeException {
 
 	private String errorCode;
 	private String errorMessage;
-
+    
 }

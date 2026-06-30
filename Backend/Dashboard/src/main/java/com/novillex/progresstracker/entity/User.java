@@ -3,6 +3,7 @@ package com.novillex.progresstracker.entity;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import lombok.Data;
@@ -17,6 +18,9 @@ public class User {
     private String fullname;
 
     private String username;
+    
+    @Indexed(unique = true)
+    private String email;
 
     private String password;
 

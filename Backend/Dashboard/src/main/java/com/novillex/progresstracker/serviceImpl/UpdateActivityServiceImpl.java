@@ -88,6 +88,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 					continue;
 				}
 
+				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
+					logger.warn("Milestone weightage is not defined. Milestone: {}", milestone.getMilestoneName());
+
+					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
+							"Milestone weightage is not defined. Please assign milestone weightage first.");
+				}
+
 				for (Task task : milestone.getTasks()) {
 					if (!task.getTaskName().equals(request.getTaskName())) {
 						continue;
@@ -220,16 +227,16 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 	@Override
 	public Response addRemark(AddRemarkModel model) {
-		
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
 				model.getActivityName());
 
-
 		Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
 			logger.error("Project not found with id: {}", model.getProjectId());
-			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",model.getActivityName());
+			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+					model.getActivityName());
 		});
 
 		boolean activityFound = false;
@@ -286,7 +293,8 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		if (!activityFound) {
 			logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
 
-			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",model.getActivityName());
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+					model.getActivityName());
 		}
 
 		projectRepository.save(project);

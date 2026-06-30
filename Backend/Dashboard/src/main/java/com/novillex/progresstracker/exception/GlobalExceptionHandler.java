@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<Response> handleValidationException(MethodArgumentNotValidException ex) {
-		
+
 		logger.error("Validation Error Triggered");
 
 		String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
@@ -70,6 +70,17 @@ public class GlobalExceptionHandler {
 
 		return responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE, ex.getErrorMessage(),
 				null);
+	}
+
+	@ExceptionHandler(ApplicationException.class)
+	public ResponseEntity<Response> handleApplicationException(ApplicationException ex) {
+
+		logger.error("Application Exception : {}", ex.getMessage(), ex);
+
+		Response response = responseBuilder.createResponse(ex.getErrorCode(), StatusCode.ERROR_STATUS_TYPE,
+				ex.getErrorMessage(), null);
+
+		return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
 	@ExceptionHandler(Exception.class)
