@@ -111,7 +111,7 @@ public class ExcelServiceImpl implements ExcelService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				// WriteUtil.validateExcelRow(model);
+				
 
 				Project project = projectMap.get(model.getProjectName());
 
@@ -249,19 +249,6 @@ public class ExcelServiceImpl implements ExcelService {
 						}
 					}
 				}
-				// Update Activity Fields
-				/*
-				 * activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
-				 * activity.setPlannedStartDate(model.getPlannedStartDate());
-				 * activity.setPlannedEndDate(model.getPlannedEndDate());
-				 * activity.setActualStartDate(model.getActualStartDate());
-				 * activity.setActualEndDate(model.getActualEndDate());
-				 * activity.setActualPeriodWeek(model.getActualPeriodWeek());
-				 * activity.setProgress(model.getProgress());
-				 * activity.setExecutionStatus(model.getExecutionStatus());
-				 * activity.setScheduleHealth(model.getScheduleHealth());
-				 * activity.setRemark(model.getRemark());
-				 */
 
 				if (isNewActivity) {
 

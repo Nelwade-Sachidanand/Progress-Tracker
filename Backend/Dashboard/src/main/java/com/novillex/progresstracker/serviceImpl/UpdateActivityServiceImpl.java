@@ -111,9 +111,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		BeanUtils.copyProperties(activityToUpdate, oldActivity);
 
-		/*
-		 * Create Requested Activity
-		 */
 		Activity newActivity = new Activity();
 
 		newActivity.setActivityName(request.getActivityName());
@@ -141,9 +138,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		newActivity.setRemark(request.getRemark());
 
-		/*
-		 * Validate Changes
-		 */
 		if (!isActivityChanged(oldActivity, newActivity)) {
 
 			logger.warn("No changes found for activity: {}", request.getActivityName());
@@ -151,9 +145,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
-		/*
-		 * Create Approval Request
-		 */
 		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
 
 		activityRequest.setProjectId(request.getProjectId());
