@@ -13,7 +13,9 @@ import lombok.Data;
 public class Documents {
 	@Id
 	private String id;
-
+	
+	private String projectId;
+	private String bankName;
 	private String projectName;
 	private String phaseName;
 	private String milestoneName;

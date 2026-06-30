@@ -10,8 +10,10 @@ import com.novillex.progresstracker.entity.Documents;
 @Repository
 public interface DocumentRepository extends MongoRepository<Documents, String> {
 
-	Optional<Documents> findByProjectNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-			String projectName, String phaseName, String milestoneName, String taskName, String subTaskName,
+	Optional<Documents> findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
+			String projectName, String bankName, String phaseName, String milestoneName, String taskName, String subTaskName,
 			String activityName);
+
+	Optional<Documents> findByDocumentsDocumentId(String documentId);
 
 }
