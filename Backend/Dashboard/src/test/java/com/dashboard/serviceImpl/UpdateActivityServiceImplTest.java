@@ -806,5 +806,4 @@ class UpdateActivityServiceImplTest {
 
 		assertNotNull(newActivity.getScheduleHealth());
 	}
-
 }

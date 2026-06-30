@@ -89,9 +89,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			project.getPhases().add(phase);
 			phaseCreated = true;
 		}
-
 		Milestone milestone = null;
-
 		if (request.getMilestoneName() != null) {
 
 			for (Milestone m : phase.getMilestones()) {
@@ -101,7 +99,6 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 					break;
 				}
 			}
-
 			if (milestone == null) {
 				milestone = new Milestone();
 				milestone.setMilestoneName(request.getMilestoneName());
@@ -112,7 +109,6 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		}
 
 		Task task = null;
-
 		if (request.getTaskName() != null) {
 
 			for (Task t : milestone.getTasks()) {
@@ -132,7 +128,6 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 				taskCreated = true;
 			}
 		}
-
 		Subtask subtask = null;
 
 		if (request.getSubTaskName() != null) {
@@ -144,7 +139,6 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 					break;
 				}
 			}
-
 			if (subtask == null) {
 				subtask = new Subtask();
 				subtask.setSubTaskName(request.getSubTaskName());

@@ -247,7 +247,6 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 		} catch (Exception ex) {
 
 			logger.error("Failed to update project information. ProjectId={}", id, ex);
-
 			throw ex;
 		}
 	}

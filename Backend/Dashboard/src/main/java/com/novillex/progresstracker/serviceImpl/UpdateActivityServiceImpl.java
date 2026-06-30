@@ -128,9 +128,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		BeanUtils.copyProperties(activityToUpdate, oldActivity);
 
-		/*
-		 * Create Requested Activity
-		 */
 		Activity newActivity = new Activity();
 
 		newActivity.setActivityName(request.getActivityName());
@@ -156,6 +153,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
+
 		/*
 		 * Validate Changes
 		 */
@@ -165,6 +163,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
+
 		/*
 		 * Create Approval Request
 		 */

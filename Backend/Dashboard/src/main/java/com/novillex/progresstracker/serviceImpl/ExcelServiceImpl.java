@@ -112,7 +112,7 @@ public class ExcelServiceImpl implements ExcelService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				// WriteUtil.validateExcelRow(model);
+				
 
 				Project project = projectMap.get(model.getProjectName());
 
@@ -250,19 +250,6 @@ public class ExcelServiceImpl implements ExcelService {
 						}
 					}
 				}
-				// Update Activity Fields
-				/*
-				 * activity.setEstimatedPeriodWeek(model.getEstimatedPeriodWeek());
-				 * activity.setPlannedStartDate(model.getPlannedStartDate());
-				 * activity.setPlannedEndDate(model.getPlannedEndDate());
-				 * activity.setActualStartDate(model.getActualStartDate());
-				 * activity.setActualEndDate(model.getActualEndDate());
-				 * activity.setActualPeriodWeek(model.getActualPeriodWeek());
-				 * activity.setProgress(model.getProgress());
-				 * activity.setExecutionStatus(model.getExecutionStatus());
-				 * activity.setScheduleHealth(model.getScheduleHealth());
-				 * activity.setRemark(model.getRemark());
-				 */
 
 				if (isNewActivity) {
 
@@ -428,9 +415,7 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 9, report.getPlannedEndDate());
 				WriteUtil.setDate(row, 10, report.getActualStartDate());
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
-				// WriteUtil.setCell(row, 12, report.getActualPeriodWeek());
 				WriteUtil.setCell(row, 13, report.getProgress());
-				// WriteUtil.setCell(row, 15, report.getScheduleHealth());
 				WriteUtil.setCell(row, 16, report.getRemark());
 				
 				CellStyle style = workbook.createCellStyle();
@@ -438,6 +423,7 @@ public class ExcelServiceImpl implements ExcelService {
 				style.cloneStyleFrom(cell.getCellStyle());
 				style.setWrapText(true);
 				cell.setCellStyle(style);
+				row.setHeight((short)-1);
 				
 //				row.setHeight((short) -1); // Auto height (if supported)
 

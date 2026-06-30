@@ -76,9 +76,7 @@ public class AuditServiceImpl implements AuditService {
 			List<AuditLog> auditLogs = auditLogRepository.findAll();
 
 			if (auditLogs == null || auditLogs.isEmpty()) {
-
 				logger.warn("No audit logs found");
-
 				throw new ResourceNotFoundException(ErrorCode.AUDIT_NOT_FOUND, "No audit logs found", null);
 			}
 			Collections.reverse(auditLogs);
