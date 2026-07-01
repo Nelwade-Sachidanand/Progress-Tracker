@@ -91,19 +91,12 @@ public class DocumentServiceImpl implements DocumentService {
 			File destination = new File(activityFolder, storedFileName);
 
 			file.transferTo(destination);
-
 			ActivityDocument activityDocument = new ActivityDocument();
-
 			activityDocument.setDocumentId(UUID.randomUUID().toString());
-
 			activityDocument.setFileName(storedFileName);
-
 			activityDocument.setFilePath(destination.getAbsolutePath());
-
 			activityDocument.setUploadedBy(UserContextUtil.getCurrentUser());
-
 			activityDocument.setUploadedDate(LocalDateTime.now());
-
 			documents.getDocuments().add(activityDocument);
 
 			documentRepository.save(documents);

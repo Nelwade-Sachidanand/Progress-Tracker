@@ -152,9 +152,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
 
-		/*
-		 * Validate Changes
-		 */
 		if (!isActivityChanged(oldActivity, newActivity)) {
 
 			logger.warn("No changes found for activity: {}", request.getActivityName());
@@ -162,9 +159,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
-		/*
-		 * Create Approval Request
-		 */
 		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
 
 		activityRequest.setProjectId(request.getProjectId());
