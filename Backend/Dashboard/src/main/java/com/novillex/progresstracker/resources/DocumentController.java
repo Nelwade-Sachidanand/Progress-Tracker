@@ -35,7 +35,7 @@ public class DocumentController {
 
 	
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@PreAuthorize("hasRole('USER')")
+	@PreAuthorize("hasAnyRole('USER','ADMIN')")
 	public Response uploadDocument(@Valid @ModelAttribute UploadDocumentRequest request,
 			@RequestPart("file") MultipartFile file) {
 
@@ -44,7 +44,7 @@ public class DocumentController {
 
 		return documentService.uploadDocument(request, file);
 	}
-
+	
 
 	@GetMapping("/download/{documentId}")
 	@PreAuthorize("isAuthenticated()")
@@ -68,6 +68,14 @@ public class DocumentController {
 				request.getActivityName());
 
 		return documentService.getDocuments(request);
+	}
+	
+	@GetMapping("/getAll")
+	public Response getAllDocuments() {
+
+		logger.info("Fetch documents request received");
+
+		return documentService.getAllDocuments();
 	}
 
 }
