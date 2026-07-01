@@ -26,6 +26,7 @@ import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
+import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.AuditLogRepository;
@@ -63,13 +64,22 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 	@Override
 	public Response getPendingRequests() {
-
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		logger.info("Fetching pending activity update requests.");
 
-		List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+		try {
 
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Pending requests fetched successfully", requests);
+			List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Pending requests fetched successfully.", requests);
+
+		} catch (Exception ex) {
+
+			logger.error("Failed to fetch pending activity update requests.", ex);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch pending activity update requests.");
+		}
 	}
 
 	@Override
@@ -149,7 +159,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 			request.setApprovedAt(LocalDateTime.now());
 
 			requestRepository.save(request);
-			
+
 			notificationService.createNotification("Activity Update Rejected",
 					"Your update request for activity '" + request.getActivityName() + "' has been rejected.",
 					"ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
@@ -303,7 +313,6 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			projectRepository.save(project);
 
-			// Recommended audit log
 			auditService.saveAuditLog(AuditAction.ROLLBACK_ACTIVITY, AuditEntity.ACTIVITY,
 					currentActivity.getActivityName(), project.getProjectName(), null, oldActivity,
 					UserContextUtil.getCurrentUser());
