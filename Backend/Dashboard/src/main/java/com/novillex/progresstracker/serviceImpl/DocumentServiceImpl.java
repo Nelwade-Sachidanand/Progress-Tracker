@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -278,5 +279,12 @@ public class DocumentServiceImpl implements DocumentService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Documents fetched successfully.", documents.getDocuments());
+	}
+
+	@Override
+	public Response getAllDocuments() {
+		List<Documents> result = documentRepository.findAll();
+		
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Documents Fetched Successfully", result);
 	}
 }

@@ -45,7 +45,7 @@ public class DocumentController {
 
 		return documentService.uploadDocument(request, file);
 	}
-
+	
 
 	@GetMapping("/download/{documentId}")
 	@PreAuthorize("isAuthenticated()")
@@ -69,6 +69,14 @@ public class DocumentController {
 				request.getActivityName());
 
 		return documentService.getDocuments(request);
+	}
+	
+	@GetMapping("/getAll")
+	public Response getAllDocuments() {
+
+		logger.info("Fetch documents request received");
+
+		return documentService.getAllDocuments();
 	}
 
 }

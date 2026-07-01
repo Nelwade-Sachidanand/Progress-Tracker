@@ -13,6 +13,8 @@ public interface DocumentService {
 	Resource downloadDocument(String documentId);
 
 	Response getDocuments(UploadDocumentRequest request);
+	
+	Response getAllDocuments();
 
 //    Response viewDocuments(UploadDocumentRequest request);
 
