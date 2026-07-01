@@ -1,10 +1,7 @@
 package com.novillex.progresstracker.model;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 
-import com.novillex.progresstracker.entity.Activity;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

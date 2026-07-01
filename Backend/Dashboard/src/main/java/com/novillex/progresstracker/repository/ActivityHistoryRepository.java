@@ -8,9 +8,8 @@ import org.springframework.stereotype.Repository;
 import com.novillex.progresstracker.entity.ActivityHistory;
 
 @Repository
-public interface ActivityHistoryRepository
-        extends MongoRepository<ActivityHistory, String> {
+public interface ActivityHistoryRepository extends MongoRepository<ActivityHistory, String> {
 
-    List<ActivityHistory> findByProjectId(String projectId);
+	List<ActivityHistory> findByProjectId(String projectId);
 
 }

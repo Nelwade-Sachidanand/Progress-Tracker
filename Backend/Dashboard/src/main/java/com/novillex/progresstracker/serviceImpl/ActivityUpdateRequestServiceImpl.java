@@ -10,7 +10,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novillex.progresstracker.common.AuditAction;
@@ -20,7 +19,6 @@ import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.Activity;
-import com.novillex.progresstracker.entity.ActivityHistory;
 import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 import com.novillex.progresstracker.entity.AuditLog;
 import com.novillex.progresstracker.entity.Milestone;
@@ -29,7 +27,6 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
-import com.novillex.progresstracker.repository.ActivityHistoryRepository;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.AuditLogRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
@@ -301,9 +298,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 							auditLog.getProjectName()));
 
 			Activity oldActivity = objectMapper.convertValue(auditLog.getOldData(), Activity.class);
-
 			Activity currentActivity = findActivity(project, oldActivity);
-
 			BeanUtils.copyProperties(oldActivity, currentActivity);
 
 			projectRepository.save(project);

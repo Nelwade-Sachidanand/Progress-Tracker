@@ -17,7 +17,6 @@ import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.service.ProjectInformationService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 
 @RestController
 @RequestMapping("/project-information")

@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novillex.progresstracker.common.AuditAction;
 import com.novillex.progresstracker.common.AuditEntity;
 import com.novillex.progresstracker.common.ErrorCode;
@@ -97,9 +96,6 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 						"Project information updated successfully.", existingProject);
 			}
 
-			// ==========================
-			// CREATE
-			// ==========================
 
 			ProjectInformation project = modelMapper.map(model, ProjectInformation.class);
 

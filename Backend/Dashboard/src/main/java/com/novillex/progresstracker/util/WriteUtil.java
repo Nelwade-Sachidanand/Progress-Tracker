@@ -65,7 +65,7 @@ public class WriteUtil {
 		if (date != null) {
 			cell.setCellValue(java.sql.Date.valueOf(date));
 		} else {
-			cell.setBlank(); // Clear old value
+			cell.setBlank();
 		}
 	}
 
@@ -137,19 +137,15 @@ public class WriteUtil {
 		return "On Track";
 	}
 
-	public static String calculateScheduleHealth(Integer progress, LocalDate plannedEndDate, // J
-			LocalDate actualStartDate, // K
-			LocalDate actualEndDate, // L
-			Double actualPeriodWeek) { // M
+	public static String calculateScheduleHealth(Integer progress, LocalDate plannedEndDate, LocalDate actualStartDate,
+			LocalDate actualEndDate, Double actualPeriodWeek) {
 
 		LocalDate today = LocalDate.now();
 
-		// IF(N>=1, IF(M>K,"Delayed","On Track"))
 		if (progress != null && progress >= 100) {
 
 			if (actualPeriodWeek != null && actualStartDate != null) {
 
-				// Excel compares M>K
 				double kValue = actualStartDate.toEpochDay();
 
 				if (actualPeriodWeek > kValue) {
@@ -160,25 +156,21 @@ public class WriteUtil {
 			return "On Track";
 		}
 
-		// IF(TODAY()<J,"On Track")
 		if (plannedEndDate != null && today.isBefore(plannedEndDate)) {
 
 			return "On Track";
 		}
 
-		// IF(AND(N=0,TODAY()>K),"Delayed")
 		if (progress != null && progress == 0 && actualStartDate != null && today.isAfter(actualStartDate)) {
 
 			return "Delayed";
 		}
 
-		// IF(AND(L<>"",L>J),"At Risk")
 		if (actualEndDate != null && plannedEndDate != null && actualEndDate.isAfter(plannedEndDate)) {
 
 			return "At Risk";
 		}
 
-		// IF(TODAY()>K,"Delayed")
 		if (actualStartDate != null && today.isAfter(actualStartDate)) {
 
 			return "Delayed";

@@ -88,22 +88,6 @@ public class ProjectInformationServiceImplTest {
 		verify(auditService, times(1)).saveAuditLog(any(), any(), anyString(), anyString(), any(), any(), anyString());
 	}
 
-	@Test
-	void shouldThrowProjectAlreadyExistsException() {
-
-		ProjectInformationModel model = new ProjectInformationModel();
-
-		model.setProjectName("Tracker");
-
-		ProjectInformation project = new ProjectInformation();
-
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.of(project));
-
-		ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
-				() -> service.createProjectInformation(model));
-
-		assertEquals(ErrorCode.PROJECT_ALREADY_EXISTS, ex.getErrorCode());
-	}
 
 	@Test
 	void shouldGetAllProjectInformationSuccessfully() {

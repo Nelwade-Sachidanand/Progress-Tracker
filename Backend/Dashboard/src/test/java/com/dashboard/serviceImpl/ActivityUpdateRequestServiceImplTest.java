@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,7 +29,6 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
-import com.novillex.progresstracker.repository.ActivityHistoryRepository;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.AuditLogRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
@@ -75,10 +72,6 @@ class ActivityUpdateRequestServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 	}
-
-	// -----------------------------------------------------------------------
-	// Test Data Builders
-	// -----------------------------------------------------------------------
 
 	private Activity buildActivity() {
 
@@ -169,9 +162,6 @@ class ActivityUpdateRequestServiceImplTest {
 		return auditLog;
 	}
 
-	// =======================================================================
-	// getPendingRequests()
-	// =======================================================================
 
 	@Test
 	void getPendingRequests_Success() {

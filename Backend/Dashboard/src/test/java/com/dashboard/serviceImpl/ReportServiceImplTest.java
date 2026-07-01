@@ -2,7 +2,6 @@ package com.dashboard.serviceImpl;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.entity.Activity;
 import com.novillex.progresstracker.entity.Milestone;
 import com.novillex.progresstracker.entity.Phase;
@@ -22,6 +22,7 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
+import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.mapper.ActivityMapper;
 import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.GenerateReportModel;
@@ -41,44 +42,186 @@ class ReportServiceImplTest {
 	private ReportServiceImpl reportService;
 
 	@Test
-	void generateReport_ProjectNotFound() {
+	void generateReport_WhenProjectIdIsBlank_ShouldThrowValidationException() {
 
 		GenerateReportModel request = new GenerateReportModel();
-		request.setProjectId("P001");
+		request.setProjectId("");
+		request.setProjectName("Demo Project");
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.empty());
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
 
-		assertThrows(ResourceNotFoundException.class, () -> reportService.generateReport(request));
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
 
-		verify(projectRepository).findById("P001");
-
+		verifyNoInteractions(projectRepository);
 		verifyNoInteractions(mapper);
 	}
 
 	@Test
-	void generateReport_NoDataFound() {
+	void generateReport_WhenProjectNameIsBlank_ShouldThrowValidationException() {
+
+		
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("");
+
+	
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+
+		verifyNoInteractions(projectRepository);
+		verifyNoInteractions(mapper);
+	}
+
+	@Test
+	void generateReport_WhenMilestoneSelectedWithoutPhase_ShouldThrowValidationException() {
+
+		
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+
+		List<String> milestones = new ArrayList<>();
+		milestones.add("Milestone-1");
+		request.setMilestoneNames(milestones);
+
+		
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
+
+	
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+		assertEquals("Please select Phase first", exception.getMessage());
+
+		verifyNoInteractions(projectRepository);
+		verifyNoInteractions(mapper);
+	}
+
+	@Test
+	void generateReport_WhenTaskSelectedWithoutMilestone_ShouldThrowValidationException() {
+
+		
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+		request.setTaskName("Task-1");
+
+		// Act
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+		assertEquals("Please select Milestone before Task", exception.getMessage());
+
+		verifyNoInteractions(projectRepository);
+		verifyNoInteractions(mapper);
+	}
+
+	@Test
+	void generateReport_WhenSubTaskSelectedWithoutTask_ShouldThrowValidationException() {
 
 		GenerateReportModel request = new GenerateReportModel();
 
 		request.setProjectId("P001");
-		request.setPhaseName("InvalidPhase");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+
+		List<String> milestones = new ArrayList<>();
+		milestones.add("Milestone-1");
+		request.setMilestoneNames(milestones);
+
+		request.setSubtaskName("SubTask-1");
+
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+		assertEquals("Please select Task before Subtask", exception.getMessage());
+
+		verifyNoInteractions(projectRepository);
+		verifyNoInteractions(mapper);
+	}
+
+	@Test
+	void generateReport_WhenActivitySelectedWithoutSubTask_ShouldThrowValidationException() {
+
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+
+		List<String> milestoneNames = new ArrayList<>();
+		milestoneNames.add("Milestone-1");
+		request.setMilestoneNames(milestoneNames);
+
+		request.setTaskName("Task-1");
+		request.setActivityName("Activity-1");
+
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.INVALID_REQUEST, exception.getErrorCode());
+		assertEquals("Please select Subtask before Activity", exception.getMessage());
+
+		verifyNoInteractions(projectRepository);
+		verifyNoInteractions(mapper);
+	}
+
+	@Test
+	void generateReport_WhenProjectNotFound_ShouldThrowResourceNotFoundException() {
+
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.empty());
+
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.PROJECT_NOT_FOUND, exception.getErrorCode());
+
+		verify(projectRepository).findById("P001");
+
+		verifyNoInteractions(mapper);
+
+		verifyNoMoreInteractions(projectRepository);
+	}
+
+	@Test
+	void generateReport_WhenNoReportDataFound_ShouldThrowResourceNotFoundException() {
+
+		GenerateReportModel request = new GenerateReportModel();
+
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Invalid Phase");
 
 		Activity activity = new Activity();
+		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
+		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(List.of(activity));
 
 		Task task = new Task();
-		task.setTaskName("Task1");
+		task.setTaskName("Task-1");
 		task.setSubTasks(List.of(subtask));
 
 		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
+		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(List.of(task));
 
 		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
+		phase.setPhaseName("Phase-1");
 		phase.setMilestones(List.of(milestone));
 
 		Project project = new Project();
@@ -88,38 +231,264 @@ class ReportServiceImplTest {
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		assertThrows(ResourceNotFoundException.class, () -> reportService.generateReport(request));
+		// Act
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.NO_REPORT_DATA_FOUND, exception.getErrorCode());
 
 		verify(projectRepository).findById("P001");
+
+		verifyNoInteractions(mapper);
+
+		verifyNoMoreInteractions(projectRepository);
 	}
 
 	@Test
-	void generateReport_Success() {
+	void generateReport_WhenValidRequest_ShouldReturnActivityListSuccessfully() {
 
 		GenerateReportModel request = new GenerateReportModel();
-
 		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
 
 		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
+		activity.setActivityName("Activity-1");
+		activity.setExecutionStatus("Completed");
+		activity.setPlannedStartDate(LocalDate.of(2025, 1, 10));
+		activity.setPlannedEndDate(LocalDate.of(2025, 1, 20));
 
 		ActivityModel activityModel = new ActivityModel();
-		activityModel.setActivityName("Activity1");
+		activityModel.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
+		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(List.of(activity));
 
 		Task task = new Task();
-		task.setTaskName("Task1");
+		task.setTaskName("Task-1");
 		task.setSubTasks(List.of(subtask));
 
 		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
+		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(List.of(task));
 
 		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
+		phase.setPhaseName("Phase-1");
+		phase.setMilestones(List.of(milestone));
+
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo Project");
+		project.setPhases(List.of(phase));
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+
+		when(mapper.toActivityModel(any(Project.class), any(Phase.class), any(Milestone.class), any(Task.class),
+				any(Subtask.class), any(Activity.class))).thenReturn(activityModel);
+
+		List<ActivityModel> result = reportService.generateReport(request);
+
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals("Activity-1", result.get(0).getActivityName());
+
+		verify(projectRepository).findById("P001");
+
+		verify(mapper, times(1)).toActivityModel(any(Project.class), any(Phase.class), any(Milestone.class),
+				any(Task.class), any(Subtask.class), any(Activity.class));
+
+		verifyNoMoreInteractions(projectRepository);
+	}
+
+	@Test
+	void generateReport_WhenExecutionStatusFilterMatches_ShouldReturnFilteredActivities() {
+
+		GenerateReportModel request = new GenerateReportModel();
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setExecutionStatus("Completed");
+
+		Activity activity = new Activity();
+		activity.setActivityName("Activity-1");
+		activity.setExecutionStatus("Completed");
+
+		ActivityModel activityModel = new ActivityModel();
+		activityModel.setActivityName("Activity-1");
+
+		Subtask subtask = new Subtask();
+		subtask.setSubTaskName("SubTask-1");
+		subtask.setActivities(List.of(activity));
+
+		Task task = new Task();
+		task.setTaskName("Task-1");
+		task.setSubTasks(List.of(subtask));
+
+		Milestone milestone = new Milestone();
+		milestone.setMilestoneName("Milestone-1");
+		milestone.setTasks(List.of(task));
+
+		Phase phase = new Phase();
+		phase.setPhaseName("Phase-1");
+		phase.setMilestones(List.of(milestone));
+
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo Project");
+		project.setPhases(List.of(phase));
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+
+		when(mapper.toActivityModel(any(Project.class), any(Phase.class), any(Milestone.class), any(Task.class),
+				any(Subtask.class), any(Activity.class))).thenReturn(activityModel);
+
+		List<ActivityModel> result = reportService.generateReport(request);
+
+		assertNotNull(result);
+		assertEquals(1, result.size());
+		assertEquals("Activity-1", result.get(0).getActivityName());
+
+		verify(projectRepository).findById("P001");
+
+		verify(mapper, times(1)).toActivityModel(any(Project.class), any(Phase.class), any(Milestone.class),
+				any(Task.class), any(Subtask.class), any(Activity.class));
+
+		verifyNoMoreInteractions(projectRepository);
+	}
+
+	@Test
+	void generateReport_WhenPhaseFilterMatches_ShouldReturnFilteredActivities() {
+
+		GenerateReportModel request = new GenerateReportModel();
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+
+		Activity activity = new Activity();
+		activity.setActivityName("Activity-1");
+
+		ActivityModel activityModel = new ActivityModel();
+		activityModel.setActivityName("Activity-1");
+
+		Subtask subtask = new Subtask();
+		subtask.setSubTaskName("SubTask-1");
+		subtask.setActivities(List.of(activity));
+
+		Task task = new Task();
+		task.setTaskName("Task-1");
+		task.setSubTasks(List.of(subtask));
+
+		Milestone milestone = new Milestone();
+		milestone.setMilestoneName("Milestone-1");
+		milestone.setTasks(List.of(task));
+
+		Phase phase1 = new Phase();
+		phase1.setPhaseName("Phase-1");
+		phase1.setMilestones(List.of(milestone));
+
+		Phase phase2 = new Phase();
+		phase2.setPhaseName("Phase-2");
+		phase2.setMilestones(new ArrayList<>());
+
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo Project");
+		project.setPhases(List.of(phase1, phase2));
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+
+		when(mapper.toActivityModel(any(), any(), any(), any(), any(), any())).thenReturn(activityModel);
+		List<ActivityModel> result = reportService.generateReport(request);
+
+		assertNotNull(result);
+		assertEquals(1, result.size());
+
+		verify(projectRepository).findById("P001");
+		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void generateReport_WhenMilestoneFilterMatches_ShouldReturnFilteredActivities() {
+
+		GenerateReportModel request = new GenerateReportModel();
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+		request.setMilestoneNames(List.of("Milestone-1"));
+
+		Activity activity = new Activity();
+		activity.setActivityName("Activity-1");
+
+		ActivityModel activityModel = new ActivityModel();
+
+		Subtask subtask = new Subtask();
+		subtask.setSubTaskName("SubTask-1");
+		subtask.setActivities(List.of(activity));
+
+		Task task = new Task();
+		task.setTaskName("Task-1");
+		task.setSubTasks(List.of(subtask));
+
+		Milestone milestone1 = new Milestone();
+		milestone1.setMilestoneName("Milestone-1");
+		milestone1.setTasks(List.of(task));
+
+		Milestone milestone2 = new Milestone();
+		milestone2.setMilestoneName("Milestone-2");
+		milestone2.setTasks(new ArrayList<>());
+
+		Phase phase = new Phase();
+		phase.setPhaseName("Phase-1");
+		phase.setMilestones(List.of(milestone1, milestone2));
+
+		Project project = new Project();
+		project.setId("P001");
+		project.setProjectName("Demo Project");
+		project.setPhases(List.of(phase));
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+
+		when(mapper.toActivityModel(any(), any(), any(), any(), any(), any())).thenReturn(activityModel);
+
+		List<ActivityModel> result = reportService.generateReport(request);
+		assertNotNull(result);
+		assertEquals(1, result.size());
+
+		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void generateReport_WhenTaskFilterMatches_ShouldReturnFilteredActivities() {
+
+		GenerateReportModel request = new GenerateReportModel();
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+		request.setMilestoneNames(List.of("Milestone-1"));
+		request.setTaskName("Task-1");
+
+		Activity activity = new Activity();
+		activity.setActivityName("Activity-1");
+
+		ActivityModel activityModel = new ActivityModel();
+
+		Subtask subtask = new Subtask();
+		subtask.setSubTaskName("SubTask-1");
+		subtask.setActivities(List.of(activity));
+
+		Task task1 = new Task();
+		task1.setTaskName("Task-1");
+		task1.setSubTasks(List.of(subtask));
+
+		Task task2 = new Task();
+		task2.setTaskName("Task-2");
+		task2.setSubTasks(new ArrayList<>());
+
+		Milestone milestone = new Milestone();
+		milestone.setMilestoneName("Milestone-1");
+		milestone.setTasks(List.of(task1, task2));
+
+		Phase phase = new Phase();
+		phase.setPhaseName("Phase-1");
 		phase.setMilestones(List.of(milestone));
 
 		Project project = new Project();
@@ -134,48 +503,51 @@ class ReportServiceImplTest {
 		List<ActivityModel> result = reportService.generateReport(request);
 
 		assertNotNull(result);
-
 		assertEquals(1, result.size());
 
-		verify(projectRepository).findById("P001");
-
-		verify(mapper).toActivityModel(any(), any(), any(), any(), any(), any());
+		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
-	void generateReport_FilterByExecutionStatus() {
+	void generateReport_WhenSubTaskFilterMatches_ShouldReturnFilteredActivities() {
 
 		GenerateReportModel request = new GenerateReportModel();
-
 		request.setProjectId("P001");
-		request.setExecutionStatus("Completed");
+		request.setProjectName("Demo Project");
+		request.setPhaseName("Phase-1");
+		request.setMilestoneNames(List.of("Milestone-1"));
+		request.setTaskName("Task-1");
+		request.setSubtaskName("SubTask-1");
 
 		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
-		activity.setExecutionStatus("Completed");
+		activity.setActivityName("Activity-1");
 
 		ActivityModel activityModel = new ActivityModel();
-		activityModel.setActivityName("Activity1");
+		activityModel.setActivityName("Activity-1");
 
-		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
-		subtask.setActivities(List.of(activity));
+		Subtask subTask1 = new Subtask();
+		subTask1.setSubTaskName("SubTask-1");
+		subTask1.setActivities(List.of(activity));
+
+		Subtask subTask2 = new Subtask();
+		subTask2.setSubTaskName("SubTask-2");
+		subTask2.setActivities(new ArrayList<>());
 
 		Task task = new Task();
-		task.setTaskName("Task1");
-		task.setSubTasks(List.of(subtask));
+		task.setTaskName("Task-1");
+		task.setSubTasks(List.of(subTask1, subTask2));
 
 		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
+		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(List.of(task));
 
 		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
+		phase.setPhaseName("Phase-1");
 		phase.setMilestones(List.of(milestone));
 
 		Project project = new Project();
 		project.setId("P001");
-		project.setProjectName("Demo");
+		project.setProjectName("Demo Project");
 		project.setPhases(List.of(phase));
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
@@ -184,192 +556,47 @@ class ReportServiceImplTest {
 
 		List<ActivityModel> result = reportService.generateReport(request);
 
+		assertNotNull(result);
 		assertEquals(1, result.size());
 
 		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
-	void generateReport_FilterByMilestone() {
+	void generateReport_WhenDateRangeMatches_ShouldReturnFilteredActivities() {
 
 		GenerateReportModel request = new GenerateReportModel();
 		request.setProjectId("P001");
-		List<String> milestone = new ArrayList<String>();
-
-		request.setMilestoneNames(milestone);
-
-		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
-
-		ActivityModel activityModel = new ActivityModel();
-
-		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
-		subtask.setActivities(List.of(activity));
-
-		Task task = new Task();
-		task.setTaskName("Task1");
-		task.setSubTasks(List.of(subtask));
-
-		Milestone milestone1 = new Milestone();
-		milestone1.setMilestoneName("Milestone1");
-		milestone1.setTasks(List.of(task));
-
-		Milestone milestone2 = new Milestone();
-		milestone2.setMilestoneName("Milestone2");
-		milestone2.setTasks(new ArrayList<>());
-
-		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
-		phase.setMilestones(List.of(milestone1, milestone2));
-
-		Project project = new Project();
-		project.setId("P001");
-		project.setProjectName("Demo");
-		project.setPhases(List.of(phase));
-
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
-
-		when(mapper.toActivityModel(any(), any(), any(), any(), any(), any())).thenReturn(activityModel);
-
-		List<ActivityModel> result = reportService.generateReport(request);
-
-		assertEquals(1, result.size());
-
-		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
-	}
-
-	@Test
-	void generateReport_FilterByTask() {
-
-		GenerateReportModel request = new GenerateReportModel();
-		request.setProjectId("P001");
-		request.setTaskName("Task1");
-
-		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
-
-		ActivityModel activityModel = new ActivityModel();
-
-		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
-		subtask.setActivities(List.of(activity));
-
-		Task task1 = new Task();
-		task1.setTaskName("Task1");
-		task1.setSubTasks(List.of(subtask));
-
-		Task task2 = new Task();
-		task2.setTaskName("Task2");
-		task2.setSubTasks(new ArrayList<>());
-
-		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
-		milestone.setTasks(List.of(task1, task2));
-
-		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
-		phase.setMilestones(List.of(milestone));
-
-		Project project = new Project();
-		project.setId("P001");
-		project.setProjectName("Demo");
-		project.setPhases(List.of(phase));
-
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
-
-		when(mapper.toActivityModel(any(), any(), any(), any(), any(), any())).thenReturn(activityModel);
-
-		List<ActivityModel> result = reportService.generateReport(request);
-
-		assertEquals(1, result.size());
-
-		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
-	}
-
-	@Test
-	void generateReport_FilterBySubTask() {
-
-		GenerateReportModel request = new GenerateReportModel();
-		request.setProjectId("P001");
-		request.setSubtaskName("Sub1");
-
-		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
-
-		ActivityModel activityModel = new ActivityModel();
-
-		Subtask subtask1 = new Subtask();
-		subtask1.setSubTaskName("Sub1");
-		subtask1.setActivities(List.of(activity));
-
-		Subtask subtask2 = new Subtask();
-		subtask2.setSubTaskName("Sub2");
-		subtask2.setActivities(new ArrayList<>());
-
-		Task task = new Task();
-		task.setTaskName("Task1");
-		task.setSubTasks(List.of(subtask1, subtask2));
-
-		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
-		milestone.setTasks(List.of(task));
-
-		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
-		phase.setMilestones(List.of(milestone));
-
-		Project project = new Project();
-		project.setId("P001");
-		project.setProjectName("Demo");
-		project.setPhases(List.of(phase));
-
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
-
-		when(mapper.toActivityModel(any(), any(), any(), any(), any(), any())).thenReturn(activityModel);
-
-		List<ActivityModel> result = reportService.generateReport(request);
-
-		assertEquals(1, result.size());
-
-		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
-	}
-
-	@Test
-	void generateReport_FilterByDateRange() {
-
-		GenerateReportModel request = new GenerateReportModel();
-
-		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
 		request.setPlannedStartDate(LocalDate.of(2025, 1, 1));
 		request.setPlannedEndDate(LocalDate.of(2025, 12, 31));
 
 		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
+		activity.setActivityName("Activity-1");
 		activity.setPlannedStartDate(LocalDate.of(2025, 5, 1));
 		activity.setPlannedEndDate(LocalDate.of(2025, 5, 31));
 
 		ActivityModel activityModel = new ActivityModel();
 
 		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
+		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(List.of(activity));
 
 		Task task = new Task();
-		task.setTaskName("Task1");
+		task.setTaskName("Task-1");
 		task.setSubTasks(List.of(subtask));
 
 		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
+		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(List.of(task));
 
 		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
+		phase.setPhaseName("Phase-1");
 		phase.setMilestones(List.of(milestone));
 
 		Project project = new Project();
 		project.setId("P001");
-		project.setProjectName("Demo");
+		project.setProjectName("Demo Project");
 		project.setPhases(List.of(phase));
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
@@ -378,50 +605,160 @@ class ReportServiceImplTest {
 
 		List<ActivityModel> result = reportService.generateReport(request);
 
+		assertNotNull(result);
 		assertEquals(1, result.size());
 
-		verify(mapper, times(1)).toActivityModel(any(), any(), any(), any(), any(), any());
+		verify(mapper).toActivityModel(any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
-	void generateReport_ActivityWithoutDates() {
+	void generateReport_WhenActivityIsOutsideDateRange_ShouldThrowResourceNotFoundException() {
 
 		GenerateReportModel request = new GenerateReportModel();
-
 		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
 		request.setPlannedStartDate(LocalDate.of(2025, 1, 1));
 		request.setPlannedEndDate(LocalDate.of(2025, 12, 31));
 
 		Activity activity = new Activity();
-		activity.setActivityName("Activity1");
-		activity.setPlannedStartDate(null);
-		activity.setPlannedEndDate(null);
+		activity.setActivityName("Activity-1");
+		activity.setPlannedStartDate(LocalDate.of(2026, 1, 1));
+		activity.setPlannedEndDate(LocalDate.of(2026, 1, 31));
 
 		Subtask subtask = new Subtask();
-		subtask.setSubTaskName("Sub1");
+		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(List.of(activity));
 
 		Task task = new Task();
-		task.setTaskName("Task1");
+		task.setTaskName("Task-1");
 		task.setSubTasks(List.of(subtask));
 
 		Milestone milestone = new Milestone();
-		milestone.setMilestoneName("Milestone1");
+		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(List.of(task));
 
 		Phase phase = new Phase();
-		phase.setPhaseName("Phase1");
+		phase.setPhaseName("Phase-1");
 		phase.setMilestones(List.of(milestone));
 
 		Project project = new Project();
 		project.setId("P001");
-		project.setProjectName("Demo");
+		project.setProjectName("Demo Project");
 		project.setPhases(List.of(phase));
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		assertThrows(ResourceNotFoundException.class, () -> reportService.generateReport(request));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> reportService.generateReport(request));
+
+		assertEquals(ErrorCode.NO_REPORT_DATA_FOUND, exception.getErrorCode());
 
 		verify(mapper, never()).toActivityModel(any(), any(), any(), any(), any(), any());
 	}
+	
+	@Test
+	void generateReport_WhenActivityHasNullPlannedDates_ShouldThrowResourceNotFoundException() {
+
+	    GenerateReportModel request = new GenerateReportModel();
+	    request.setProjectId("P001");
+	    request.setProjectName("Demo Project");
+	    request.setPlannedStartDate(LocalDate.of(2025, 1, 1));
+	    request.setPlannedEndDate(LocalDate.of(2025, 12, 31));
+
+	    Activity activity = new Activity();
+	    activity.setActivityName("Activity-1");
+	    activity.setPlannedStartDate(null);
+	    activity.setPlannedEndDate(null);
+
+	    Subtask subtask = new Subtask();
+	    subtask.setSubTaskName("SubTask-1");
+	    subtask.setActivities(List.of(activity));
+
+	    Task task = new Task();
+	    task.setTaskName("Task-1");
+	    task.setSubTasks(List.of(subtask));
+
+	    Milestone milestone = new Milestone();
+	    milestone.setMilestoneName("Milestone-1");
+	    milestone.setTasks(List.of(task));
+
+	    Phase phase = new Phase();
+	    phase.setPhaseName("Phase-1");
+	    phase.setMilestones(List.of(milestone));
+
+	    Project project = new Project();
+	    project.setId("P001");
+	    project.setProjectName("Demo Project");
+	    project.setPhases(List.of(phase));
+
+	    when(projectRepository.findById("P001"))
+	            .thenReturn(Optional.of(project));
+
+	    ResourceNotFoundException exception = assertThrows(
+	            ResourceNotFoundException.class,
+	            () -> reportService.generateReport(request));
+
+	    assertEquals(ErrorCode.NO_REPORT_DATA_FOUND, exception.getErrorCode());
+
+	    verify(mapper, never())
+	            .toActivityModel(any(), any(), any(), any(), any(), any());
+	}
+	
+	@Test
+	void generateReport_WhenMultipleActivitiesExist_ShouldReturnAllActivities() {
+
+	    GenerateReportModel request = new GenerateReportModel();
+	    request.setProjectId("P001");
+	    request.setProjectName("Demo Project");
+
+	    Activity activity1 = new Activity();
+	    activity1.setActivityName("Activity-1");
+
+	    Activity activity2 = new Activity();
+	    activity2.setActivityName("Activity-2");
+
+	    ActivityModel model1 = new ActivityModel();
+	    model1.setActivityName("Activity-1");
+
+	    ActivityModel model2 = new ActivityModel();
+	    model2.setActivityName("Activity-2");
+
+	    Subtask subtask = new Subtask();
+	    subtask.setSubTaskName("SubTask-1");
+	    subtask.setActivities(List.of(activity1, activity2));
+
+	    Task task = new Task();
+	    task.setTaskName("Task-1");
+	    task.setSubTasks(List.of(subtask));
+
+	    Milestone milestone = new Milestone();
+	    milestone.setMilestoneName("Milestone-1");
+	    milestone.setTasks(List.of(task));
+
+	    Phase phase = new Phase();
+	    phase.setPhaseName("Phase-1");
+	    phase.setMilestones(List.of(milestone));
+
+	    Project project = new Project();
+	    project.setId("P001");
+	    project.setProjectName("Demo Project");
+	    project.setPhases(List.of(phase));
+
+	    when(projectRepository.findById("P001"))
+	            .thenReturn(Optional.of(project));
+
+	    when(mapper.toActivityModel(any(), any(), any(), any(), any(), eq(activity1)))
+	            .thenReturn(model1);
+
+	    when(mapper.toActivityModel(any(), any(), any(), any(), any(), eq(activity2)))
+	            .thenReturn(model2);
+
+	    List<ActivityModel> result = reportService.generateReport(request);
+
+	    assertEquals(2, result.size());
+
+	    verify(mapper, times(2))
+	            .toActivityModel(any(), any(), any(), any(), any(), any());
+	}
+
 }

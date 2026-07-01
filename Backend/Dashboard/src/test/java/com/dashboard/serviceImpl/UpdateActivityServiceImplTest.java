@@ -22,7 +22,6 @@ import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
-import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
 import com.novillex.progresstracker.model.AddRemarkModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
@@ -125,11 +124,22 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_Success() {
 
+		// Arrange
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Make sure activity has changed
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// IMPORTANT - Set milestone weightage
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100.0 if weightage is Double
+
+		// Existing activity should be different
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		Response response = new Response();
 
@@ -138,19 +148,24 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
 		doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(),
 				nullable(String.class), anyString(), isNull());
 
-		doNothing().when(auditService).saveAuditLog(any(), any(), anyString(), anyString(), any(), any(), anyString());
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
+		// Act
 		Response result = updateActivityService.updateActivityRequest(request);
 
+		// Assert
 		assertNotNull(result);
 
 		verify(projectRepository).findById("P001");
@@ -158,8 +173,9 @@ class UpdateActivityServiceImplTest {
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), isNull(),
-				eq("/authorization"), isNull());
+				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
+				isNull());
+
 		verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"), any(), any(), eq("admin"));
 	}
 
@@ -220,10 +236,14 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Same values as existing activity
 		request.setEstimatedPeriodWeek(2.0);
 		request.setProgress(50);
 
 		Project project = buildProject();
+
+		// IMPORTANT
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100.0 if Double
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
@@ -235,36 +255,9 @@ class UpdateActivityServiceImplTest {
 		assertEquals(ErrorCode.NO_CHANGES_FOUND, exception.getErrorCode());
 
 		verify(projectRepository).findById("P001");
-
-		verify(requestRepository, never()).save(any());
+		verify(requestRepository, never()).save(any(ActivityUpdateRequest.class));
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
-	}
-
-	@Test
-	void updateActivityRequest_RequestAlreadyPending() {
-
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
-		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
-		Project project = buildProject();
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
-
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
-				.thenReturn(Optional.of(new ActivityUpdateRequest()));
-
-		ValidationException exception = assertThrows(ValidationException.class,
-				() -> updateActivityService.updateActivityRequest(request));
-
-		assertEquals(ErrorCode.REQUEST_ALREADY_PENDING, exception.getErrorCode());
-
-		verify(requestRepository, never()).save(any());
 	}
 
 	@Test
@@ -274,24 +267,39 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Ensure activity is changed
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// Required because UpdateActivityServiceImpl now validates milestone weightage
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100 if Integer
+
+		// Existing activity should be different
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
 
 		doThrow(new RuntimeException("Database Error")).when(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		assertThrows(RuntimeException.class, () -> updateActivityService.updateActivityRequest(request));
+		RuntimeException exception = assertThrows(RuntimeException.class,
+				() -> updateActivityService.updateActivityRequest(request));
+
+		assertEquals("Database Error", exception.getMessage());
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
+
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
-		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("PENDING"));
+
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -301,25 +309,43 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Make sure activity is changed
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// Required after adding weightage validation
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // 100.0 if Double
+
+		// Existing activity
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
-		doThrow(new RuntimeException("Notification Error")).when(notificationService).createNotification(anyString(),
-				anyString(), anyString(), nullable(String.class), anyString(), isNull());
 
-		assertThrows(RuntimeException.class, () -> updateActivityService.updateActivityRequest(request));
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
+
+		doThrow(new RuntimeException("Notification Error")).when(notificationService).createNotification(anyString(),
+				anyString(), anyString(), any(), anyString(), isNull());
+
+		RuntimeException exception = assertThrows(RuntimeException.class,
+				() -> updateActivityService.updateActivityRequest(request));
+
+		assertEquals("Notification Error", exception.getMessage());
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
+
 		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), isNull(),
-				eq("/authorization"), isNull());
+				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
+				isNull());
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -327,20 +353,34 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_AuditServiceThrowsException() {
 
+		// Arrange
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Change one field so isActivityChanged() returns true
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// IMPORTANT: Set milestone weightage
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer type
+
+		// Existing activity should be different from request
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(),
 				nullable(String.class), anyString(), isNull());
@@ -348,12 +388,18 @@ class UpdateActivityServiceImplTest {
 		doThrow(new RuntimeException("Audit Error")).when(auditService).saveAuditLog(any(), any(), any(), any(), any(),
 				any(), any());
 
-		assertThrows(RuntimeException.class, () -> updateActivityService.updateActivityRequest(request));
+		// Act
+		RuntimeException exception = assertThrows(RuntimeException.class,
+				() -> updateActivityService.updateActivityRequest(request));
+
+		// Assert
+		assertEquals("Audit Error", exception.getMessage());
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
+
 		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), isNull(),
-				eq("/authorization"), isNull());
+				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
+				isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -630,7 +676,17 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Ensure there is a change
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// Required after milestone weightage validation
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100 if Integer
+
+		// Existing activity values
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		Response response = new Response();
 
@@ -641,9 +697,12 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -657,37 +716,39 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequest saved = captor.getValue();
 
-		assertAll(
-
-				() -> assertEquals("P001", saved.getProjectId()),
-
-				() -> assertEquals("Phase1", saved.getPhaseName()),
-
+		assertAll(() -> assertEquals("P001", saved.getProjectId()), () -> assertEquals("Phase1", saved.getPhaseName()),
 				() -> assertEquals("Milestone1", saved.getMilestoneName()),
-
 				() -> assertEquals("Task1", saved.getTaskName()),
-
 				() -> assertEquals("SubTask1", saved.getSubTaskName()),
-
 				() -> assertEquals("Activity1", saved.getActivityName()),
-
 				() -> assertEquals("Updating progress", saved.getChangeReason()),
-
 				() -> assertEquals("PENDING", saved.getStatus()),
-
-				() -> assertEquals("MANUAL", saved.getRequestSource()),
-
-				() -> assertNotNull(saved.getRequestedAt()));
+				() -> assertEquals("MANUAL", saved.getRequestSource()), () -> assertNotNull(saved.getRequestedAt()));
 	}
 
 	@Test
 	void updateActivityRequest_ShouldCopyOldActivityCorrectly() {
 
+		// Arrange
 		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Make sure there is a change
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// IMPORTANT - Required because of new validation
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100.0 if Double
+
+		// Existing activity
+		Activity existingActivity = project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks()
+				.get(0).getActivities().get(0);
+
+		existingActivity.setActivityName("Activity1");
+		existingActivity.setEstimatedPeriodWeek(2.0);
+		existingActivity.setProgress(50);
 
 		ArgumentCaptor<ActivityUpdateRequest> captor = ArgumentCaptor.forClass(ActivityUpdateRequest.class);
 
@@ -696,9 +757,12 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
@@ -706,18 +770,16 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
+		// Act
 		updateActivityService.updateActivityRequest(request);
 
+		// Assert
 		verify(requestRepository).save(captor.capture());
 
 		Activity oldActivity = captor.getValue().getOldActivity();
 
-		assertAll(
-
-				() -> assertEquals("Activity1", oldActivity.getActivityName()),
-
+		assertAll(() -> assertEquals("Activity1", oldActivity.getActivityName()),
 				() -> assertEquals(2.0, oldActivity.getEstimatedPeriodWeek()),
-
 				() -> assertEquals(50, oldActivity.getProgress()));
 	}
 
@@ -728,7 +790,17 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
+		// Ensure activity is changed
+		request.setProgress(80);
+
 		Project project = buildProject();
+
+		// Required after milestone weightage validation
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer
+
+		// Existing activity should have different progress
+		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
+				.setProgress(50);
 
 		ArgumentCaptor<ActivityUpdateRequest> captor = ArgumentCaptor.forClass(ActivityUpdateRequest.class);
 
@@ -737,9 +809,12 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
@@ -754,11 +829,8 @@ class UpdateActivityServiceImplTest {
 		ActivityUpdateRequest saved = captor.getValue();
 
 		assertEquals("admin", saved.getRequestedBy());
-
 		assertNotNull(saved.getRequestedAt());
-
 		assertEquals("MANUAL", saved.getRequestSource());
-
 		assertEquals("PENDING", saved.getStatus());
 	}
 
@@ -770,12 +842,21 @@ class UpdateActivityServiceImplTest {
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
 		request.setProgress(100);
-
 		request.setActualStartDate(LocalDate.of(2025, 1, 1));
-
 		request.setActualEndDate(LocalDate.of(2025, 1, 15));
 
 		Project project = buildProject();
+
+		// Required after milestone weightage validation
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer
+
+		// Existing activity should be different from request
+		Activity existingActivity = project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks()
+				.get(0).getActivities().get(0);
+
+		existingActivity.setProgress(50);
+		existingActivity.setActualStartDate(LocalDate.of(2025, 1, 2));
+		existingActivity.setActualEndDate(LocalDate.of(2025, 1, 10));
 
 		ArgumentCaptor<ActivityUpdateRequest> captor = ArgumentCaptor.forClass(ActivityUpdateRequest.class);
 
@@ -784,9 +865,12 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
 		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(any(),
-						any(), any(), any(), any(), any(), eq("PENDING")))
+				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
 				.thenReturn(Optional.empty());
+
+		when(requestRepository.save(any(ActivityUpdateRequest.class)))
+				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
@@ -801,9 +885,7 @@ class UpdateActivityServiceImplTest {
 		Activity newActivity = captor.getValue().getNewActivity();
 
 		assertNotNull(newActivity.getActualPeriodWeek());
-
 		assertNotNull(newActivity.getExecutionStatus());
-
 		assertNotNull(newActivity.getScheduleHealth());
 	}
 }

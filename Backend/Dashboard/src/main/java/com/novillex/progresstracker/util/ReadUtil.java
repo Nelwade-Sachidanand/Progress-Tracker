@@ -1,15 +1,12 @@
 package com.novillex.progresstracker.util;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
-import org.apache.poi.ss.usermodel.Row;
 
 public class ReadUtil {
 
@@ -69,7 +66,6 @@ public class ReadUtil {
 			return (int) Math.round(val * 100);
 
 		} catch (Exception e) {
-//		    	throw new ReadExcelException("Error in gentInt() method", e.getMessage());
 		}
 		return null;
 	}
@@ -96,7 +92,6 @@ public class ReadUtil {
 		} catch (Exception e) {
 			System.out.println("error white getting date cell value ");
 			e.printStackTrace();
-//	    	throw new ReadExcelException("Error while reading in getLocalDate() : ", e.getMessage());
 		}
 		return null;
 	}

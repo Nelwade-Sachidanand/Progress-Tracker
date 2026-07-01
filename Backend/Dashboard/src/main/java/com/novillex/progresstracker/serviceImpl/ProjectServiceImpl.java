@@ -27,7 +27,6 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.MilestoneWeightageModel;
 import com.novillex.progresstracker.model.MilestoneWeightageResponse;
 import com.novillex.progresstracker.model.UpdateMilestoneWeightageRequest;
-import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;

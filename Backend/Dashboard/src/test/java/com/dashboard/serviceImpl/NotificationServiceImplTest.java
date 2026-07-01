@@ -59,21 +59,13 @@ class NotificationServiceImplTest {
 		assertAll(
 
 				() -> assertEquals("Activity Updated", notification.getTitle()),
-
 				() -> assertEquals("Activity updated successfully", notification.getMessage()),
-
 				() -> assertEquals("ACTIVITY", notification.getType()),
-
 				() -> assertEquals("REF001", notification.getReferenceId()),
-
 				() -> assertEquals("/dashboard", notification.getRedirectUrl()),
-
 				() -> assertEquals("USER001", notification.getRecipientUserId()),
-
 				() -> assertEquals("testUser", notification.getCreatedBy()),
-
 				() -> assertFalse(notification.isRead()),
-
 				() -> assertNotNull(notification.getCreatedAt()));
 
 		verifyNoMoreInteractions(notificationRepository);
@@ -125,17 +117,11 @@ class NotificationServiceImplTest {
 		assertNotSame(first, second);
 
 		assertAll(
-
 				() -> assertEquals("Title1", first.getTitle()),
-
 				() -> assertEquals("Message1", first.getMessage()),
-
 				() -> assertEquals("USER001", first.getRecipientUserId()),
-
 				() -> assertEquals("Title2", second.getTitle()),
-
 				() -> assertEquals("Message2", second.getMessage()),
-
 				() -> assertEquals("USER002", second.getRecipientUserId()));
 	}
 }

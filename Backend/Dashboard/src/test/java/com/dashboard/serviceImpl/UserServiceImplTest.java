@@ -19,6 +19,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.novillex.progresstracker.common.AuditAction;
+import com.novillex.progresstracker.common.AuditEntity;
+import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.entity.Project;
@@ -164,40 +167,49 @@ class UserServiceImplTest {
 
 		mockLoggedInUser();
 
-		String username = "admin";
+		String userId = "U1";
 
 		User user = new User();
-		user.setUsername(username);
+		user.setId(userId);
+		user.setUsername("admin");
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
 		Response response = new Response();
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+		doNothing().when(userRepository).delete(user);
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-		Response result = userService.deleteUser(username);
+		Response result = userService.deleteUser(userId);
 
 		assertNotNull(result);
 
+		verify(userRepository).findById(userId);
 		verify(userRepository).delete(user);
 
-		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		verify(auditService).saveAuditLog(eq(AuditAction.DELETE_USER), eq(AuditEntity.USER), eq("admin"), isNull(),
+				any(User.class), isNull(), anyString());
 	}
 
 	@Test
 	void deleteUser_UserNotFound() {
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		String userId = "U1";
 
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+		when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-		when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> userService.deleteUser(userId));
 
-		assertThrows(ResourceNotFoundException.class, () -> userService.deleteUser("admin"));
+		assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+
+		verify(userRepository).findById(userId);
+		verify(userRepository, never()).delete(any(User.class));
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	private void mockLoggedInUser() {
@@ -215,18 +227,23 @@ class UserServiceImplTest {
 
 		mockLoggedInUser();
 
+		String userId = "U1";
+
 		User user = new User();
+		user.setId(userId);
 		user.setUsername("admin");
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+		when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
 		doThrow(new RuntimeException("DB Error")).when(userRepository).delete(user);
 
-		assertThrows(DatabaseException.class, () -> userService.deleteUser("admin"));
+		DatabaseException exception = assertThrows(DatabaseException.class, () -> userService.deleteUser(userId));
+
+		assertEquals(ErrorCode.DATABASE_ERROR, exception.getErrorCode());
+
+		verify(userRepository).findById(userId);
+		verify(userRepository).delete(user);
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -328,45 +345,55 @@ class UserServiceImplTest {
 	void updateUser_NoChangesFound() {
 
 		User user = new User();
+		user.setId("U1");
 		user.setUsername("admin");
 		user.setFullname("Admin");
 		user.setRole("USER");
 		user.setStatus(true);
 
 		UserUpdateModel model = new UserUpdateModel();
+		model.setUserId("U1");
 		model.setUsername("admin");
 		model.setFullname("Admin");
 		model.setRole("USER");
 		model.setActive(true);
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		when(userRepository.findById("U1")).thenReturn(Optional.of(user));
 
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+		ValidationException exception = assertThrows(ValidationException.class, () -> userService.updateUser(model));
 
-		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+		assertEquals(ErrorCode.NO_CHANGES_FOUND, exception.getErrorCode());
 
-		assertThrows(ValidationException.class, () -> userService.updateUser(model));
+		verify(userRepository).findById("U1");
+		verify(userRepository, never()).save(any(User.class));
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
 	void updateUser_ProjectNotFound() {
 
 		User user = new User();
+		user.setId("U1");
 		user.setUsername("admin");
 
 		UserUpdateModel model = new UserUpdateModel();
+		model.setUserId("U1");
 		model.setUsername("admin");
 		model.setProjectIds(List.of("P1"));
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+		when(userRepository.findById("U1")).thenReturn(Optional.of(user));
 
 		when(projectRepository.findById("P1")).thenReturn(Optional.empty());
 
-		assertThrows(ResourceNotFoundException.class, () -> userService.updateUser(model));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> userService.updateUser(model));
+
+		assertEquals(ErrorCode.PROJECT_NOT_FOUND, exception.getErrorCode());
+
+		verify(userRepository).findById("U1");
+		verify(projectRepository).findById("P1");
+		verify(userRepository, never()).save(any(User.class));
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
@@ -378,183 +405,148 @@ class UserServiceImplTest {
 
 		assertThrows(ValidationException.class, () -> userService.deleteUser(null));
 	}
-	
+
 	@Test
 	void login_Success() {
 
-	    LoginModel model = new LoginModel();
-	    model.setUsername("admin");
-	    model.setPassword("123");
+		LoginModel model = new LoginModel();
+		model.setUsername("admin");
+		model.setPassword("123");
 
-	    User user = new User();
-	    user.setUsername("admin");
-	    user.setPassword("encoded");
-	    user.setStatus(true);
-	    user.setProjectIds(List.of());
+		User user = new User();
+		user.setUsername("admin");
+		user.setPassword("encoded");
+		user.setStatus(true);
+		user.setProjectIds(List.of());
 
-	    Response response = new Response();
+		Response response = new Response();
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(mock(ResponseBuilder.class));
+		when(context.getBean(ResponseBuilder.class)).thenReturn(mock(ResponseBuilder.class));
 
-	    ResponseBuilder builder =
-	            context.getBean(ResponseBuilder.class);
+		ResponseBuilder builder = context.getBean(ResponseBuilder.class);
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenReturn(Optional.of(user));
+		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
 
-	    when(passwordEncoder.matches("123", "encoded"))
-	            .thenReturn(true);
+		when(passwordEncoder.matches("123", "encoded")).thenReturn(true);
 
-	    when(builder.createResponse(any(), any(),
-	            anyString(), any()))
-	            .thenReturn(response);
+		when(builder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-	    Response result = userService.login(model);
+		Response result = userService.login(model);
 
-	    assertNotNull(result);
+		assertNotNull(result);
 
-	    verify(userRepository)
-	            .findByUsername("admin");
+		verify(userRepository).findByUsername("admin");
 	}
-	
+
 	@Test
 	void updateUser_Success() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    User existingUser = new User();
+		User existingUser = new User();
+		existingUser.setId("U1");
+		existingUser.setUsername("admin");
+		existingUser.setFullname("Old Name");
+		existingUser.setRole("USER");
 
-	    existingUser.setUsername("admin");
-	    existingUser.setFullname("Old Name");
-	    existingUser.setRole("USER");
+		UserUpdateModel model = new UserUpdateModel();
+		model.setUserId("U1");
+		model.setUsername("admin");
+		model.setFullname("New Name");
+		model.setRole("ADMIN");
 
-	    UserUpdateModel model = new UserUpdateModel();
+		Response response = new Response();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    model.setUsername("admin");
-	    model.setFullname("New Name");
-	    model.setRole("ADMIN");
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    Response response = new Response();
+		when(userRepository.findById("U1")).thenReturn(Optional.of(existingUser));
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		when(userRepository.save(any(User.class))).thenReturn(existingUser);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenReturn(Optional.of(existingUser));
+		Response result = userService.updateUser(model);
 
-	    when(userRepository.save(any(User.class)))
-	            .thenReturn(existingUser);
+		assertNotNull(result);
 
-	    when(responseBuilder.createResponse(any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(response);
+		verify(userRepository).findById("U1");
+		verify(userRepository).save(any(User.class));
 
-	    Response result = userService.updateUser(model);
-
-	    assertNotNull(result);
-
-	    verify(userRepository).save(any(User.class));
-
-	    verify(auditService)
-	            .saveAuditLog(any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any());
+		verify(auditService).saveAuditLog(eq(AuditAction.UPDATE_USER), eq(AuditEntity.USER), eq("admin"), isNull(),
+				any(User.class), any(User.class), anyString());
 	}
-	
+
 	@Test
 	void updateUser_UserNotFound() {
 
-	    UserUpdateModel model = new UserUpdateModel();
+		UserUpdateModel model = new UserUpdateModel();
+		model.setUserId("U1");
+		model.setUsername("admin");
 
-	    model.setUsername("admin");
+		when(userRepository.findById("U1")).thenReturn(Optional.empty());
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(mock(ResponseBuilder.class));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> userService.updateUser(model));
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenReturn(Optional.empty());
+		assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
 
-	    assertThrows(ResourceNotFoundException.class,
-	            () -> userService.updateUser(model));
+		verify(userRepository).findById("U1");
+		verify(userRepository, never()).save(any(User.class));
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
-	
+
 	@Test
 	void login_ShouldThrowException_WhenRepositoryFails() {
 
-	    LoginModel model = new LoginModel();
+		LoginModel model = new LoginModel();
 
-	    model.setUsername("admin");
+		model.setUsername("admin");
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(mock(ResponseBuilder.class));
+		when(context.getBean(ResponseBuilder.class)).thenReturn(mock(ResponseBuilder.class));
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenThrow(new RuntimeException("DB failure"));
+		when(userRepository.findByUsername("admin")).thenThrow(new RuntimeException("DB failure"));
 
-	    assertThrows(Exception.class,
-	            () -> userService.login(model));
+		assertThrows(Exception.class, () -> userService.login(model));
 	}
-	
+
 	@Test
 	void register_ShouldAssignProjectsCorrectly() {
 
-	    UserModel model = new UserModel();
+		UserModel model = new UserModel();
 
-	    model.setUsername("admin");
-	    model.setPassword("123");
-	    model.setProjectIds(List.of("P1", "P2"));
+		model.setUsername("admin");
+		model.setPassword("123");
+		model.setProjectIds(List.of("P1", "P2"));
 
-	    Project p1 = new Project();
-	    Project p2 = new Project();
+		Project p1 = new Project();
+		Project p2 = new Project();
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenReturn(Optional.empty());
+		when(userRepository.findByUsername("admin")).thenReturn(Optional.empty());
 
-	    when(projectRepository.findById("P1"))
-	            .thenReturn(Optional.of(p1));
+		when(projectRepository.findById("P1")).thenReturn(Optional.of(p1));
 
-	    when(projectRepository.findById("P2"))
-	            .thenReturn(Optional.of(p2));
+		when(projectRepository.findById("P2")).thenReturn(Optional.of(p2));
 
-	    when(passwordEncoder.encode(any()))
-	            .thenReturn("encoded");
+		when(passwordEncoder.encode(any())).thenReturn("encoded");
 
-	    when(userRepository.save(any()))
-	            .thenAnswer(i -> i.getArgument(0));
+		when(userRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-	    when(responseBuilder.createResponse(
-	            any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(new Response());
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
-	    userService.register(model);
+		userService.register(model);
 
-	    verify(projectRepository)
-	            .findById("P1");
+		verify(projectRepository).findById("P1");
 
-	    verify(projectRepository)
-	            .findById("P2");
+		verify(projectRepository).findById("P2");
 
-	    verify(userRepository)
-	            .save(any(User.class));
+		verify(userRepository).save(any(User.class));
 	}
-	
+
 	@Test
 	void getAllUsers_ShouldThrowException_WhenRepositoryFails() {
 
@@ -568,40 +560,34 @@ class UserServiceImplTest {
 	            () -> userService.getAllUsers());
 	}
 
-	
 	@Test
 	void deleteUser_ShouldAuditSuccessfully() {
 
-	    mockLoggedInUser();
+		mockLoggedInUser();
 
-	    User user = new User();
-	    user.setUsername("admin");
+		User user = new User();
+		user.setId("admin");
+		user.setUsername("admin");
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(userRepository.findByUsername("admin"))
-	            .thenReturn(Optional.of(user));
+		when(userRepository.findById("admin")).thenReturn(Optional.of(user));
 
-	    when(responseBuilder.createResponse(
-	            any(),
-	            any(),
-	            anyString(),
-	            any()))
-	            .thenReturn(new Response());
+		doNothing().when(userRepository).delete(user);
 
-	    userService.deleteUser("admin");
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-	    verify(auditService, times(1))
-	            .saveAuditLog(
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any(),
-	                    any());
+		Response result = userService.deleteUser("admin");
+
+		assertNotNull(result);
+
+		verify(userRepository).findById("admin");
+		verify(userRepository).delete(user);
+
+		verify(auditService, times(1)).saveAuditLog(eq(AuditAction.DELETE_USER), eq(AuditEntity.USER), eq("admin"),
+				isNull(), any(User.class), isNull(), anyString());
 	}
 }

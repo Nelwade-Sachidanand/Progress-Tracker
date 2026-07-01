@@ -5,7 +5,6 @@ import java.util.Objects;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.novillex.progresstracker.common.AuditAction;
@@ -23,7 +22,6 @@ import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
-import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
 import com.novillex.progresstracker.model.AddRemarkModel;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;

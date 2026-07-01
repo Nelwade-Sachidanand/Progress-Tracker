@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.StatusCode;
-import com.novillex.progresstracker.model.LoginModel;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
 import com.novillex.progresstracker.service.UserService;
