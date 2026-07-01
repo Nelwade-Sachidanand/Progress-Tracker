@@ -2,6 +2,7 @@ package com.novillex.progresstracker.serviceImpl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Set;
@@ -78,8 +79,12 @@ public class DocumentServiceImpl implements DocumentService {
 
 		try {
 
+			logger.info("Configured upload path: {}", documentFolder);
+			logger.info("Current working directory: {}", System.getProperty("user.dir"));
+
 			File activityFolder = createActivityFolder(request);
 
+			logger.info("folder created. path={}", activityFolder);
 			String storedFileName = generateFileName(activityFolder, file.getOriginalFilename());
 
 			File destination = new File(activityFolder, storedFileName);
@@ -147,10 +152,12 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private File createActivityFolder(UploadDocumentRequest request) {
 
-		String folderPath = documentFolder + File.separator + sanitize(request.getBankName()) + File.separator
+		String basePath = Paths.get(documentFolder).toAbsolutePath().toString();
+
+		String folderPath = basePath + File.separator + sanitize(request.getBankName()) + File.separator
 				+ sanitize(request.getProjectName()) + File.separator + sanitize(request.getPhaseName())
 				+ File.separator + sanitize(request.getMilestoneName());
-
+		
 		File folder = new File(folderPath);
 
 		if (!folder.exists()) {

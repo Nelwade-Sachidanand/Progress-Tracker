@@ -36,7 +36,7 @@ public class DocumentController {
 
 	
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@PreAuthorize("hasRole('USER')")
+	@PreAuthorize("hasAnyRole('USER','ADMIN')")
 	public Response uploadDocument(@Valid @ModelAttribute UploadDocumentRequest request,
 			@RequestPart("file") MultipartFile file) {
 
