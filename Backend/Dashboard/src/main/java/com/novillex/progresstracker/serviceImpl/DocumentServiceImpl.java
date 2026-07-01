@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,8 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private final ResponseBuilder responseBuilder;
 
-	private static final String DOCUMENT_FOLDER = "C:\\Users\\avina\\OneDrive\\Desktop\\Progress-Tracker\\Documents";
+	@Value("${document.upload.path}")
+	private String documentFolder;
 
 	private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -58,8 +60,9 @@ public class DocumentServiceImpl implements DocumentService {
 
 		Documents documents = documentRepository
 				.findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-						request.getProjectName(),request.getBankName(), request.getPhaseName(), request.getMilestoneName(),
-						request.getTaskName(), request.getSubTaskName(), request.getActivityName())
+						request.getProjectName(), request.getBankName(), request.getPhaseName(),
+						request.getMilestoneName(), request.getTaskName(), request.getSubTaskName(),
+						request.getActivityName())
 				.orElse(null);
 
 		if (documents == null) {
@@ -144,7 +147,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private File createActivityFolder(UploadDocumentRequest request) {
 
-		String folderPath = DOCUMENT_FOLDER + File.separator + sanitize(request.getBankName()) + File.separator
+		String folderPath = documentFolder + File.separator + sanitize(request.getBankName()) + File.separator
 				+ sanitize(request.getProjectName()) + File.separator + sanitize(request.getPhaseName())
 				+ File.separator + sanitize(request.getMilestoneName());
 
@@ -152,9 +155,14 @@ public class DocumentServiceImpl implements DocumentService {
 
 		if (!folder.exists()) {
 
-			logger.info("Creating folder : {}", folderPath);
+			boolean created = folder.mkdirs();
 
-			folder.mkdirs();
+			logger.info("Creating folder : {}", folder.getAbsolutePath());
+
+			if (!created && !folder.exists()) {
+
+				throw new RuntimeException("Unable to create folder : " + folder.getAbsolutePath());
+			}
 		}
 
 		return folder;
@@ -247,8 +255,9 @@ public class DocumentServiceImpl implements DocumentService {
 
 		Documents documents = documentRepository
 				.findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-						request.getProjectName(), request.getBankName(), request.getPhaseName(), request.getMilestoneName(),
-						request.getTaskName(), request.getSubTaskName(), request.getActivityName())
+						request.getProjectName(), request.getBankName(), request.getPhaseName(),
+						request.getMilestoneName(), request.getTaskName(), request.getSubTaskName(),
+						request.getActivityName())
 				.orElseThrow(() -> {
 
 					logger.warn("No documents found. Project={}, Activity={}", request.getProjectName(),

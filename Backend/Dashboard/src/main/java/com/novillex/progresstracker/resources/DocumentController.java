@@ -34,9 +34,7 @@ public class DocumentController {
 
 	private final DocumentService documentService;
 
-	/**
-	 * Upload Document
-	 */
+	
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("hasRole('USER')")
 	public Response uploadDocument(@Valid @ModelAttribute UploadDocumentRequest request,
@@ -48,9 +46,7 @@ public class DocumentController {
 		return documentService.uploadDocument(request, file);
 	}
 
-//	/**
-//	 * Download Document
-//	 */
+
 	@GetMapping("/download/{documentId}")
 	@PreAuthorize("isAuthenticated()")
 	public ResponseEntity<Resource> downloadDocument(@PathVariable String documentId) {
@@ -65,10 +61,7 @@ public class DocumentController {
 				.body(resource);
 	}
 
-//
-//	/**
-//	 * Get Documents by Activity
-//	 */
+
 	@PostMapping("/activity")
 	public Response getDocumentsByActivity(@RequestBody UploadDocumentRequest request) {
 
@@ -77,16 +70,5 @@ public class DocumentController {
 
 		return documentService.getDocuments(request);
 	}
-//	/**
-//	 * Delete Document
-//	 */
-//	@DeleteMapping("/{documentId}")
-//	@PreAuthorize("hasAnyRole('ADMIN','BANK USER')")
-//	public Response deleteDocument(@PathVariable String documentId) {
-//
-//		logger.info("Delete document request received. DocumentId={}", documentId);
-//
-//		return documentService.deleteDocument(documentId);
-//	}
 
 }

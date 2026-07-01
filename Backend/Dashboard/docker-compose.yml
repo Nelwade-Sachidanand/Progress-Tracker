@@ -9,3 +9,9 @@ services:
     ports:
       - "8080:8080"
     restart: unless-stopped
+
+    environment:
+      DOCUMENT_UPLOAD_PATH: /app/Documents
+
+    volumes:
+      - ./Documents:/app/Documents
