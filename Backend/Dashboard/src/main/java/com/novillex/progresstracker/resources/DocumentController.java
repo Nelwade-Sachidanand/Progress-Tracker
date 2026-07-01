@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -34,7 +35,6 @@ public class DocumentController {
 
 	private final DocumentService documentService;
 
-	
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("hasAnyRole('USER','ADMIN')")
 	public Response uploadDocument(@Valid @ModelAttribute UploadDocumentRequest request,
@@ -45,7 +45,6 @@ public class DocumentController {
 
 		return documentService.uploadDocument(request, file);
 	}
-	
 
 	@GetMapping("/download/{documentId}")
 	@PreAuthorize("isAuthenticated()")
@@ -57,10 +56,11 @@ public class DocumentController {
 
 		String fileName = resource.getFilename();
 
-		return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-				.body(resource);
-	}
+		MediaType mediaType = MediaTypeFactory.getMediaType(fileName).orElse(MediaType.APPLICATION_OCTET_STREAM);
 
+		return ResponseEntity.ok().contentType(mediaType)
+				.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"").body(resource);
+	}
 
 	@PostMapping("/activity")
 	public Response getDocumentsByActivity(@RequestBody UploadDocumentRequest request) {
@@ -70,7 +70,7 @@ public class DocumentController {
 
 		return documentService.getDocuments(request);
 	}
-	
+
 	@GetMapping("/getAll")
 	public Response getAllDocuments() {
 

@@ -235,11 +235,15 @@ public class DocumentServiceImpl implements DocumentService {
 
 			return new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND, "Document not found.", documentId);
 		});
+		
+		System.out.println(documents);
 
 		ActivityDocument activityDocument = documents.getDocuments().stream()
 				.filter(doc -> doc.getDocumentId().equals(documentId)).findFirst()
 				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND, "Document not found.",
 						documentId));
+		
+		System.out.println(activityDocument);
 
 		File file = new File(activityDocument.getFilePath());
 
