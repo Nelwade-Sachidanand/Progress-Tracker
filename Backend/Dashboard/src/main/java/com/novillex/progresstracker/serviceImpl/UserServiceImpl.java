@@ -217,8 +217,8 @@ public class UserServiceImpl implements UserService {
 
 			isUpdated = true;
 		}
-		if (model.getActive() != null && !Objects.equals(user.getStatus(), model.getActive())) {
-			user.setStatus(null);
+		if (model.getStatus() != null && !Objects.equals(user.getStatus(), model.getStatus())) {
+			user.setStatus(model.getStatus());
 			isUpdated = true;
 		}
 		if (model.getRole() != null && !model.getRole().isBlank() && !Objects.equals(user.getRole(), model.getRole())) {

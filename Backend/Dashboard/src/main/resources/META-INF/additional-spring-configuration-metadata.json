@@ -1,5 +1,12 @@
-{"properties": [{
-  "name": "document.upload.path",
-  "type": "java.lang.String",
-  "description": "A description for 'document.upload.path'"
-}]}
+{"properties": [
+  {
+    "name": "document.upload.path",
+    "type": "java.lang.String",
+    "description": "A description for 'document.upload.path'"
+  },
+  {
+    "name": "virus.scan.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'virus.scan.enabled'"
+  }
+]}

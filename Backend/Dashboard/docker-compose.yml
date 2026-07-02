@@ -5,13 +5,29 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+
     container_name: progress-tracker-backend
+
     ports:
       - "8080:8080"
+
     restart: unless-stopped
 
     environment:
       DOCUMENT_UPLOAD_PATH: /app/Documents
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      VIRUS_SCAN_ENABLED: true
 
     volumes:
       - ./Documents:/app/Documents
+
+    depends_on:
+      - clamav
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: clamav
+    restart: unless-stopped
+    ports:
+      - "3310:3310"

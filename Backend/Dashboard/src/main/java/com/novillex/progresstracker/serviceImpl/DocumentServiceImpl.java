@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -29,6 +30,7 @@ import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.UploadDocumentRequest;
 import com.novillex.progresstracker.repository.DocumentRepository;
 import com.novillex.progresstracker.service.DocumentService;
+import com.novillex.progresstracker.service.VirusScanService;
 import com.novillex.progresstracker.util.UserContextUtil;
 
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,9 @@ public class DocumentServiceImpl implements DocumentService {
 	private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
 	private final DocumentRepository documentRepository;
+	
+	@Autowired
+	private VirusScanService virusScanService;
 
 	private final ResponseBuilder responseBuilder;
 
@@ -59,6 +64,8 @@ public class DocumentServiceImpl implements DocumentService {
 				request.getActivityName(), UserContextUtil.getCurrentUser());
 
 		validateFile(file);
+		
+		virusScanService.scan(file);
 
 		Documents documents = documentRepository
 				.findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
@@ -91,12 +98,19 @@ public class DocumentServiceImpl implements DocumentService {
 			File destination = new File(activityFolder, storedFileName);
 
 			file.transferTo(destination);
+
 			ActivityDocument activityDocument = new ActivityDocument();
+
 			activityDocument.setDocumentId(UUID.randomUUID().toString());
+
 			activityDocument.setFileName(storedFileName);
+
 			activityDocument.setFilePath(destination.getAbsolutePath());
+
 			activityDocument.setUploadedBy(UserContextUtil.getCurrentUser());
+
 			activityDocument.setUploadedDate(LocalDateTime.now());
+
 			documents.getDocuments().add(activityDocument);
 
 			documentRepository.save(documents);

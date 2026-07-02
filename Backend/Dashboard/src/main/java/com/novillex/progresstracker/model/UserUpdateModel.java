@@ -28,7 +28,7 @@ public class UserUpdateModel {
 	@NotEmpty(message = "Assign at least one project to user")
 	private List<String> projectIds;
 
-    private Boolean active;
+    private Boolean status;
     
     @NotBlank(message = "User role is required")
     private String role;

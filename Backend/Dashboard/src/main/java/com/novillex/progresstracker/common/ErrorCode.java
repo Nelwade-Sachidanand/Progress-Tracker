@@ -69,5 +69,8 @@ public class ErrorCode {
 	
 	public static final String INTERNAL_SERVER_ERROR = "ERR_500";
 	
+	public static final String VIRUS_FOUND = "ERR-041";
+	public static final String VIRUS_SCAN_FAILED = "ERR-042";
+	
 	
 }
