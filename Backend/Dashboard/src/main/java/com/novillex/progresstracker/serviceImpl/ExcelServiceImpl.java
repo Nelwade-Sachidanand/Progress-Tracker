@@ -217,6 +217,13 @@ public class ExcelServiceImpl implements ExcelService {
 					oldActivity = new Activity();
 
 					BeanUtils.copyProperties(activity, oldActivity);
+					if (Boolean.TRUE.equals(activity.getLocked())
+					        && !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
+
+					    logger.info("Skipping locked activity {} during Excel upload", activity.getActivityName());
+
+					    continue; // Skip this activity
+					}
 					if (isActivityChanged(oldActivity, newActivity)) {
 
 						ActivityUpdateRequest existingRequest = requestRepository
@@ -238,6 +245,7 @@ public class ExcelServiceImpl implements ExcelService {
 							request.setOldActivity(oldActivity);
 							request.setNewActivity(newActivity);
 							request.setRequestedBy(UserContextUtil.getCurrentUser());
+							request.setRequestedByRole(UserContextUtil.getCurrentUserRole());
 							request.setStatus("PENDING");
 							request.setRequestSource("EXCEL_UPLOAD");
 							request.setRequestedAt(LocalDateTime.now());

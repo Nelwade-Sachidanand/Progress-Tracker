@@ -103,8 +103,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
-			if ("USER".equalsIgnoreCase(request.getRequestedByRole())
-			        || "Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
+			if ("Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
 
 			    activity.setLocked(true);
 			    activity.setLockedBy(UserContextUtil.getCurrentUser());
@@ -239,8 +238,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
-			if ("USER".equalsIgnoreCase(request.getRequestedByRole())
-			        || "Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
+			if ("Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
 
 			    activity.setLocked(true);
 			    activity.setLockedBy(UserContextUtil.getCurrentUser());
@@ -340,7 +338,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(oldActivity, currentActivity);
 
-			if ("USER".equalsIgnoreCase(auditLog.getRequestedByRole()) || "Implementation User".equalsIgnoreCase(auditLog.getRequestedByRole())) {
+			if ("Implementation User".equalsIgnoreCase(auditLog.getRequestedByRole())) {
 
 				currentActivity.setLocked(false);
 				currentActivity.setLockedBy(null);
