@@ -103,9 +103,15 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
+			// Lock activity after approval
+			activity.setLocked(true);
+			activity.setLockedBy(UserContextUtil.getCurrentUser());
+			activity.setLockedAt(LocalDateTime.now());
+
 			projectRepository.save(project);
 
 			request.setStatus("APPROVED");
+
 			request.setApprovedBy(UserContextUtil.getCurrentUser());
 			request.setApprovedAt(LocalDateTime.now());
 
@@ -117,7 +123,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
 					request.getActivityName(), project.getProjectName(), request.getOldActivity(),
-					request.getNewActivity(), UserContextUtil.getCurrentUser());
+					request.getNewActivity(), UserContextUtil.getCurrentUser(), request.getRequestedByRole());
 
 			logger.info(
 					"Activity update approved successfully. RequestId={}, ProjectName={}, ActivityName={}, ApprovedBy={}",
@@ -225,17 +231,21 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
+			activity.setLocked(true);
+			activity.setLockedBy(approvedBy);
+			activity.setLockedAt(LocalDateTime.now());
+
 			projectRepository.save(project);
 
 			request.setStatus("APPROVED");
 			request.setApprovedBy(approvedBy);
 			request.setApprovedAt(LocalDateTime.now());
+			auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
+					request.getActivityName(), project.getProjectName(), request.getOldActivity(),
+					request.getNewActivity(), approvedBy, request.getRequestedByRole());
 		}
 
 		requestRepository.saveAll(requests);
-
-		auditService.saveAuditLog(AuditAction.APPROVE_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
-				"Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities, approvedBy);
 
 		logger.info("Bulk activity approval completed successfully. RequestedCount={}, ApprovedBy={}",
 				requestIds.size(), approvedBy);
@@ -309,8 +319,19 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			Activity oldActivity = objectMapper.convertValue(auditLog.getOldData(), Activity.class);
 			Activity currentActivity = findActivity(project, oldActivity);
+
 			BeanUtils.copyProperties(oldActivity, currentActivity);
 
+			if ("USER".equalsIgnoreCase(auditLog.getRequestedByRole()) || "Implementation User".equalsIgnoreCase(auditLog.getRequestedByRole())) {
+
+				currentActivity.setLocked(false);
+				currentActivity.setLockedBy(null);
+				currentActivity.setLockedAt(null);
+
+			} else {
+
+				currentActivity.setLocked(true);
+			}
 			projectRepository.save(project);
 
 			auditService.saveAuditLog(AuditAction.ROLLBACK_ACTIVITY, AuditEntity.ACTIVITY,

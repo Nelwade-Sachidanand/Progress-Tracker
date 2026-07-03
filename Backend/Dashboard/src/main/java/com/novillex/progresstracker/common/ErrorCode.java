@@ -29,6 +29,8 @@ public class ErrorCode {
 	public static final String INVALID_PASSWORD = "VAL_020";
 	public static final String PASSWORD_MISMATCH = "ERR-043";
 	public static final String PASSWORD_ALREADY_USED = "ERR-044";
+	public static final String ACTIVITY_LOCKED = "VAL_21";
+
 
 
 
@@ -55,6 +57,7 @@ public class ErrorCode {
     // Validation
     public static final String BANK_NAME_REQUIRED = "VAL_021";
     public static final String NO_REPORT_DATA_FOUND = "VAL_033";
+    
 
     // Notification
     public static final String NOTIFICATION_NOT_FOUND = "NOT_404";

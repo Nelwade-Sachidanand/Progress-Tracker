@@ -122,6 +122,17 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
 					request.getActivityName());
 		}
+
+		if (Boolean.TRUE.equals(activityToUpdate.getLocked())
+				&& !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
+
+			logger.warn("Update denied. Activity '{}' is locked. User '{}' attempted modification.",
+					activityToUpdate.getActivityName(), UserContextUtil.getCurrentUser());
+
+			throw new ValidationException(ErrorCode.ACTIVITY_LOCKED,
+					"This activity has already been approved. Only Admin can update it.");
+		}
+
 		Activity oldActivity = new Activity();
 
 		BeanUtils.copyProperties(activityToUpdate, oldActivity);
@@ -150,7 +161,6 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		newActivity.setScheduleHealth(
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
-
 
 		if (!isActivityChanged(oldActivity, newActivity)) {
 
