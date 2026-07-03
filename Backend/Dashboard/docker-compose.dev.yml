@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    container_name: progress-tracker-backend-dev
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      DOCUMENT_UPLOAD_PATH: /app/Documents
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      VIRUS_SCAN_ENABLED: true
+
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+
+    volumes:
+      - .:/app
+      - ~/.m2:/root/.m2
+      - ./Documents:/app/Documents
+
+    depends_on:
+      - clamav
+
+  clamav:
+    image: clamav/clamav:latest
+
+    container_name: clamav
+
+    restart: unless-stopped
+
+    ports:
+      - "3310:3310"

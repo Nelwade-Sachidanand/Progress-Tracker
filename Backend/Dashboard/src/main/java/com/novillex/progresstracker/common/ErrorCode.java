@@ -27,6 +27,8 @@ public class ErrorCode {
 	public static final String PROJECT_ALREADY_EXISTS = "VAL_018";
 	public static final String INVALID_REQUEST = "INV_019";
 	public static final String INVALID_PASSWORD = "VAL_020";
+	public static final String PASSWORD_MISMATCH = "ERR-043";
+	public static final String PASSWORD_ALREADY_USED = "ERR-044";
 
 
 
@@ -71,6 +73,7 @@ public class ErrorCode {
 	
 	public static final String VIRUS_FOUND = "ERR-041";
 	public static final String VIRUS_SCAN_FAILED = "ERR-042";
+	
 	
 	
 }

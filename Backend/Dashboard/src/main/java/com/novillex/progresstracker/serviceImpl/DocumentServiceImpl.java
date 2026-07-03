@@ -43,8 +43,7 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private final DocumentRepository documentRepository;
 	
-	@Autowired
-	private VirusScanService virusScanService;
+	private final VirusScanService virusScanService;
 
 	private final ResponseBuilder responseBuilder;
 

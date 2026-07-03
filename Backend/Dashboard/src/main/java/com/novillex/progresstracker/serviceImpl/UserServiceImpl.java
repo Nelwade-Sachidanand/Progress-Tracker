@@ -23,6 +23,7 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.LoginModel;
 import com.novillex.progresstracker.model.LoginResponseModel;
+import com.novillex.progresstracker.model.ResetPasswordRequest;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
 import com.novillex.progresstracker.repository.ProjectRepository;
@@ -147,7 +148,7 @@ public class UserServiceImpl implements UserService {
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
 		String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
-		
+
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
 		responseModel.setProjects(projects);
@@ -274,6 +275,41 @@ public class UserServiceImpl implements UserService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"User deleted successfully", deletedUser);
+	}
+
+	@Override
+	public Response resetPassword(ResetPasswordRequest request) {
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+
+			throw new ValidationException(ErrorCode.PASSWORD_MISMATCH,
+					"New Password and Confirm Password do not match.");
+		}
+
+		if (request.getNewPassword().contains(" ")) {
+			throw new ValidationException(ErrorCode.INVALID_PASSWORD, "Password should not contain spaces.");
+		}
+
+		User user = userRepository.findById(request.getUserId()).orElseThrow(
+				() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found.", request.getUserId()));
+
+		if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+
+			throw new ValidationException(ErrorCode.PASSWORD_ALREADY_USED,
+					"New password cannot be same as current password.");
+		}
+
+		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+		userRepository.save(user);
+
+		auditService.saveAuditLog(AuditAction.RESET_PASSWORD, AuditEntity.USER, user.getUsername(), null, null, null,
+				UserContextUtil.getCurrentUser());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Password reset successfully.", null);
 	}
 
 }

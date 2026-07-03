@@ -1,4 +1,8 @@
-.git/
-.settings/
+target
+.git
+.settings
 .project
 .classpath
+.idea
+.vscode
+Documents

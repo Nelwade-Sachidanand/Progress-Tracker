@@ -2,15 +2,15 @@ package com.novillex.progresstracker.common;
 
 public class AuditAction {
 
-   public static final String CREATE_PROJECT = "CREATE_PROJECT";
+	public static final String CREATE_PROJECT = "CREATE_PROJECT";
 
-    public static final String CREATE_ACTIVITY = "CREATE_ACTIVITY";
+	public static final String CREATE_ACTIVITY = "CREATE_ACTIVITY";
 
-    public static final String UPDATE_ACTIVITY = "UPDATE_ACTIVITY";
+	public static final String UPDATE_ACTIVITY = "UPDATE_ACTIVITY";
 
-    public static final String UPDATE_USER = "UPDATE_USER";
+	public static final String UPDATE_USER = "UPDATE_USER";
 
-    public static final String DELETE_USER = "DELETE_USER";
+	public static final String DELETE_USER = "DELETE_USER";
 
 	public static final String CREATE_PHASE = "PHASE_CREATED";
 
@@ -22,10 +22,10 @@ public class AuditAction {
 
 	public static final String EXPORT_EXCEL = "EXPORT_EXCEL";
 
-	public static final String IMPORT_PROJECT="IMPORT_PROJECT";
+	public static final String IMPORT_PROJECT = "IMPORT_PROJECT";
 
 	public static final String UPLOAD_CREATE_ACTIVITY = "UPLOAD_CREATE_ACTIVITY";
-	
+
 	public static final String UPLOAD_UPDATE_ACTIVITY = "UPLOAD_UPDATE_ACTIVITY";
 
 	public static final String DELETE_PROJECT = "DELETE_PROJECT";
@@ -49,5 +49,7 @@ public class AuditAction {
 	public static final String UPDATE_PROJECT_INFORMATION = "UPDATE_PROJECT_INFORMATION";
 
 	public static final String ROLLBACK_ACTIVITY_UPDATE = "ROLLBACK_ACTIVITY";
+
+	public static final String RESET_PASSWORD = "RESET_PASSWORD";
 
 }

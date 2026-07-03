@@ -16,12 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.StatusCode;
+import com.novillex.progresstracker.model.ResetPasswordRequest;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
 import com.novillex.progresstracker.service.UserService;
 import com.novillex.progresstracker.util.JwtUtil;
 
 import io.jsonwebtoken.Claims;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/user")
@@ -67,6 +69,14 @@ public class UserController {
 		logger.info("Delete user request received. Username: {}", userId);
 
 		return userService.deleteUser(userId);
+	}
+	
+	@PreAuthorize("hasRole('ADMIN')")
+	@PutMapping("/reset-password")
+	public Response resetPassword(
+	        @Valid @RequestBody ResetPasswordRequest request) {
+
+	    return userService.resetPassword(request);
 	}
 
 	@PostMapping("/refresh")

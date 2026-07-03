@@ -356,7 +356,7 @@ class UserServiceImplTest {
 		model.setUsername("admin");
 		model.setFullname("Admin");
 		model.setRole("USER");
-		model.setActive(true);
+		model.setStatus(true);
 
 		when(userRepository.findById("U1")).thenReturn(Optional.of(user));
 

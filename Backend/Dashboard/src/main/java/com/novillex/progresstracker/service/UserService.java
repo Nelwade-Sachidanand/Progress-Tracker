@@ -2,6 +2,7 @@ package com.novillex.progresstracker.service;
 
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.model.LoginModel;
+import com.novillex.progresstracker.model.ResetPasswordRequest;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
 
@@ -21,5 +22,7 @@ public interface UserService {
 	Response updateUser(UserUpdateModel model);
 	
 	Response deleteUser(String userId);
+	
+	Response resetPassword(ResetPasswordRequest request);
 
 }
