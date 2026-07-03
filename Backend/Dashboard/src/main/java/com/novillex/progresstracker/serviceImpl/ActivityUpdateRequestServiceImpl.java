@@ -103,11 +103,19 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
-			// Lock activity after approval
-			activity.setLocked(true);
-			activity.setLockedBy(UserContextUtil.getCurrentUser());
-			activity.setLockedAt(LocalDateTime.now());
+			if ("USER".equalsIgnoreCase(request.getRequestedByRole())
+			        || "Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
 
+			    activity.setLocked(true);
+			    activity.setLockedBy(UserContextUtil.getCurrentUser());
+			    activity.setLockedAt(LocalDateTime.now());
+
+			} else {
+
+			    activity.setLocked(false);
+			    activity.setLockedBy(null);
+			    activity.setLockedAt(null);
+			}
 			projectRepository.save(project);
 
 			request.setStatus("APPROVED");
@@ -231,9 +239,19 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			BeanUtils.copyProperties(request.getNewActivity(), activity);
 
-			activity.setLocked(true);
-			activity.setLockedBy(approvedBy);
-			activity.setLockedAt(LocalDateTime.now());
+			if ("USER".equalsIgnoreCase(request.getRequestedByRole())
+			        || "Implementation User".equalsIgnoreCase(request.getRequestedByRole())) {
+
+			    activity.setLocked(true);
+			    activity.setLockedBy(UserContextUtil.getCurrentUser());
+			    activity.setLockedAt(LocalDateTime.now());
+
+			} else {
+
+			    activity.setLocked(false);
+			    activity.setLockedBy(null);
+			    activity.setLockedAt(null);
+			}
 
 			projectRepository.save(project);
 
