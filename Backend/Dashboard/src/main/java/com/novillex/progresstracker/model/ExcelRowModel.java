@@ -26,6 +26,8 @@ public class ExcelRowModel {
 	private String subTaskName;
 
 	private String activityName;
+	
+	private String owner;
 
 	private Double estimatedPeriodWeek;
 

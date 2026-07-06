@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -59,6 +60,8 @@ import com.novillex.progresstracker.util.WriteUtil;
 @Service
 public class ExcelServiceImpl implements ExcelService {
 
+	private final ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl;
+
 	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
 
 	@Autowired
@@ -78,6 +81,10 @@ public class ExcelServiceImpl implements ExcelService {
 
 	@Autowired
 	private ProjectInformationRepository projectInformationRepository;
+
+	ExcelServiceImpl(ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl) {
+		this.activityUpdateRequestServiceImpl = activityUpdateRequestServiceImpl;
+	}
 
 	@Override
 	public Response uploadExcel(MultipartFile file) {
@@ -101,10 +108,9 @@ public class ExcelServiceImpl implements ExcelService {
 					.findByProjectNameAndBankName(projectName, bankName)
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
 							"Project information not found for project and bank", projectName));
-			
+
 			Project existingProject = projectRepository.findByProjectInformationId(projectInfo.getId()).orElse(null);
 
-//			System.out.println(rows);
 			logger.info("Excel parsed successfully. Rows found: {}", rows.size());
 
 			Map<String, Project> projectMap = new HashMap<>();
@@ -112,7 +118,6 @@ public class ExcelServiceImpl implements ExcelService {
 			List<AuditLogModel> auditLogs = new ArrayList<>();
 
 			for (ExcelRowModel model : rows) {
-				
 
 				Project project = projectMap.get(model.getProjectName());
 
@@ -122,15 +127,10 @@ public class ExcelServiceImpl implements ExcelService {
 					if (project == null) {
 
 						project = new Project();
-
 						project.setProjectInformationId(projectInfo.getId());
-
 						project.setProjectName(projectInfo.getProjectName());
-
 						project.setBankName(projectInfo.getBankName());
-
 						project.setProjectManager(projectInfo.getProjectManager());
-
 						project.setPhases(new ArrayList<>());
 
 						newlyCreatedProjects.add(project);
@@ -149,6 +149,7 @@ public class ExcelServiceImpl implements ExcelService {
 				if (phase == null) {
 
 					phase = new Phase();
+					phase.setPhaseId(UUID.randomUUID().toString());
 					phase.setPhaseName(model.getPhaseName());
 					phase.setMilestones(new ArrayList<>());
 					project.getPhases().add(phase);
@@ -159,6 +160,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 				if (milestone == null) {
 					milestone = new Milestone();
+					milestone.setMilestoneId(UUID.randomUUID().toString());
 					milestone.setMilestoneName(model.getMilestoneName());
 					milestone.setTasks(new ArrayList<>());
 					phase.getMilestones().add(milestone);
@@ -169,6 +171,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 				if (task == null) {
 					task = new Task();
+					task.setTaskId(UUID.randomUUID().toString());
 					task.setTaskName(model.getTaskName());
 					task.setSubTasks(new ArrayList<>());
 					milestone.getTasks().add(task);
@@ -179,6 +182,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 				if (subTask == null) {
 					subTask = new Subtask();
+					subTask.setSubTaskId(UUID.randomUUID().toString());
 					subTask.setSubTaskName(model.getSubTaskName());
 					subTask.setActivities(new ArrayList<>());
 					task.getSubTasks().add(subTask);
@@ -203,6 +207,7 @@ public class ExcelServiceImpl implements ExcelService {
 				newActivity.setRemark(model.getRemark());
 
 				if (activity == null) {
+					newActivity.setActivityId(UUID.randomUUID().toString());
 
 					activity = new Activity();
 
@@ -227,27 +232,57 @@ public class ExcelServiceImpl implements ExcelService {
 					if (isActivityChanged(oldActivity, newActivity)) {
 
 						ActivityUpdateRequest existingRequest = requestRepository
-								.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-										project.getId(), phase.getPhaseName(), milestone.getMilestoneName(),
-										task.getTaskName(), subTask.getSubTaskName(), activity.getActivityName(),
-										"PENDING")
-								.orElse(null);
+								.findByActivityIdAndStatus(activity.getActivityId(), "PENDING").orElse(null);
 
 						if (existingRequest == null) {
 
 							ActivityUpdateRequest request = new ActivityUpdateRequest();
+
 							request.setProjectId(project.getId());
-							request.setPhaseName(phase.getPhaseName());
-							request.setMilestoneName(milestone.getMilestoneName());
-							request.setTaskName(task.getTaskName());
-							request.setSubTaskName(subTask.getSubTaskName());
-							request.setActivityName(activity.getActivityName());
+							request.setProjectName(project.getProjectName());
+
+
+							request.setPhaseId(phase.getPhaseId());
+							request.setMilestoneId(milestone.getMilestoneId());
+							request.setTaskId(task.getTaskId());
+							request.setSubTaskId(subTask.getSubTaskId());
+							request.setActivityId(activity.getActivityId());
+
+
+							request.setOldPhaseName(phase.getPhaseName());
+							request.setOldMilestoneName(milestone.getMilestoneName());
+							request.setOldTaskName(task.getTaskName());
+							request.setOldSubTaskName(subTask.getSubTaskName());
+
+							request.setOldOwner(oldActivity.getOwner());
+							request.setOldActivityName(oldActivity.getActivityName());
+
+							request.setNewPhaseName(model.getPhaseName());
+							request.setNewMilestoneName(model.getMilestoneName());
+							request.setNewTaskName(model.getTaskName());
+							request.setNewSubTaskName(model.getSubTaskName());
+
+							request.setNewOwner(model.getOwner()); // if Excel contains owner
+							request.setNewActivityName(model.getActivityName());
+
+
 							request.setOldActivity(oldActivity);
 							request.setNewActivity(newActivity);
+
+							request.setRequestType("UPDATE");
+
+							request.setRequestSource("EXCEL");
+
 							request.setRequestedBy(UserContextUtil.getCurrentUser());
 							request.setRequestedByRole(UserContextUtil.getCurrentUserRole());
 							request.setStatus("PENDING");
-							request.setRequestSource("EXCEL_UPLOAD");
+
+							request.setChangeReason("Updated through Excel upload");
+
+							request.setRequestedBy(UserContextUtil.getCurrentUser());
+
+							request.setRequestedByUserId(UserContextUtil.getCurrentUserId());
+
 							request.setRequestedAt(LocalDateTime.now());
 
 							requestRepository.save(request);
@@ -425,14 +460,14 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setDate(row, 11, report.getActualEndDate());
 				WriteUtil.setCell(row, 13, report.getProgress());
 				WriteUtil.setCell(row, 16, report.getRemark());
-				
+
 				CellStyle style = workbook.createCellStyle();
 				Cell cell = row.getCell(16);
 				style.cloneStyleFrom(cell.getCellStyle());
 				style.setWrapText(true);
 				cell.setCellStyle(style);
-				row.setHeight((short)-1);
-				
+				row.setHeight((short) -1);
+
 //				row.setHeight((short) -1); // Auto height (if supported)
 
 				currentRow++;

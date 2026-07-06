@@ -7,7 +7,7 @@ import lombok.Data;
 
 @Data
 public class Phase {
-
+	private String phaseId;
 	private String phaseName;
 	private List<Milestone> milestones;
 	

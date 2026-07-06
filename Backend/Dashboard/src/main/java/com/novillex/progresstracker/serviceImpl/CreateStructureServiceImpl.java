@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.serviceImpl;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -69,7 +70,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		if (project.getPhases() != null) {
 
 			for (Phase p : project.getPhases()) {
-				if (p.getPhaseName().equalsIgnoreCase(request.getPhaseName())) {
+				if (p.getPhaseId().equals(request.getPhaseId())) {
 					phase = p;
 					break;
 				}
@@ -79,6 +80,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		if (phase == null) {
 
 			phase = new Phase();
+			phase.setPhaseId(UUID.randomUUID().toString());
 			phase.setPhaseName(request.getPhaseName());
 			phase.setMilestones(new ArrayList<>());
 
@@ -94,13 +96,14 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			for (Milestone m : phase.getMilestones()) {
 
-				if (m.getMilestoneName().equalsIgnoreCase(request.getMilestoneName())) {
+				if (m.getMilestoneId().equals(request.getMilestoneId())) {
 					milestone = m;
 					break;
 				}
 			}
 			if (milestone == null) {
 				milestone = new Milestone();
+				milestone.setMilestoneId(UUID.randomUUID().toString());
 				milestone.setMilestoneName(request.getMilestoneName());
 				milestone.setTasks(new ArrayList<>());
 				phase.getMilestones().add(milestone);
@@ -113,7 +116,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			for (Task t : milestone.getTasks()) {
 
-				if (t.getTaskName().equalsIgnoreCase(request.getTaskName())) {
+				if (t.getTaskId().equals(request.getTaskId())) {
 					task = t;
 					break;
 				}
@@ -122,6 +125,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			if (task == null) {
 
 				task = new Task();
+				task.setTaskId(UUID.randomUUID().toString());
 				task.setTaskName(request.getTaskName());
 				task.setSubTasks(new ArrayList<>());
 				milestone.getTasks().add(task);
@@ -134,13 +138,14 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			for (Subtask st : task.getSubTasks()) {
 
-				if (st.getSubTaskName().equalsIgnoreCase(request.getSubTaskName())) {
+				if (st.getSubTaskId().equals(request.getSubTaskId())) {
 					subtask = st;
 					break;
 				}
 			}
 			if (subtask == null) {
 				subtask = new Subtask();
+				subtask.setSubTaskId(UUID.randomUUID().toString());
 				subtask.setSubTaskName(request.getSubTaskName());
 				subtask.setActivities(new ArrayList<>());
 				task.getSubTasks().add(subtask);
@@ -151,8 +156,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		if (request.getActivityName() != null) {
 
 			Activity existingActivity = subtask.getActivities().stream()
-					.filter(a -> a.getActivityName().equalsIgnoreCase(request.getActivityName())).findFirst()
-					.orElse(null);
+					.filter(a -> a.getActivityName().equals(request.getActivityName())).findFirst().orElse(null);
 
 			if (existingActivity != null) {
 				logger.warn("Activity already exists. Activity: {}, Project: {}", request.getActivityName(),
@@ -162,6 +166,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			}
 
 			activity = new Activity();
+			activity.setActivityId(UUID.randomUUID().toString());
 			activity.setActivityName(request.getActivityName());
 			activity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
 			activity.setPlannedStartDate(request.getPlannedStartDate());
@@ -199,6 +204,9 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_PHASE, AuditEntity.PHASE, phase.getPhaseName(),
 					project.getProjectName(), null, phase, username);
+			
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Phase created successfully", project);
 
 		} else if (milestoneCreated) {
 
@@ -207,12 +215,18 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_MILESTONE, AuditEntity.MILESTONE, milestone.getMilestoneName(),
 					project.getProjectName(), null, milestone, username);
+			
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Milestone created successfully", project);
 
 		} else if (taskCreated) {
 			logger.info("New task created. Task: {}, Project: {}", task.getTaskName(), project.getProjectName());
 
 			auditService.saveAuditLog(AuditAction.CREATE_TASK, AuditEntity.TASK, task.getTaskName(),
 					project.getProjectName(), null, task, username);
+			
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Task created successfully", project);
 
 		} else if (subtaskCreated) {
 			logger.info("New subtask created. SubTask: {}, Project: {}", subtask.getSubTaskName(),
@@ -220,6 +234,9 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_SUBTASK, AuditEntity.SUBTASK, subtask.getSubTaskName(),
 					project.getProjectName(), null, subtask, username);
+			
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Subtask created successfully", project);
 
 		} else if (activityCreated) {
 			logger.info("New activity created. Activity: {}, Project: {}", activity.getActivityName(),
