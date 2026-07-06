@@ -33,4 +33,6 @@ public class AuditLog {
     private String modifiedBy;
 
     private LocalDateTime modifiedDate;
+    
+    private String requestedByRole;
 }

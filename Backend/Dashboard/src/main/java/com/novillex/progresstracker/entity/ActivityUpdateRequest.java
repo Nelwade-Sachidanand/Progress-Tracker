@@ -120,4 +120,7 @@ public class ActivityUpdateRequest {
     private String rolledBackBy;
 
     private LocalDateTime rolledBackAt;
+    
+    private String requestedByRole;
+    
 }

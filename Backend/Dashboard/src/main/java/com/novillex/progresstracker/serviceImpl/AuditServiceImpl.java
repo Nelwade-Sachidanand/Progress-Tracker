@@ -20,6 +20,7 @@ import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.AuditLogRepository;
 import com.novillex.progresstracker.service.AuditService;
+import com.novillex.progresstracker.util.UserContextUtil;
 
 @Service
 public class AuditServiceImpl implements AuditService {
@@ -50,7 +51,42 @@ public class AuditServiceImpl implements AuditService {
 			auditLog.setEntityName(entityName);
 			auditLog.setProjectName(projectName);
 			auditLog.setModifiedBy(modifiedBy);
+			auditLog.setRequestedByRole(UserContextUtil.getCurrentUserRole());
 			auditLog.setModifiedDate(LocalDateTime.now());
+			auditLog.setOldData(oldObject == null ? null : objectMapper.writeValueAsString(oldObject));
+			auditLog.setNewData(newObject == null ? null : objectMapper.writeValueAsString(newObject));
+
+			auditLogRepository.save(auditLog);
+
+			logger.info("Audit log saved successfully. Action: {}, Entity: {}", actionType, entityType);
+
+		} catch (Exception e) {
+
+			logger.error("Failed to save audit log. Action: {}, Entity: {}", actionType, entityType, e);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Error while saving audit log");
+		}
+	}
+
+	@Override
+	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
+			Object oldObject, Object newObject, String modifiedBy, String requestedByRole) {
+
+		logger.info("Saving audit log. Action: {}, Entity: {}, Name: {}, User: {}", actionType, entityType, entityName,
+				modifiedBy);
+
+		try {
+
+			AuditLog auditLog = new AuditLog();
+
+			auditLog.setActionType(actionType);
+			auditLog.setEntityType(entityType);
+			auditLog.setEntityName(entityName);
+			auditLog.setProjectName(projectName);
+			auditLog.setModifiedBy(modifiedBy);
+			auditLog.setRequestedByRole(requestedByRole); 
+			auditLog.setModifiedDate(LocalDateTime.now());
+
 			auditLog.setOldData(oldObject == null ? null : objectMapper.writeValueAsString(oldObject));
 			auditLog.setNewData(newObject == null ? null : objectMapper.writeValueAsString(newObject));
 

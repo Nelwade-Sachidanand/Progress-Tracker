@@ -126,7 +126,23 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		}
 
 		if (activityToUpdate == null) {
+			logger.warn("Activity not found. Activity: {}, ProjectId: {}", request.getActivityName(),
+					request.getProjectId());
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+					request.getActivityName());
+		}
 
+		if (Boolean.TRUE.equals(activityToUpdate.getLocked())
+				&& !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
+
+			logger.warn("Update denied. Activity '{}' is locked. User '{}' attempted modification.",
+					activityToUpdate.getActivityName(), UserContextUtil.getCurrentUser());
+
+			throw new ValidationException(ErrorCode.ACTIVITY_LOCKED,
+					"This activity has already been approved. Only Admin can update it.");
+		}
+
+		Activity oldActivity = new Activity();
 			logger.warn("Activity not found. ActivityId={}", request.getActivityId());
 
 			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
@@ -179,6 +195,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		newActivity.setRemark(oldActivity.getRemark());
 
+		if (!isActivityChanged(oldActivity, newActivity)) {
 
 		boolean hierarchyChanged = !Objects.equals(oldPhaseName, newPhaseName)
 				|| !Objects.equals(oldMilestoneName, newMilestoneName) || !Objects.equals(oldTaskName, newTaskName)
@@ -192,6 +209,36 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
+
+		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
+
+		activityRequest.setProjectId(request.getProjectId());
+
+		activityRequest.setPhaseName(request.getPhaseName());
+
+		activityRequest.setMilestoneName(request.getMilestoneName());
+
+		activityRequest.setTaskName(request.getTaskName());
+
+		activityRequest.setSubTaskName(request.getSubTaskName());
+
+		activityRequest.setActivityName(request.getActivityName());
+
+		activityRequest.setOldActivity(oldActivity);
+
+		activityRequest.setNewActivity(newActivity);
+
+		activityRequest.setChangeReason(request.getChangeReason());
+
+		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+
+		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
+		activityRequest.setRequestedByRole(UserContextUtil.getCurrentUserRole());
+
+		activityRequest.setStatus("PENDING");
+
+		activityRequest.setRequestedAt(java.time.LocalDateTime.now());
+		activityRequest.setRequestSource("MANUAL");
 
 		ActivityUpdateRequest existingRequest = requestRepository
 				.findByActivityIdAndStatus(request.getActivityId(), "PENDING").orElse(null);

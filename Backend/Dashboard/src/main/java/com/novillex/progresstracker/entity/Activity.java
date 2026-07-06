@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -36,4 +37,10 @@ public class Activity {
     private String scheduleHealth;
     
     private String remark;
+    
+    private Boolean locked = false;
+
+    private String lockedBy;
+
+    private LocalDateTime lockedAt;
 }

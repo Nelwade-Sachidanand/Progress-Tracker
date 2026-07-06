@@ -8,6 +8,9 @@ public interface AuditService {
 	void saveAuditLog(String actionType, String entityType, String entityName, String projectName, Object oldObject,
 			Object newObject, String modifiedBy);
 	
+	void saveAuditLog(String actionType, String entityType, String entityName, String projectName,
+	        Object oldObject, Object newObject, String modifiedBy, String requestedByRole);
+	
 	Response getAuditLogs();
 	
 }
