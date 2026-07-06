@@ -21,11 +21,7 @@ import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.Activity;
 import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 import com.novillex.progresstracker.entity.AuditLog;
-import com.novillex.progresstracker.entity.Milestone;
-import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
-import com.novillex.progresstracker.entity.Subtask;
-import com.novillex.progresstracker.entity.Task;
 import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.HierarchyReference;
@@ -41,349 +37,349 @@ import com.novillex.progresstracker.util.UserContextUtil;
 @Service
 public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestService {
 
-  @Autowired
-  private ActivityUpdateRequestRepository requestRepository;
+  @Autowired
+  private ActivityUpdateRequestRepository requestRepository;
 
-  @Autowired
-  private ProjectRepository projectRepository;
+  @Autowired
+  private ProjectRepository projectRepository;
 
-  @Autowired
-  private ApplicationContext context;
+  @Autowired
+  private ApplicationContext context;
 
-  @Autowired
-  private AuditService auditService;
+  @Autowired
+  private AuditService auditService;
 
-  @Autowired
-  AuditLogRepository auditLogRepository;
+  @Autowired
+  AuditLogRepository auditLogRepository;
 
-  @Autowired
-  private NotificationService notificationService;
+  @Autowired
+  private NotificationService notificationService;
 
-  @Autowired
-  private ObjectMapper objectMapper;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-  private static final Logger logger = LoggerFactory.getLogger(ActivityUpdateRequestServiceImpl.class);
+  private static final Logger logger = LoggerFactory.getLogger(ActivityUpdateRequestServiceImpl.class);
 
-  @Override
-  public Response getPendingRequests() {
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-    logger.info("Fetching pending activity update requests.");
+  @Override
+  public Response getPendingRequests() {
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    logger.info("Fetching pending activity update requests.");
 
-    try {
+    try {
 
-      List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
+      List<ActivityUpdateRequest> requests = requestRepository.findByStatus("PENDING");
 
-      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-          "Pending requests fetched successfully.", requests);
+      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+          "Pending requests fetched successfully.", requests);
 
-    } catch (Exception ex) {
+    } catch (Exception ex) {
 
-      logger.error("Failed to fetch pending activity update requests.", ex);
+      logger.error("Failed to fetch pending activity update requests.", ex);
 
-      throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch pending activity update requests.");
-    }
-  }
+      throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch pending activity update requests.");
+    }
+  }
 
-  @Override
-  public Response approveRequest(String requestId) {
+  @Override
+  public Response approveRequest(String requestId) {
 
-    logger.info("Activity update approval initiated. RequestId={}, ApprovedBy={}", requestId,
-        UserContextUtil.getCurrentUser());
+    logger.info("Activity update approval initiated. RequestId={}, ApprovedBy={}", requestId,
+        UserContextUtil.getCurrentUser());
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    ActivityUpdateRequest request = requestRepository.findById(requestId).orElseThrow(
-        () -> new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Request not found", requestId));
+    ActivityUpdateRequest request = requestRepository.findById(requestId).orElseThrow(
+        () -> new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Request not found", requestId));
 
-    Project project = projectRepository.findById(request.getProjectId())
-        .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-            request.getProjectId()));
+    Project project = projectRepository.findById(request.getProjectId())
+        .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+            request.getProjectId()));
 
-    HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, request.getActivityId());
+    HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, request.getActivityId());
 
-    // ==========================
-    // Update hierarchy names
-    // ==========================
+    // ==========================
+    // Update hierarchy names
+    // ==========================
 
-    ref.getPhase().setPhaseName(request.getNewPhaseName());
+    ref.getPhase().setPhaseName(request.getNewPhaseName());
 
-    ref.getMilestone().setMilestoneName(request.getNewMilestoneName());
+    ref.getMilestone().setMilestoneName(request.getNewMilestoneName());
 
-    ref.getTask().setTaskName(request.getNewTaskName());
+    ref.getTask().setTaskName(request.getNewTaskName());
 
-    ref.getSubTask().setSubTaskName(request.getNewSubTaskName());
+    ref.getSubTask().setSubTaskName(request.getNewSubTaskName());
 
-    // ==========================
-    // Update Activity
-    // ==========================
+    // ==========================
+    // Update Activity
+    // ==========================
 
-    BeanUtils.copyProperties(request.getNewActivity(), ref.getActivity());
+    BeanUtils.copyProperties(request.getNewActivity(), ref.getActivity());
 
-    projectRepository.save(project);
+    projectRepository.save(project);
 
-    // ==========================
-    // Update Request
-    // ==========================
+    // ==========================
+    // Update Request
+    // ==========================
 
-    request.setStatus("APPROVED");
+    request.setStatus("APPROVED");
 
-    request.setApprovedBy(UserContextUtil.getCurrentUser());
+    request.setApprovedBy(UserContextUtil.getCurrentUser());
 
-    request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
+    request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
 
-    request.setApprovedAt(LocalDateTime.now());
+    request.setApprovedAt(LocalDateTime.now());
 
-    requestRepository.save(request);
+    requestRepository.save(request);
 
-    // ==========================
-    // Notification
-    // ==========================
+    // ==========================
+    // Notification
+    // ==========================
 
-    notificationService.createNotification("Activity Update Approved",
-        "Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
-        "ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
+    notificationService.createNotification("Activity Update Approved",
+        "Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
+        "ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
 
-    // ==========================
-    // Audit
-    // ==========================
+    // ==========================
+    // Audit
+    // ==========================
 
-    auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
-        request.getNewActivityName(), project.getProjectName(), request.getOldActivity(),
-        request.getNewActivity(), UserContextUtil.getCurrentUser());
+    auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
+        request.getNewActivityName(), project.getProjectName(), request.getOldActivity(),
+        request.getNewActivity(), UserContextUtil.getCurrentUser());
 
-    logger.info("Activity update approved successfully. RequestId={}, Activity={}", requestId,
-        request.getNewActivityName());
+    logger.info("Activity update approved successfully. RequestId={}, Activity={}", requestId,
+        request.getNewActivityName());
 
-    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-        "Request approved successfully", request);
-  }
+    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+        "Request approved successfully", request);
+  }
 
-  @Override
-  public Response approveSelectedRequests(List<String> requestIds) {
+  @Override
+  public Response approveSelectedRequests(List<String> requestIds) {
 
-    logger.info("Bulk activity approval initiated. TotalRequestIds={}, ApprovedBy={}", requestIds.size(),
-        UserContextUtil.getCurrentUser());
+    logger.info("Bulk activity approval initiated. TotalRequestIds={}, ApprovedBy={}", requestIds.size(),
+        UserContextUtil.getCurrentUser());
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
+    List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
 
-    if (requests.isEmpty()) {
+    if (requests.isEmpty()) {
 
-      throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
-    }
+      throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
+    }
 
-    String approvedBy = UserContextUtil.getCurrentUser();
+    String approvedBy = UserContextUtil.getCurrentUser();
 
-    List<Activity> oldActivities = new ArrayList<>();
+    List<Activity> oldActivities = new ArrayList<>();
 
-    List<Activity> newActivities = new ArrayList<>();
+    List<Activity> newActivities = new ArrayList<>();
 
-    for (ActivityUpdateRequest request : requests) {
+    for (ActivityUpdateRequest request : requests) {
 
-      if (!"PENDING".equals(request.getStatus())) {
-        continue;
-      }
+      if (!"PENDING".equals(request.getStatus())) {
+        continue;
+      }
 
-      oldActivities.add(request.getOldActivity());
+      oldActivities.add(request.getOldActivity());
 
-      newActivities.add(request.getNewActivity());
+      newActivities.add(request.getNewActivity());
 
-      Project project = projectRepository.findById(request.getProjectId())
-          .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-              request.getProjectId()));
+      Project project = projectRepository.findById(request.getProjectId())
+          .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+              request.getProjectId()));
 
-      HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, request.getActivityId());
+      HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, request.getActivityId());
 
-      ref.getPhase().setPhaseName(request.getNewPhaseName());
+      ref.getPhase().setPhaseName(request.getNewPhaseName());
 
-      ref.getMilestone().setMilestoneName(request.getNewMilestoneName());
+      ref.getMilestone().setMilestoneName(request.getNewMilestoneName());
 
-      ref.getTask().setTaskName(request.getNewTaskName());
+      ref.getTask().setTaskName(request.getNewTaskName());
 
-      ref.getSubTask().setSubTaskName(request.getNewSubTaskName());
+      ref.getSubTask().setSubTaskName(request.getNewSubTaskName());
 
-      BeanUtils.copyProperties(request.getNewActivity(), ref.getActivity());
+      BeanUtils.copyProperties(request.getNewActivity(), ref.getActivity());
 
-      projectRepository.save(project);
+      projectRepository.save(project);
 
-      request.setStatus("APPROVED");
+      request.setStatus("APPROVED");
 
-      request.setApprovedBy(approvedBy);
+      request.setApprovedBy(approvedBy);
 
-      request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
+      request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
 
-      request.setApprovedAt(LocalDateTime.now());
+      request.setApprovedAt(LocalDateTime.now());
 
-      notificationService.createNotification("Activity Update Approved",
-          "Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
-          "ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
-    }
+      notificationService.createNotification("Activity Update Approved",
+          "Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
+          "ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
+    }
 
-    requestRepository.saveAll(requests);
+    requestRepository.saveAll(requests);
 
-    auditService.saveAuditLog(AuditAction.APPROVE_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
-        "Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities, approvedBy);
+    auditService.saveAuditLog(AuditAction.APPROVE_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY,
+        "Bulk Approval (" + requests.size() + " Requests)", null, oldActivities, newActivities, approvedBy);
 
-    logger.info("Bulk activity approval completed successfully. RequestedCount={}, ApprovedBy={}",
-        requestIds.size(), approvedBy);
+    logger.info("Bulk activity approval completed successfully. RequestedCount={}, ApprovedBy={}",
+        requestIds.size(), approvedBy);
 
-    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-        requests.size() + " requests approved successfully", requests.size());
-  }
+    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+        requests.size() + " requests approved successfully", requests.size());
+  }
 
-  @Override
-  public Response rejectRequest(String requestId, String reason) {
+  @Override
+  public Response rejectRequest(String requestId, String reason) {
 
-    logger.info("Activity update rejection initiated. RequestId={}, RejectedBy={}", requestId,
-        UserContextUtil.getCurrentUser());
+    logger.info("Activity update rejection initiated. RequestId={}, RejectedBy={}", requestId,
+        UserContextUtil.getCurrentUser());
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    ActivityUpdateRequest request = requestRepository.findById(requestId).orElseThrow(
-        () -> new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Request not found", requestId));
+    ActivityUpdateRequest request = requestRepository.findById(requestId).orElseThrow(
+        () -> new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Request not found", requestId));
 
-    request.setStatus("REJECTED");
+    request.setStatus("REJECTED");
 
-    request.setRejectionReason(reason);
+    request.setRejectionReason(reason);
 
-    request.setApprovedBy(UserContextUtil.getCurrentUser());
+    request.setApprovedBy(UserContextUtil.getCurrentUser());
 
-    request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
+    request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
 
-    request.setApprovedAt(LocalDateTime.now());
+    request.setApprovedAt(LocalDateTime.now());
 
-    requestRepository.save(request);
+    requestRepository.save(request);
 
-    notificationService.createNotification("Activity Update Rejected",
-        "Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
-        "ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
+    notificationService.createNotification("Activity Update Rejected",
+        "Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
+        "ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
 
-    auditService.saveAuditLog(AuditAction.REJECT_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
-        request.getNewActivityName(), request.getProjectName(), request.getOldActivity(),
-        request.getNewActivity(), UserContextUtil.getCurrentUser());
+    auditService.saveAuditLog(AuditAction.REJECT_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
+        request.getNewActivityName(), request.getProjectName(), request.getOldActivity(),
+        request.getNewActivity(), UserContextUtil.getCurrentUser());
 
-    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-        "Request rejected successfully", request);
-  }
+    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+        "Request rejected successfully", request);
+  }
 
-  @Override
-  public Response rejectSelectedRequests(List<String> requestIds, String reason) {
+  @Override
+  public Response rejectSelectedRequests(List<String> requestIds, String reason) {
 
-    logger.info("Bulk rejection started.");
+    logger.info("Bulk rejection started.");
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
+    List<ActivityUpdateRequest> requests = requestRepository.findAllById(requestIds);
 
-    if (requests.isEmpty()) {
+    if (requests.isEmpty()) {
 
-      throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
-    }
+      throw new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "No requests found", null);
+    }
 
-    String approvedBy = UserContextUtil.getCurrentUser();
+    String approvedBy = UserContextUtil.getCurrentUser();
 
-    List<Activity> oldActivities = new ArrayList<>();
+    List<Activity> oldActivities = new ArrayList<>();
 
-    List<Activity> newActivities = new ArrayList<>();
+    List<Activity> newActivities = new ArrayList<>();
 
-    for (ActivityUpdateRequest request : requests) {
+    for (ActivityUpdateRequest request : requests) {
 
-      if (!"PENDING".equals(request.getStatus()))
-        continue;
+      if (!"PENDING".equals(request.getStatus()))
+        continue;
 
-      oldActivities.add(request.getOldActivity());
+      oldActivities.add(request.getOldActivity());
 
-      newActivities.add(request.getNewActivity());
+      newActivities.add(request.getNewActivity());
 
-      request.setStatus("REJECTED");
+      request.setStatus("REJECTED");
 
-      request.setRejectionReason(reason);
+      request.setRejectionReason(reason);
 
-      request.setApprovedBy(approvedBy);
+      request.setApprovedBy(approvedBy);
 
-      request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
+      request.setApprovedByUserId(UserContextUtil.getCurrentUserId());
 
-      request.setApprovedAt(LocalDateTime.now());
+      request.setApprovedAt(LocalDateTime.now());
 
-      notificationService.createNotification("Activity Update Rejected",
-          "Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
-          "ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
-    }
+      notificationService.createNotification("Activity Update Rejected",
+          "Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
+          "ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
+    }
 
-    requestRepository.saveAll(requests);
+    requestRepository.saveAll(requests);
 
-    auditService.saveAuditLog(AuditAction.REJECTED_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY, "Bulk Rejection",
-        null, oldActivities, newActivities, approvedBy);
+    auditService.saveAuditLog(AuditAction.REJECTED_ALL_ACTIVITY_UPDATES, AuditEntity.ACTIVITY, "Bulk Rejection",
+        null, oldActivities, newActivities, approvedBy);
 
-    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-        requests.size() + " requests rejected successfully", requests.size());
-  }
+    return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+        requests.size() + " requests rejected successfully", requests.size());
+  }
 
-  @Override
-  public Response rollbackActivity(String auditId) {
+  @Override
+  public Response rollbackActivity(String auditId) {
 
-    logger.warn("Activity rollback initiated. AuditId={}, RequestedBy={}", auditId,
-        UserContextUtil.getCurrentUser());
+    logger.warn("Activity rollback initiated. AuditId={}, RequestedBy={}", auditId,
+        UserContextUtil.getCurrentUser());
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    try {
+    try {
 
-      AuditLog auditLog = auditLogRepository.findById(auditId).orElseThrow(
-          () -> new ResourceNotFoundException(ErrorCode.AUDIT_NOT_FOUND, "Audit log not found", auditId));
+      AuditLog auditLog = auditLogRepository.findById(auditId).orElseThrow(
+          () -> new ResourceNotFoundException(ErrorCode.AUDIT_NOT_FOUND, "Audit log not found", auditId));
 
-      Project project = projectRepository.findByProjectName(auditLog.getProjectName())
-          .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-              auditLog.getProjectName()));
+      Project project = projectRepository.findByProjectName(auditLog.getProjectName())
+          .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+              auditLog.getProjectName()));
 
-      Activity oldActivity = objectMapper.convertValue(auditLog.getOldData(), Activity.class);
+      Activity oldActivity = objectMapper.convertValue(auditLog.getOldData(), Activity.class);
 
-      HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, oldActivity.getActivityId());
+      HierarchyReference ref = HierarchyReferenceUtil.findHierarchy(project, oldActivity.getActivityId());
 
-      BeanUtils.copyProperties(oldActivity, ref.getActivity());
+      BeanUtils.copyProperties(oldActivity, ref.getActivity());
 
-      projectRepository.save(project);
+      projectRepository.save(project);
 
-      auditService.saveAuditLog(AuditAction.ROLLBACK_ACTIVITY, AuditEntity.ACTIVITY,
-          oldActivity.getActivityName(), project.getProjectName(), null, oldActivity,
-          UserContextUtil.getCurrentUser());
+      auditService.saveAuditLog(AuditAction.ROLLBACK_ACTIVITY, AuditEntity.ACTIVITY,
+          oldActivity.getActivityName(), project.getProjectName(), null, oldActivity,
+          UserContextUtil.getCurrentUser());
 
-      logger.info("Rollback completed successfully.");
+      logger.info("Rollback completed successfully.");
 
-      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-          "Rollback completed successfully", ref.getActivity());
+      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+          "Rollback completed successfully", ref.getActivity());
 
-    } catch (Exception ex) {
+    } catch (Exception ex) {
 
-      logger.error("Rollback failed", ex);
+      logger.error("Rollback failed", ex);
 
-      throw ex;
-    }
-  }
+      throw ex;
+    }
+  }
 
-  @Override
-  public Response getAllRequests() {
+  @Override
+  public Response getAllRequests() {
 
-    logger.info("Fetching all activity update requests.");
+    logger.info("Fetching all activity update requests.");
 
-    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+    ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-    try {
+    try {
 
-      List<ActivityUpdateRequest> requests = requestRepository.findAllByOrderByRequestedAtDesc();
+      List<ActivityUpdateRequest> requests = requestRepository.findAllByOrderByRequestedAtDesc();
 
-      logger.info("Successfully fetched {} activity update requests.", requests.size());
+      logger.info("Successfully fetched {} activity update requests.", requests.size());
 
-      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-          "Requests fetched successfully.", requests);
+      return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+          "Requests fetched successfully.", requests);
 
-    } catch (Exception ex) {
+    } catch (Exception ex) {
 
-      logger.error("Failed to fetch activity update requests.", ex);
+      logger.error("Failed to fetch activity update requests.", ex);
 
-      throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch activity update requests.");
-    }
-  }
+      throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch activity update requests.");
+    }
+  }
 
 }
