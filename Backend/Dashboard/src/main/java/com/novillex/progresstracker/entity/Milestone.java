@@ -6,7 +6,9 @@ import lombok.Data;
 
 @Data
 public class Milestone {
-
+	
+	private String milestoneId;
+	
 	private String milestoneName;
 
 	private Double weightage = 0.0;

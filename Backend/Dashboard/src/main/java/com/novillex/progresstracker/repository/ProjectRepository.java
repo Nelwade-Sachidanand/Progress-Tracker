@@ -16,4 +16,6 @@ public interface ProjectRepository extends MongoRepository<Project, String> {
 	void deleteByProjectName(String projectName);
 
 	Optional<Project> findByProjectInformationId(String projectInformationId);
+	
+	Optional<Project> findByPhasesMilestonesTasksSubTasksActivitiesActivityId(String activityId);
 }

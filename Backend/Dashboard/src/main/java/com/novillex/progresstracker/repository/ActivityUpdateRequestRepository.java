@@ -9,11 +9,15 @@ import com.novillex.progresstracker.entity.ActivityUpdateRequest;
 
 public interface ActivityUpdateRequestRepository extends MongoRepository<ActivityUpdateRequest, String> {
 
-	Optional<ActivityUpdateRequest> findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-			String projectId, String phaseName, String milestoneName, String taskName, String subTaskName,
-			String activityName, String status);
+//	Optional<ActivityUpdateRequest> findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
+//			String projectId, String phaseName, String milestoneName, String taskName, String subTaskName,
+//			String activityName, String status);
 
 	List<ActivityUpdateRequest> findByStatus(String status);
 
 	Optional<ActivityUpdateRequest> findById(String id);
+	
+	Optional<ActivityUpdateRequest> findByActivityIdAndStatus(String id, String status);
+	
+	List<ActivityUpdateRequest> findAllByOrderByRequestedAtDesc();
 }

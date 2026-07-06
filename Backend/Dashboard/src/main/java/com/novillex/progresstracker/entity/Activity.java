@@ -11,7 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Activity {
 	
+	private String activityId;
+	
 	private String activityName;
+	
+	private String owner;
 
     private Double estimatedPeriodWeek;
 

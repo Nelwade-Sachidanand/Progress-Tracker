@@ -16,6 +16,18 @@ public class ActivityUpdateRequestModel {
 	@NotBlank(message = "Project Name can not blank")
 	private String projectName;
 	
+	@NotBlank(message = "Phase Id required")
+	private String phaseId;
+	
+	@NotBlank(message = "Milestone Id required")
+	private String milestoneId;
+	
+	@NotBlank(message = "Task Id required")
+	private String taskId;
+	
+	@NotBlank(message = "Subtask Id required")
+	private String subTaskId;
+	
 	@NotBlank(message = "Phase Name can not blank")
 	private String phaseName;
 
@@ -27,6 +39,9 @@ public class ActivityUpdateRequestModel {
 	
 	@NotBlank(message = "Subtask can not blank")
 	private String subTaskName;
+	
+	@NotBlank(message = "Activity id can not blank")
+	private String activityId;
 
 	@NotBlank(message = "Activity can not blank")
 	private String activityName;

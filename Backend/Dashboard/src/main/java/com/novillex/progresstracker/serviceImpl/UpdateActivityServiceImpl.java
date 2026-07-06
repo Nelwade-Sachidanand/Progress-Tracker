@@ -1,5 +1,6 @@
 package com.novillex.progresstracker.serviceImpl;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
@@ -55,60 +56,68 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	private NotificationService notificationService;
 
 	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
-		return !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
+
+		return !Objects.equals(oldActivity.getActivityName(), newActivity.getActivityName())
+				|| !Objects.equals(oldActivity.getOwner(), newActivity.getOwner())
+				|| !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
 				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
 				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
 				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
 				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
 				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
-				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress());
+				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
+				|| !Objects.equals(oldActivity.getExecutionStatus(), newActivity.getExecutionStatus())
+				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth())
+				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
 	}
 
 	@Override
 	public Response updateActivityRequest(ActivityUpdateRequestModel request) {
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
-		if (project == null) {
-			logger.warn("Project not found. ProjectId: {}", request.getProjectId());
-			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					request.getProjectId());
-		}
+		Project project = projectRepository
+				.findByPhasesMilestonesTasksSubTasksActivitiesActivityId(request.getActivityId())
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+						request.getProjectId()));
+
+		Phase phaseToUpdate = null;
+		Milestone milestoneToUpdate = null;
+		Task taskToUpdate = null;
+		Subtask subTaskToUpdate = null;
 		Activity activityToUpdate = null;
 
-		for (Phase phase : project.getPhases()) {
-			if (!phase.getPhaseName().equals(request.getPhaseName())) {
-				continue;
-			}
+		outerLoop: for (Phase phase : project.getPhases()) {
 
 			for (Milestone milestone : phase.getMilestones()) {
-				if (!milestone.getMilestoneName().equals(request.getMilestoneName())) {
-					continue;
-				}
 
-				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
-					logger.warn("Milestone weightage is not defined. Milestone: {}", milestone.getMilestoneName());
-
-					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
-							"Milestone weightage is not defined. Please assign milestone weightage first.");
-				}
+//				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
+//
+//					logger.warn("Milestone weightage is not defined. Milestone={}", milestone.getMilestoneName());
+//
+//					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
+//							"Milestone weightage is not defined. Please assign milestone weightage first.");
+//				}
 
 				for (Task task : milestone.getTasks()) {
-					if (!task.getTaskName().equals(request.getTaskName())) {
-						continue;
-					}
 
 					for (Subtask subTask : task.getSubTasks()) {
-						if (!subTask.getSubTaskName().equals(request.getSubTaskName())) {
+
+						if (subTask.getActivities() == null) {
 							continue;
 						}
-						if (subTask.getActivities() != null) {
-							for (Activity activity : subTask.getActivities()) {
-								if (activity.getActivityName().equals(request.getActivityName())) {
 
-									activityToUpdate = activity;
-									break;
-								}
+						for (Activity activity : subTask.getActivities()) {
+
+							if (activity.getActivityId().equals(request.getActivityId())) {
+
+								phaseToUpdate = phase;
+								milestoneToUpdate = milestone;
+								taskToUpdate = task;
+								subTaskToUpdate = subTask;
+								activityToUpdate = activity;
+
+								break outerLoop;
 							}
 						}
 					}
@@ -117,18 +126,35 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		}
 
 		if (activityToUpdate == null) {
-			logger.warn("Activity not found. Activity: {}, ProjectId: {}", request.getActivityName(),
-					request.getProjectId());
-			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
-					request.getActivityName());
-		}
-		Activity oldActivity = new Activity();
 
+			logger.warn("Activity not found. ActivityId={}", request.getActivityId());
+
+			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+					request.getActivityId());
+		}
+
+
+		String oldPhaseName = phaseToUpdate.getPhaseName();
+		String oldMilestoneName = milestoneToUpdate.getMilestoneName();
+		String oldTaskName = taskToUpdate.getTaskName();
+		String oldSubTaskName = subTaskToUpdate.getSubTaskName();
+
+		Activity oldActivity = new Activity();
 		BeanUtils.copyProperties(activityToUpdate, oldActivity);
+
+
+		String newPhaseName = request.getPhaseName();
+		String newMilestoneName = request.getMilestoneName();
+		String newTaskName = request.getTaskName();
+		String newSubTaskName = request.getSubTaskName();
 
 		Activity newActivity = new Activity();
 
+		newActivity.setActivityId(activityToUpdate.getActivityId());
+
 		newActivity.setActivityName(request.getActivityName());
+
+		newActivity.setOwner(request.getOwner());
 
 		newActivity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
 
@@ -151,48 +177,24 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
 						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
+		newActivity.setRemark(oldActivity.getRemark());
 
-		if (!isActivityChanged(oldActivity, newActivity)) {
 
-			logger.warn("No changes found for activity: {}", request.getActivityName());
+		boolean hierarchyChanged = !Objects.equals(oldPhaseName, newPhaseName)
+				|| !Objects.equals(oldMilestoneName, newMilestoneName) || !Objects.equals(oldTaskName, newTaskName)
+				|| !Objects.equals(oldSubTaskName, newSubTaskName);
+
+		boolean activityChanged = isActivityChanged(oldActivity, newActivity);
+
+		if (!hierarchyChanged && !activityChanged) {
+
+			logger.warn("No changes found for activity {}", request.getActivityId());
 
 			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
 		}
 
-		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
-
-		activityRequest.setProjectId(request.getProjectId());
-
-		activityRequest.setPhaseName(request.getPhaseName());
-
-		activityRequest.setMilestoneName(request.getMilestoneName());
-
-		activityRequest.setTaskName(request.getTaskName());
-
-		activityRequest.setSubTaskName(request.getSubTaskName());
-
-		activityRequest.setActivityName(request.getActivityName());
-
-		activityRequest.setOldActivity(oldActivity);
-
-		activityRequest.setNewActivity(newActivity);
-
-		activityRequest.setChangeReason(request.getChangeReason());
-
-		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
-
-		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
-
-		activityRequest.setStatus("PENDING");
-
-		activityRequest.setRequestedAt(java.time.LocalDateTime.now());
-		activityRequest.setRequestSource("MANUAL");
-
 		ActivityUpdateRequest existingRequest = requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						request.getProjectId(), request.getPhaseName(), request.getMilestoneName(),
-						request.getTaskName(), request.getSubTaskName(), request.getActivityName(), "PENDING")
-				.orElse(null);
+				.findByActivityIdAndStatus(request.getActivityId(), "PENDING").orElse(null);
 
 		if (existingRequest != null) {
 
@@ -200,16 +202,56 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 					"Activity update request already pending for approval");
 		}
 
+		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
+
+		activityRequest.setProjectId(project.getId());
+		activityRequest.setProjectName(project.getProjectName());
+
+		activityRequest.setPhaseId(phaseToUpdate.getPhaseId());
+		activityRequest.setMilestoneId(milestoneToUpdate.getMilestoneId());
+		activityRequest.setTaskId(taskToUpdate.getTaskId());
+		activityRequest.setSubTaskId(subTaskToUpdate.getSubTaskId());
+		activityRequest.setActivityId(activityToUpdate.getActivityId());
+
+		activityRequest.setOldPhaseName(oldPhaseName);
+		activityRequest.setOldMilestoneName(oldMilestoneName);
+		activityRequest.setOldTaskName(oldTaskName);
+		activityRequest.setOldSubTaskName(oldSubTaskName);
+
+		activityRequest.setOldOwner(oldActivity.getOwner());
+		activityRequest.setOldActivityName(oldActivity.getActivityName());
+
+		activityRequest.setNewPhaseName(request.getPhaseName());
+		activityRequest.setNewMilestoneName(request.getMilestoneName());
+		activityRequest.setNewTaskName(request.getTaskName());
+		activityRequest.setNewSubTaskName(request.getSubTaskName());
+
+		activityRequest.setNewOwner(request.getOwner());
+		activityRequest.setNewActivityName(request.getActivityName());
+
+		activityRequest.setOldActivity(oldActivity);
+		activityRequest.setNewActivity(newActivity);
+
+		activityRequest.setRequestSource("UI");
+		activityRequest.setRequestType("UPDATE");
+		activityRequest.setStatus("PENDING");
+
+		activityRequest.setChangeReason(request.getChangeReason());
+
+		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
+		activityRequest.setRequestedAt(LocalDateTime.now());
+
 		requestRepository.save(activityRequest);
 
 		notificationService.createNotification("Activity Update Requested",
-				UserContextUtil.getCurrentUser() + " requested update for activity " + request.getActivityName(),
+				UserContextUtil.getCurrentUser() + " requested update for activity " + activityRequest.getNewActivityName(),
 				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
 
-		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, request.getActivityName(),
+		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, activityRequest.getNewActivityName(),
 				project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
 
-		logger.info("Activity update request submitted successfully. Activity: {}, Project: {}",
+		logger.info("Activity update request submitted successfully. Activity={}, Project={}",
 				request.getActivityName(), project.getProjectName());
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,

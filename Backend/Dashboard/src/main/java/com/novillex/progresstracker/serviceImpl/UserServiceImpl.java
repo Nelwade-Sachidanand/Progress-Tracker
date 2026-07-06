@@ -135,15 +135,6 @@ public class UserServiceImpl implements UserService {
 		}
 
 		user.setPassword(null);
-		List<Project> projects = new ArrayList<>();
-
-		for (String projectId : user.getProjectIds()) {
-
-			Project project = projectRepository.findById(projectId).orElseThrow(
-					() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
-
-			projects.add(project);
-		}
 
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
@@ -151,7 +142,6 @@ public class UserServiceImpl implements UserService {
 
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
-		responseModel.setProjects(projects);
 		responseModel.setAccessToken(accessToken);
 		responseModel.setRefreshToken(refreshToken);
 

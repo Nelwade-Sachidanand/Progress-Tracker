@@ -70,6 +70,7 @@ public class ExcelParserUtil {
 				model.setTaskName(ReadUtil.getString(row.getCell(3), evaluator));
 				model.setSubTaskName(ReadUtil.getString(row.getCell(4), evaluator));
 				model.setActivityName(ReadUtil.getString(row.getCell(5), evaluator));
+				model.setOwner(ReadUtil.getString(row.getCell(6), evaluator));
 				model.setEstimatedPeriodWeek(ReadUtil.getDouble(row.getCell(7), evaluator));
 				model.setPlannedStartDate(ReadUtil.getLocalDate(row.getCell(8)));
 				model.setPlannedEndDate(ReadUtil.getLocalDate(row.getCell(9)));
