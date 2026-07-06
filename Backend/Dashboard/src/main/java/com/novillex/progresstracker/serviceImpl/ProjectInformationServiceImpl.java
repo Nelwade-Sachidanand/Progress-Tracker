@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.serviceImpl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.novillex.progresstracker.common.AuditAction;
 import com.novillex.progresstracker.common.AuditEntity;
@@ -19,11 +21,15 @@ import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
+import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.ProjectInformation;
+import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.ApplicationException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.repository.ProjectInformationRepository;
+import com.novillex.progresstracker.repository.ProjectRepository;
+import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.service.ProjectInformationService;
 import com.novillex.progresstracker.util.UserContextUtil;
@@ -45,9 +51,15 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 	@Autowired
 	private ModelMapper modelMapper;
 
+	@Autowired
+	private ProjectRepository projectRepository;
+	
+	@Autowired
+	private UserRepository userRepository;
+
+	@Transactional
 	@Override
 	public Response createProjectInformation(ProjectInformationModel model) {
-
 		logger.info("Project information save initiated. ProjectName={}, RequestedBy={}", model.getProjectName(),
 				UserContextUtil.getCurrentUser());
 
@@ -57,9 +69,6 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 			Optional<ProjectInformation> existingProjectOpt = repository.findByProjectName(model.getProjectName());
 
-			// ==========================
-			// UPDATE
-			// ==========================
 			if (existingProjectOpt.isPresent()) {
 
 				ProjectInformation existingProject = existingProjectOpt.get();
@@ -74,7 +83,7 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 				BeanUtils.copyProperties(existingProject, oldProject);
 
 				modelMapper.map(model, existingProject);
-				
+
 				existingProject.setId(oldProject.getId());
 				existingProject.setCreatedAt(oldProject.getCreatedAt());
 				existingProject.setCreatedBy(oldProject.getCreatedBy());
@@ -96,7 +105,6 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 						"Project information updated successfully.", existingProject);
 			}
 
-
 			ProjectInformation project = modelMapper.map(model, ProjectInformation.class);
 
 			project.setStatus("ACTIVE");
@@ -106,6 +114,29 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 			project.setUpdatedAt(LocalDateTime.now());
 
 			repository.save(project);
+
+			Optional<Project> existingDashboard = projectRepository.findByProjectInformationId(project.getId());
+
+			if (existingDashboard.isEmpty()) {
+
+				Project dashboardProject = new Project();
+
+				dashboardProject.setProjectInformationId(project.getId());
+				dashboardProject.setProjectName(project.getProjectName());
+				dashboardProject.setBankName(project.getBankName());
+				dashboardProject.setProjectManager(project.getProjectManager());
+				dashboardProject.setPhases(new ArrayList<>());
+
+				projectRepository.save(dashboardProject);
+				
+				assignProjectToAdmins(dashboardProject.getId());
+
+				auditService.saveAuditLog(AuditAction.CREATE_PROJECT, AuditEntity.PROJECT,
+						dashboardProject.getProjectName(), dashboardProject.getProjectName(), null, dashboardProject,
+						UserContextUtil.getCurrentUser());
+
+				logger.info("Dashboard project created successfully. Project={}", dashboardProject.getProjectName());
+			}
 
 			auditService.saveAuditLog(AuditAction.CREATE_PROJECT_INFORMATION, AuditEntity.PROJECT,
 					project.getProjectName(), project.getProjectName(), null, project,
@@ -142,6 +173,25 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 				|| !Objects.equals(entity.getHardwareDetails(), model.getHardwareDetails())
 				|| !Objects.equals(entity.getDigitalChannels(), model.getDigitalChannels())
 				|| !Objects.equals(entity.getPaymentSystems(), model.getPaymentSystems());
+	}
+	
+	
+	private void assignProjectToAdmins(String projectId) {
+
+	    List<User> admins = userRepository.findByRole("ADMIN");
+
+	    for (User admin : admins) {
+
+	        if (admin.getProjectIds() == null) {
+	            admin.setProjectIds(new ArrayList<>());
+	        }
+
+	        if (!admin.getProjectIds().contains(projectId)) {
+	            admin.getProjectIds().add(projectId);
+	        }
+	    }
+
+	    userRepository.saveAll(admins);
 	}
 
 	@Override
