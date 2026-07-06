@@ -39,350 +39,304 @@ import org.slf4j.LoggerFactory;
 @Service
 public class UpdateActivityServiceImpl implements UpdateActivityService {
 
-	private static final Logger logger = LoggerFactory.getLogger(UpdateActivityServiceImpl.class);
-	@Autowired
-	private ProjectRepository projectRepository;
+ private static final Logger logger = LoggerFactory.getLogger(UpdateActivityServiceImpl.class);
+ @Autowired
+ private ProjectRepository projectRepository;
 
-	@Autowired
-	private ApplicationContext context;
+ @Autowired
+ private ApplicationContext context;
 
-	@Autowired
-	private ActivityUpdateRequestRepository requestRepository;
+ @Autowired
+ private ActivityUpdateRequestRepository requestRepository;
 
-	@Autowired
-	private AuditService auditService;
+ @Autowired
+ private AuditService auditService;
 
-	@Autowired
-	private NotificationService notificationService;
+ @Autowired
+ private NotificationService notificationService;
 
-	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
+ private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
 
-		return !Objects.equals(oldActivity.getActivityName(), newActivity.getActivityName())
-				|| !Objects.equals(oldActivity.getOwner(), newActivity.getOwner())
-				|| !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
-				|| !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
-				|| !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
-				|| !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
-				|| !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
-				|| !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
-				|| !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
-				|| !Objects.equals(oldActivity.getExecutionStatus(), newActivity.getExecutionStatus())
-				|| !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth())
-				|| !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
-	}
+  return !Objects.equals(oldActivity.getActivityName(), newActivity.getActivityName())
+    || !Objects.equals(oldActivity.getOwner(), newActivity.getOwner())
+    || !Objects.equals(oldActivity.getEstimatedPeriodWeek(), newActivity.getEstimatedPeriodWeek())
+    || !Objects.equals(oldActivity.getPlannedStartDate(), newActivity.getPlannedStartDate())
+    || !Objects.equals(oldActivity.getPlannedEndDate(), newActivity.getPlannedEndDate())
+    || !Objects.equals(oldActivity.getActualStartDate(), newActivity.getActualStartDate())
+    || !Objects.equals(oldActivity.getActualEndDate(), newActivity.getActualEndDate())
+    || !Objects.equals(oldActivity.getActualPeriodWeek(), newActivity.getActualPeriodWeek())
+    || !Objects.equals(oldActivity.getProgress(), newActivity.getProgress())
+    || !Objects.equals(oldActivity.getExecutionStatus(), newActivity.getExecutionStatus())
+    || !Objects.equals(oldActivity.getScheduleHealth(), newActivity.getScheduleHealth())
+    || !Objects.equals(oldActivity.getRemark(), newActivity.getRemark());
+ }
 
-	@Override
-	public Response updateActivityRequest(ActivityUpdateRequestModel request) {
+ @Override
+ public Response updateActivityRequest(ActivityUpdateRequestModel request) {
 
-		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+  ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		Project project = projectRepository
-				.findByPhasesMilestonesTasksSubTasksActivitiesActivityId(request.getActivityId())
-				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-						request.getProjectId()));
+  Project project = projectRepository
+    .findByPhasesMilestonesTasksSubTasksActivitiesActivityId(request.getActivityId())
+    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+      request.getProjectId()));
 
-		Phase phaseToUpdate = null;
-		Milestone milestoneToUpdate = null;
-		Task taskToUpdate = null;
-		Subtask subTaskToUpdate = null;
-		Activity activityToUpdate = null;
+  Phase phaseToUpdate = null;
+  Milestone milestoneToUpdate = null;
+  Task taskToUpdate = null;
+  Subtask subTaskToUpdate = null;
+  Activity activityToUpdate = null;
 
-		outerLoop: for (Phase phase : project.getPhases()) {
+  outerLoop: for (Phase phase : project.getPhases()) {
 
-			for (Milestone milestone : phase.getMilestones()) {
+   for (Milestone milestone : phase.getMilestones()) {
 
-//				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
+//    if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
 //
-//					logger.warn("Milestone weightage is not defined. Milestone={}", milestone.getMilestoneName());
+//     logger.warn("Milestone weightage is not defined. Milestone={}", milestone.getMilestoneName());
 //
-//					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
-//							"Milestone weightage is not defined. Please assign milestone weightage first.");
-//				}
+//     throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
+//       "Milestone weightage is not defined. Please assign milestone weightage first.");
+//    }
 
-				for (Task task : milestone.getTasks()) {
+    for (Task task : milestone.getTasks()) {
 
-					for (Subtask subTask : task.getSubTasks()) {
+     for (Subtask subTask : task.getSubTasks()) {
 
-						if (subTask.getActivities() == null) {
-							continue;
-						}
+      if (subTask.getActivities() == null) {
+       continue;
+      }
 
-						for (Activity activity : subTask.getActivities()) {
+      for (Activity activity : subTask.getActivities()) {
 
-							if (activity.getActivityId().equals(request.getActivityId())) {
+       if (activity.getActivityId().equals(request.getActivityId())) {
 
-								phaseToUpdate = phase;
-								milestoneToUpdate = milestone;
-								taskToUpdate = task;
-								subTaskToUpdate = subTask;
-								activityToUpdate = activity;
+        phaseToUpdate = phase;
+        milestoneToUpdate = milestone;
+        taskToUpdate = task;
+        subTaskToUpdate = subTask;
+        activityToUpdate = activity;
 
-								break outerLoop;
-							}
-						}
-					}
-				}
-			}
-		}
+        break outerLoop;
+       }
+      }
+     }
+    }
+   }
+  }
 
-		if (activityToUpdate == null) {
-			logger.warn("Activity not found. Activity: {}, ProjectId: {}", request.getActivityName(),
-					request.getProjectId());
-			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
-					request.getActivityName());
-		}
+  if (activityToUpdate == null) {
 
-		if (Boolean.TRUE.equals(activityToUpdate.getLocked())
-				&& !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
+   logger.warn("Activity not found. ActivityId={}", request.getActivityId());
 
-			logger.warn("Update denied. Activity '{}' is locked. User '{}' attempted modification.",
-					activityToUpdate.getActivityName(), UserContextUtil.getCurrentUser());
+   throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+     request.getActivityId());
+  }
 
-			throw new ValidationException(ErrorCode.ACTIVITY_LOCKED,
-					"This activity has already been approved. Only Admin can update it.");
-		}
 
-		Activity oldActivity = new Activity();
-			logger.warn("Activity not found. ActivityId={}", request.getActivityId());
+  String oldPhaseName = phaseToUpdate.getPhaseName();
+  String oldMilestoneName = milestoneToUpdate.getMilestoneName();
+  String oldTaskName = taskToUpdate.getTaskName();
+  String oldSubTaskName = subTaskToUpdate.getSubTaskName();
 
-			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
-					request.getActivityId());
-		}
+  Activity oldActivity = new Activity();
+  BeanUtils.copyProperties(activityToUpdate, oldActivity);
 
 
-		String oldPhaseName = phaseToUpdate.getPhaseName();
-		String oldMilestoneName = milestoneToUpdate.getMilestoneName();
-		String oldTaskName = taskToUpdate.getTaskName();
-		String oldSubTaskName = subTaskToUpdate.getSubTaskName();
+  String newPhaseName = request.getPhaseName();
+  String newMilestoneName = request.getMilestoneName();
+  String newTaskName = request.getTaskName();
+  String newSubTaskName = request.getSubTaskName();
 
-		Activity oldActivity = new Activity();
-		BeanUtils.copyProperties(activityToUpdate, oldActivity);
+  Activity newActivity = new Activity();
 
+  newActivity.setActivityId(activityToUpdate.getActivityId());
 
-		String newPhaseName = request.getPhaseName();
-		String newMilestoneName = request.getMilestoneName();
-		String newTaskName = request.getTaskName();
-		String newSubTaskName = request.getSubTaskName();
+  newActivity.setActivityName(request.getActivityName());
 
-		Activity newActivity = new Activity();
+  newActivity.setOwner(request.getOwner());
 
-		newActivity.setActivityId(activityToUpdate.getActivityId());
+  newActivity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
 
-		newActivity.setActivityName(request.getActivityName());
+  newActivity.setPlannedStartDate(request.getPlannedStartDate());
 
-		newActivity.setOwner(request.getOwner());
+  newActivity.setPlannedEndDate(request.getPlannedEndDate());
 
-		newActivity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
+  newActivity.setActualStartDate(request.getActualStartDate());
 
-		newActivity.setPlannedStartDate(request.getPlannedStartDate());
+  newActivity.setActualEndDate(request.getActualEndDate());
 
-		newActivity.setPlannedEndDate(request.getPlannedEndDate());
+  newActivity.setActualPeriodWeek(
+    WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate()));
 
-		newActivity.setActualStartDate(request.getActualStartDate());
+  newActivity.setProgress(request.getProgress());
 
-		newActivity.setActualEndDate(request.getActualEndDate());
+  newActivity.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
 
-		newActivity.setActualPeriodWeek(
-				WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate()));
+  newActivity.setScheduleHealth(
+    WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
+      request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
 
-		newActivity.setProgress(request.getProgress());
+  newActivity.setRemark(oldActivity.getRemark());
 
-		newActivity.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
 
-		newActivity.setScheduleHealth(
-				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
-						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
+  boolean hierarchyChanged = !Objects.equals(oldPhaseName, newPhaseName)
+    || !Objects.equals(oldMilestoneName, newMilestoneName) || !Objects.equals(oldTaskName, newTaskName)
+    || !Objects.equals(oldSubTaskName, newSubTaskName);
 
-		newActivity.setRemark(oldActivity.getRemark());
+  boolean activityChanged = isActivityChanged(oldActivity, newActivity);
 
-		if (!isActivityChanged(oldActivity, newActivity)) {
+  if (!hierarchyChanged && !activityChanged) {
 
-		boolean hierarchyChanged = !Objects.equals(oldPhaseName, newPhaseName)
-				|| !Objects.equals(oldMilestoneName, newMilestoneName) || !Objects.equals(oldTaskName, newTaskName)
-				|| !Objects.equals(oldSubTaskName, newSubTaskName);
+   logger.warn("No changes found for activity {}", request.getActivityId());
 
-		boolean activityChanged = isActivityChanged(oldActivity, newActivity);
+   throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
+  }
 
-		if (!hierarchyChanged && !activityChanged) {
+  ActivityUpdateRequest existingRequest = requestRepository
+    .findByActivityIdAndStatus(request.getActivityId(), "PENDING").orElse(null);
 
-			logger.warn("No changes found for activity {}", request.getActivityId());
+  if (existingRequest != null) {
 
-			throw new ValidationException(ErrorCode.NO_CHANGES_FOUND, "No changes found to update");
-		}
+   throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
+     "Activity update request already pending for approval");
+  }
 
-		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
+  ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
 
-		activityRequest.setProjectId(request.getProjectId());
+  activityRequest.setProjectId(project.getId());
+  activityRequest.setProjectName(project.getProjectName());
 
-		activityRequest.setPhaseName(request.getPhaseName());
+  activityRequest.setPhaseId(phaseToUpdate.getPhaseId());
+  activityRequest.setMilestoneId(milestoneToUpdate.getMilestoneId());
+  activityRequest.setTaskId(taskToUpdate.getTaskId());
+  activityRequest.setSubTaskId(subTaskToUpdate.getSubTaskId());
+  activityRequest.setActivityId(activityToUpdate.getActivityId());
 
-		activityRequest.setMilestoneName(request.getMilestoneName());
+  activityRequest.setOldPhaseName(oldPhaseName);
+  activityRequest.setOldMilestoneName(oldMilestoneName);
+  activityRequest.setOldTaskName(oldTaskName);
+  activityRequest.setOldSubTaskName(oldSubTaskName);
 
-		activityRequest.setTaskName(request.getTaskName());
+  activityRequest.setOldOwner(oldActivity.getOwner());
+  activityRequest.setOldActivityName(oldActivity.getActivityName());
 
-		activityRequest.setSubTaskName(request.getSubTaskName());
+  activityRequest.setNewPhaseName(request.getPhaseName());
+  activityRequest.setNewMilestoneName(request.getMilestoneName());
+  activityRequest.setNewTaskName(request.getTaskName());
+  activityRequest.setNewSubTaskName(request.getSubTaskName());
 
-		activityRequest.setActivityName(request.getActivityName());
+  activityRequest.setNewOwner(request.getOwner());
+  activityRequest.setNewActivityName(request.getActivityName());
 
-		activityRequest.setOldActivity(oldActivity);
+  activityRequest.setOldActivity(oldActivity);
+  activityRequest.setNewActivity(newActivity);
 
-		activityRequest.setNewActivity(newActivity);
+  activityRequest.setRequestSource("UI");
+  activityRequest.setRequestType("UPDATE");
+  activityRequest.setStatus("PENDING");
 
-		activityRequest.setChangeReason(request.getChangeReason());
+  activityRequest.setChangeReason(request.getChangeReason());
 
-		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+  activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
+  activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
+  activityRequest.setRequestedAt(LocalDateTime.now());
 
-		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
-		activityRequest.setRequestedByRole(UserContextUtil.getCurrentUserRole());
+  requestRepository.save(activityRequest);
 
-		activityRequest.setStatus("PENDING");
+  notificationService.createNotification("Activity Update Requested",
+    UserContextUtil.getCurrentUser() + " requested update for activity " + activityRequest.getNewActivityName(),
+    "ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
 
-		activityRequest.setRequestedAt(java.time.LocalDateTime.now());
-		activityRequest.setRequestSource("MANUAL");
+  auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, activityRequest.getNewActivityName(),
+    project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
 
-		ActivityUpdateRequest existingRequest = requestRepository
-				.findByActivityIdAndStatus(request.getActivityId(), "PENDING").orElse(null);
+  logger.info("Activity update request submitted successfully. Activity={}, Project={}",
+    request.getActivityName(), project.getProjectName());
 
-		if (existingRequest != null) {
+  return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+    "Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
+ }
 
-			throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
-					"Activity update request already pending for approval");
-		}
+ @Override
+ public Response addRemark(AddRemarkModel model) {
 
-		ActivityUpdateRequest activityRequest = new ActivityUpdateRequest();
+  ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		activityRequest.setProjectId(project.getId());
-		activityRequest.setProjectName(project.getProjectName());
+  logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
+    model.getActivityName());
 
-		activityRequest.setPhaseId(phaseToUpdate.getPhaseId());
-		activityRequest.setMilestoneId(milestoneToUpdate.getMilestoneId());
-		activityRequest.setTaskId(taskToUpdate.getTaskId());
-		activityRequest.setSubTaskId(subTaskToUpdate.getSubTaskId());
-		activityRequest.setActivityId(activityToUpdate.getActivityId());
+  Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
+   logger.error("Project not found with id: {}", model.getProjectId());
+   return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+     model.getActivityName());
+  });
 
-		activityRequest.setOldPhaseName(oldPhaseName);
-		activityRequest.setOldMilestoneName(oldMilestoneName);
-		activityRequest.setOldTaskName(oldTaskName);
-		activityRequest.setOldSubTaskName(oldSubTaskName);
+  boolean activityFound = false;
 
-		activityRequest.setOldOwner(oldActivity.getOwner());
-		activityRequest.setOldActivityName(oldActivity.getActivityName());
+  for (Phase phase : project.getPhases()) {
 
-		activityRequest.setNewPhaseName(request.getPhaseName());
-		activityRequest.setNewMilestoneName(request.getMilestoneName());
-		activityRequest.setNewTaskName(request.getTaskName());
-		activityRequest.setNewSubTaskName(request.getSubTaskName());
+   if (!phase.getPhaseName().equals(model.getPhaseName())) {
+    continue;
+   }
 
-		activityRequest.setNewOwner(request.getOwner());
-		activityRequest.setNewActivityName(request.getActivityName());
+   for (Milestone milestone : phase.getMilestones()) {
 
-		activityRequest.setOldActivity(oldActivity);
-		activityRequest.setNewActivity(newActivity);
+    if (!milestone.getMilestoneName().equals(model.getMilestoneName())) {
+     continue;
+    }
 
-		activityRequest.setRequestSource("UI");
-		activityRequest.setRequestType("UPDATE");
-		activityRequest.setStatus("PENDING");
+    for (Task task : milestone.getTasks()) {
 
-		activityRequest.setChangeReason(request.getChangeReason());
+     if (!task.getTaskName().equals(model.getTaskName())) {
+      continue;
+     }
 
-		activityRequest.setRequestedBy(UserContextUtil.getCurrentUser());
-		activityRequest.setRequestedByUserId(UserContextUtil.getCurrentUserId());
-		activityRequest.setRequestedAt(LocalDateTime.now());
+     for (Subtask subTask : task.getSubTasks()) {
 
-		requestRepository.save(activityRequest);
+      if (!subTask.getSubTaskName().equals(model.getSubTaskName())) {
+       continue;
+      }
 
-		notificationService.createNotification("Activity Update Requested",
-				UserContextUtil.getCurrentUser() + " requested update for activity " + activityRequest.getNewActivityName(),
-				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
+      for (Activity activity : subTask.getActivities()) {
 
-		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, activityRequest.getNewActivityName(),
-				project.getProjectName(), oldActivity, newActivity, UserContextUtil.getCurrentUser());
+       if (!activity.getActivityName().equals(model.getActivityName())) {
+        continue;
+       }
 
-		logger.info("Activity update request submitted successfully. Activity={}, Project={}",
-				request.getActivityName(), project.getProjectName());
+       String existingRemark = activity.getRemark();
 
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Activity update request submitted successfully. Waiting for admin approval.", activityRequest);
-	}
+       if (existingRemark == null || existingRemark.isBlank()) {
+        activity.setRemark(model.getRemark());
+       } else {
+        activity.setRemark(existingRemark + System.lineSeparator() + model.getRemark());
+       }
 
-	@Override
-	public Response addRemark(AddRemarkModel model) {
+       activityFound = true;
 
-		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+       logger.info("Remark added successfully for activity '{}'", activity.getActivityName());
 
-		logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
-				model.getActivityName());
+       break;
+      }
+     }
+    }
+   }
+  }
 
-		Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
-			logger.error("Project not found with id: {}", model.getProjectId());
-			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					model.getActivityName());
-		});
+  if (!activityFound) {
+   logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
 
-		boolean activityFound = false;
+   throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
+     model.getActivityName());
+  }
 
-		for (Phase phase : project.getPhases()) {
+  projectRepository.save(project);
 
-			if (!phase.getPhaseName().equals(model.getPhaseName())) {
-				continue;
-			}
+  logger.info("Project '{}' updated successfully after adding remark.", project.getProjectName());
 
-			for (Milestone milestone : phase.getMilestones()) {
-
-				if (!milestone.getMilestoneName().equals(model.getMilestoneName())) {
-					continue;
-				}
-
-				for (Task task : milestone.getTasks()) {
-
-					if (!task.getTaskName().equals(model.getTaskName())) {
-						continue;
-					}
-
-					for (Subtask subTask : task.getSubTasks()) {
-
-						if (!subTask.getSubTaskName().equals(model.getSubTaskName())) {
-							continue;
-						}
-
-						for (Activity activity : subTask.getActivities()) {
-
-							if (!activity.getActivityName().equals(model.getActivityName())) {
-								continue;
-							}
-
-							String existingRemark = activity.getRemark();
-
-							if (existingRemark == null || existingRemark.isBlank()) {
-								activity.setRemark(model.getRemark());
-							} else {
-								activity.setRemark(existingRemark + System.lineSeparator() + model.getRemark());
-							}
-
-							activityFound = true;
-
-							logger.info("Remark added successfully for activity '{}'", activity.getActivityName());
-
-							break;
-						}
-					}
-				}
-			}
-		}
-
-		if (!activityFound) {
-			logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
-
-			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
-					model.getActivityName());
-		}
-
-		projectRepository.save(project);
-
-		logger.info("Project '{}' updated successfully after adding remark.", project.getProjectName());
-
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Remark added successfully", null);
-	}
+  return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+    "Remark added successfully", null);
+ }
 
 }
+ 
