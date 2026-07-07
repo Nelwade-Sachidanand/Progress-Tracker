@@ -27,13 +27,19 @@ import com.novillex.progresstracker.service.ReportService;
 @Service
 public class ReportServiceImpl implements ReportService {
 
-	@Autowired
+	
 	private ProjectRepository projectRepository;
 
-	@Autowired
+	
 	private ActivityMapper mapper;
 
 	private static final Logger logger = LoggerFactory.getLogger(ReportServiceImpl.class);
+	
+	
+	public ReportServiceImpl(ProjectRepository projectRepository,ActivityMapper mapper) {
+		this.projectRepository=projectRepository;
+		this.mapper=mapper;
+	}
 
 	@Override
 	public List<ActivityModel> generateReport(GenerateReportModel req) {

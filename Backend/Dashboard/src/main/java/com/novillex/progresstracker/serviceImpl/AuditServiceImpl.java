@@ -25,16 +25,20 @@ import com.novillex.progresstracker.util.UserContextUtil;
 @Service
 public class AuditServiceImpl implements AuditService {
 
-	private static final Logger logger = LoggerFactory.getLogger(AuditServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuditServiceImpl.class);
 
-	@Autowired
-	private AuditLogRepository auditLogRepository;
+    private  AuditLogRepository auditLogRepository;
 
-	@Autowired
-	private ObjectMapper objectMapper;
+    private  ObjectMapper objectMapper;
 
-	@Autowired
-	private ApplicationContext context;
+    private  ApplicationContext context;
+
+    public AuditServiceImpl(AuditLogRepository auditLogRepository,ObjectMapper objectMapper,ApplicationContext context) {
+
+        this.auditLogRepository = auditLogRepository;
+        this.objectMapper = objectMapper;
+        this.context = context;
+    }
 
 	@Override
 	public void saveAuditLog(String actionType, String entityType, String entityName, String projectName,

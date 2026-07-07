@@ -36,16 +36,25 @@ import com.novillex.progresstracker.util.UserContextUtil;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class DocumentServiceImpl implements DocumentService {
 
-	private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
-	private final DocumentRepository documentRepository;
+    private  DocumentRepository documentRepository;
+
+    private  VirusScanService virusScanService;
+
+    private  ResponseBuilder responseBuilder;
+
+    public DocumentServiceImpl(DocumentRepository documentRepository,VirusScanService virusScanService,
+            				   ResponseBuilder responseBuilder) {
+
+        this.documentRepository = documentRepository;
+        this.virusScanService = virusScanService;
+        this.responseBuilder = responseBuilder;
+    }
 	
-	private final VirusScanService virusScanService;
-
-	private final ResponseBuilder responseBuilder;
+	
 
 	@Value("${document.upload.path}")
 	private String documentFolder;

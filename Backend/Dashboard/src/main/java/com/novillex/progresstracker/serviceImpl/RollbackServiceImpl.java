@@ -2,8 +2,9 @@ package com.novillex.progresstracker.serviceImpl;
 
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,26 +33,33 @@ import com.novillex.progresstracker.util.UserContextUtil;
 @Service
 public class RollbackServiceImpl implements RollbackService {
 
-	@Autowired
+	private static final Logger logger = LoggerFactory.getLogger(RollbackServiceImpl.class);
+
 	private ApplicationContext context;
 
-	@Autowired
 	private ActivityUpdateRequestRepository requestRepository;
 
-	@Autowired
 	private UserRepository userRepository;
 
-	@Autowired
 	private ProjectRepository projectRepository;
 
-	@Autowired
 	private NotificationService notificationService;
 
-	@Autowired
 	private AuditService auditService;
 
-	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	public RollbackServiceImpl(ApplicationContext context, ActivityUpdateRequestRepository requestRepository,
+			UserRepository userRepository, ProjectRepository projectRepository, NotificationService notificationService,
+			AuditService auditService, PasswordEncoder passwordEncoder) {
+		this.context = context;
+		this.requestRepository = requestRepository;
+		this.userRepository = userRepository;
+		this.projectRepository = projectRepository;
+		this.notificationService = notificationService;
+		this.auditService = auditService;
+		this.passwordEncoder = passwordEncoder;
+	}
 
 	@Override
 	public Response rollbackRequest(String requestId, String password, String reason) {
@@ -63,6 +71,7 @@ public class RollbackServiceImpl implements RollbackService {
 
 		if (!"APPROVED".equals(request.getStatus()) && !"REJECTED".equals(request.getStatus())) {
 
+			logger.warn("Rollback denied. RequestId={}, CurrentStatus={}", requestId, request.getStatus());
 			throw new ValidationException(ErrorCode.INVALID_REQUEST,
 					"Only approved or rejected requests can be reverted");
 		}
@@ -71,6 +80,8 @@ public class RollbackServiceImpl implements RollbackService {
 				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", null));
 
 		if (!passwordEncoder.matches(password, currentUser.getPassword())) {
+
+			logger.warn("Rollback failed due to invalid password. User={}", UserContextUtil.getCurrentUser());
 
 			throw new ValidationException(ErrorCode.INVALID_PASSWORD, "Invalid password");
 		}
@@ -93,6 +104,9 @@ public class RollbackServiceImpl implements RollbackService {
 
 		projectRepository.save(project);
 
+		logger.info("Project restored successfully. ProjectName={}, Activity={}", project.getProjectName(),
+				request.getOldActivityName());
+
 		request.setStatus("ROLLED_BACK");
 
 		request.setRollbackReason(reason);
@@ -103,6 +117,9 @@ public class RollbackServiceImpl implements RollbackService {
 
 		requestRepository.save(request);
 
+		logger.info("Request status updated to ROLLED_BACK. RequestId={}, RolledBackBy={}", requestId,
+				UserContextUtil.getCurrentUser());
+
 		notificationService.createNotification("Activity Rolled Back",
 				"Changes for activity '" + request.getOldActivityName() + "' Were Rolled Back by Admin",
 				"ACTIVITY_ROLLBACK", request.getId(), "/tasks", request.getRequestedByUserId());
@@ -110,6 +127,9 @@ public class RollbackServiceImpl implements RollbackService {
 		auditService.saveAuditLog(AuditAction.ROLLBACK_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
 				request.getOldActivityName(), project.getProjectName(), request.getNewActivity(),
 				request.getOldActivity(), UserContextUtil.getCurrentUser());
+
+		logger.info("Rollback completed successfully. RequestId={}, ProjectName={}, ActivityName={}, RolledBackBy={}",
+				requestId, project.getProjectName(), request.getOldActivityName(), UserContextUtil.getCurrentUser());
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Request rolled back successfully", request);

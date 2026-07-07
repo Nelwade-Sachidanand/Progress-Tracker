@@ -17,8 +17,12 @@ import com.novillex.progresstracker.service.RollbackService;
 @PreAuthorize("hasRole('ADMIN')")
 public class RollbackController {
 	
-	@Autowired
+	
 	private RollbackService rollbackService;
+	
+	public RollbackController(RollbackService rollbackService) {
+		this.rollbackService=rollbackService;
+	}
 
 	@PostMapping("/rollback/{requestId}")
 	public Response rollbackRequest(@PathVariable String requestId, @RequestBody RollbackRequestModel request) {

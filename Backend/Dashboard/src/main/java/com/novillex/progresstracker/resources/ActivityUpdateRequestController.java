@@ -21,8 +21,12 @@ import com.novillex.progresstracker.service.ActivityUpdateRequestService;
 @PreAuthorize("hasRole('ADMIN')")
 public class ActivityUpdateRequestController {
 
-	@Autowired
+	
 	private ActivityUpdateRequestService activityUpdateRequestService;
+	
+	public ActivityUpdateRequestController(ActivityUpdateRequestService activityUpdateRequestService) {
+		this.activityUpdateRequestService=activityUpdateRequestService;
+	}
 
 	@GetMapping("/getAllRequests")
 	public Response getAllReqests() {

@@ -37,17 +37,24 @@ import com.novillex.progresstracker.util.UserContextUtil;
 public class ProjectServiceImpl implements ProjectService {
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectServiceImpl.class);
-	@Autowired
+
 	private ApplicationContext context;
 
-	@Autowired
 	private ProjectRepository projectRepository;
 
-	@Autowired
 	private UserRepository userRepository;
 
-	@Autowired
 	private AuditService auditService;
+	
+	public ProjectServiceImpl(ApplicationContext context,ProjectRepository projectRepository,UserRepository userRepository,
+							  AuditService auditService) {
+		this.context=context;
+		this.projectRepository=projectRepository;
+		this.userRepository=userRepository;
+		this.auditService=auditService;
+	}
+	
+	
 
 	@Override
 	@Transactional

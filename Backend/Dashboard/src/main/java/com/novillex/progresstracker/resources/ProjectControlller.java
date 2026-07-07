@@ -25,8 +25,12 @@ public class ProjectControlller {
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectControlller.class);
 
-	@Autowired
+	
 	private ProjectService projectService;
+	
+	public ProjectControlller(ProjectService projectService) {
+		this.projectService=projectService;
+	}
 
 	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/getAll")

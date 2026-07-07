@@ -31,8 +31,12 @@ public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-	@Autowired
+	
 	private UserService userService;
+	
+	public UserController(UserService userService) {
+		this.userService=userService;
+	}
 	
 	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/register")

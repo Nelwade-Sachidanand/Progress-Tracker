@@ -14,9 +14,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 
+import com.novillex.progresstracker.common.AuditAction;
+import com.novillex.progresstracker.common.AuditEntity;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.entity.Activity;
@@ -32,6 +35,7 @@ import com.novillex.progresstracker.model.ActivityModel;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.serviceImpl.CreateStructureServiceImpl;
+import com.novillex.progresstracker.util.UserContextUtil;
 
 @ExtendWith(MockitoExtension.class)
 
@@ -66,28 +70,42 @@ public class CreateStructureServiceImplTest {
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		request.setMilestoneId("M001");
 		request.setMilestoneName("Milestone1");
+
+		request.setTaskId("T001");
 		request.setTaskName("Task1");
+
+		request.setSubTaskId("ST001");
 		request.setSubTaskName("SubTask1");
+
 		request.setActivityName("Activity1");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask1");
 		subtask.setActivities(new ArrayList<>(List.of(activity)));
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task1");
 		task.setSubTasks(new ArrayList<>(List.of(subtask)));
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
 		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
@@ -104,7 +122,7 @@ public class CreateStructureServiceImplTest {
 
 		assertThrows(ValidationException.class, () -> createStructureService.createStructure(request));
 
-		verify(projectRepository, never()).save(any());
+		verify(projectRepository, never()).save(any(Project.class));
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -219,19 +237,25 @@ public class CreateStructureServiceImplTest {
 	@Test
 	void createStructure_CreateNewMilestoneSuccessfully() {
 
-		mockLoggedInUser();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ActivityModel request = new ActivityModel();
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		// Existing phase
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		// New milestone
 		request.setMilestoneName("Milestone1");
 		request.setTaskName("Task1");
 		request.setSubTaskName("SubTask1");
 		request.setActivityName("Activity1");
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>());
 
@@ -240,46 +264,57 @@ public class CreateStructureServiceImplTest {
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>(List.of(phase)));
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-				.thenReturn(mock(com.novillex.progresstracker.common.Response.class));
+		when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-		assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		}
 
 		verify(projectRepository).save(project);
 
 		assertEquals(1, phase.getMilestones().size());
-
 		assertEquals("Milestone1", phase.getMilestones().get(0).getMilestoneName());
 
-		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		verify(auditService).saveAuditLog(eq(AuditAction.CREATE_MILESTONE), eq(AuditEntity.MILESTONE), eq("Milestone1"),
+				eq("Demo Project"), isNull(), any(Milestone.class), eq("admin"));
 	}
 
 	@Test
 	void createStructure_CreateNewTaskSuccessfully() {
 
-		mockLoggedInUser();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ActivityModel request = new ActivityModel();
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		request.setMilestoneId("M001");
 		request.setMilestoneName("Milestone1");
+
 		request.setTaskName("Task1");
 		request.setSubTaskName("SubTask1");
 		request.setActivityName("Activity1");
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
 		milestone.setTasks(new ArrayList<>());
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
@@ -288,125 +323,161 @@ public class CreateStructureServiceImplTest {
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>(List.of(phase)));
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-				.thenReturn(mock(com.novillex.progresstracker.common.Response.class));
+		when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-		assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		}
 
 		verify(projectRepository).save(project);
 
 		assertEquals(1, milestone.getTasks().size());
-
 		assertEquals("Task1", milestone.getTasks().get(0).getTaskName());
 
-		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		verify(auditService).saveAuditLog(eq(AuditAction.CREATE_TASK), eq(AuditEntity.TASK), eq("Task1"),
+				eq("Demo Project"), isNull(), any(Task.class), eq("admin"));
 	}
 
 	@Test
 	void createStructure_CreateNewSubTaskSuccessfully() {
 
-		mockLoggedInUser();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ActivityModel request = new ActivityModel();
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		request.setMilestoneId("M001");
 		request.setMilestoneName("Milestone1");
+
+		request.setTaskId("T001");
 		request.setTaskName("Task1");
+
 		request.setSubTaskName("SubTask1");
 		request.setActivityName("Activity1");
+		request.setProgress(50);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task1");
 		task.setSubTasks(new ArrayList<>());
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
-		milestone.setTasks(List.of(task));
+		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
-		phase.setMilestones(List.of(milestone));
+		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
 		Project project = new Project();
 		project.setId("P001");
 		project.setProjectName("Demo Project");
-		project.setPhases(List.of(phase));
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		project.setPhases(new ArrayList<>(List.of(phase)));
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-				.thenReturn(mock(com.novillex.progresstracker.common.Response.class));
+		when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-		assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		}
 
 		verify(projectRepository).save(project);
 
 		assertEquals(1, task.getSubTasks().size());
-
 		assertEquals("SubTask1", task.getSubTasks().get(0).getSubTaskName());
 
-		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		verify(auditService).saveAuditLog(eq(AuditAction.CREATE_SUBTASK), eq(AuditEntity.SUBTASK), eq("SubTask1"),
+				eq("Demo Project"), isNull(), any(Subtask.class), eq("admin"));
 	}
 
 	@Test
 	void createStructure_CreateNewActivitySuccessfully() {
 
-		mockLoggedInUser();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ActivityModel request = new ActivityModel();
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		request.setMilestoneId("M001");
 		request.setMilestoneName("Milestone1");
+
+		request.setTaskId("T001");
 		request.setTaskName("Task1");
+
+		request.setSubTaskId("ST001");
 		request.setSubTaskName("SubTask1");
+
 		request.setActivityName("Activity1");
 		request.setProgress(50);
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask1");
 		subtask.setActivities(new ArrayList<>());
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task1");
-		task.setSubTasks(List.of(subtask));
+		task.setSubTasks(new ArrayList<>(List.of(subtask)));
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
-		milestone.setTasks(List.of(task));
+		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
-		phase.setMilestones(List.of(milestone));
+		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
 		Project project = new Project();
 		project.setId("P001");
 		project.setProjectName("Demo Project");
-		project.setPhases(List.of(phase));
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		project.setPhases(new ArrayList<>(List.of(phase)));
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
 
-		when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-				.thenReturn(mock(com.novillex.progresstracker.common.Response.class));
+		when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-		assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			assertDoesNotThrow(() -> createStructureService.createStructure(request));
+		}
 
 		verify(projectRepository).save(project);
 
@@ -414,7 +485,8 @@ public class CreateStructureServiceImplTest {
 
 		assertEquals("Activity1", subtask.getActivities().get(0).getActivityName());
 
-		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		verify(auditService).saveAuditLog(eq(AuditAction.CREATE_ACTIVITY), eq(AuditEntity.ACTIVITY), eq("Activity1"),
+				eq("Demo Project"), isNull(), any(Activity.class), eq("admin"));
 	}
 
 	@Test
@@ -458,32 +530,46 @@ public class CreateStructureServiceImplTest {
 	@Test
 	void createStructure_ShouldReturnResponseFromResponseBuilder() {
 
-		mockLoggedInUser();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response expectedResponse = mock(Response.class);
 
 		ActivityModel request = new ActivityModel();
 
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
+
+		request.setPhaseId("PH001");
 		request.setPhaseName("Phase1");
+
+		request.setMilestoneId("M001");
 		request.setMilestoneName("Milestone1");
+
+		request.setTaskId("T001");
 		request.setTaskName("Task1");
+
+		request.setSubTaskId("ST001");
 		request.setSubTaskName("SubTask1");
+
 		request.setActivityName("Activity1");
 		request.setProgress(50);
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask1");
 		subtask.setActivities(new ArrayList<>());
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task1");
 		task.setSubTasks(new ArrayList<>(List.of(subtask)));
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
 		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
@@ -492,21 +578,27 @@ public class CreateStructureServiceImplTest {
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>(List.of(phase)));
 
-		Response expectedResponse = mock(Response.class);
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
 		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-		when(responseBuilder.createResponse(any(), any(), anyString(), eq(project))).thenReturn(expectedResponse);
+		when(responseBuilder.createResponse(any(), any(), eq("Activity created successfully"), eq(project)))
+				.thenReturn(expectedResponse);
 
-		Response actual = createStructureService.createStructure(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertSame(expectedResponse, actual);
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			Response actual = createStructureService.createStructure(request);
+
+			assertSame(expectedResponse, actual);
+		}
+
+		verify(projectRepository).save(project);
 
 		verify(responseBuilder).createResponse(any(), any(), eq("Activity created successfully"), eq(project));
-	}
 
+		verify(auditService).saveAuditLog(eq(AuditAction.CREATE_ACTIVITY), eq(AuditEntity.ACTIVITY), eq("Activity1"),
+				eq("Demo Project"), isNull(), any(Activity.class), eq("admin"));
+	}
 }

@@ -37,25 +37,30 @@ import com.novillex.progresstracker.util.UserContextUtil;
 @Service
 public class ProjectInformationServiceImpl implements ProjectInformationService {
 
-	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(ProjectInformationServiceImpl.class);
 
-	@Autowired
 	private ProjectInformationRepository repository;
 
-	@Autowired
 	private ApplicationContext context;
 
-	@Autowired
-	AuditService auditService;
+	private AuditService auditService;
 
-	@Autowired
 	private ModelMapper modelMapper;
 
-	@Autowired
 	private ProjectRepository projectRepository;
 	
-	@Autowired
 	private UserRepository userRepository;
+	
+	
+	public ProjectInformationServiceImpl(ProjectInformationRepository projectInformationRepository, ApplicationContext context,
+										AuditService auditService,ModelMapper mapper, ProjectRepository projectRepository,UserRepository userRepository) {
+		this.repository=projectInformationRepository;
+		this.context=context;
+		this.auditService=auditService;
+		this.modelMapper=mapper;
+		this.projectRepository=projectRepository;
+		this.userRepository=userRepository;
+	}
 
 	@Transactional
 	@Override
@@ -128,7 +133,7 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 				dashboardProject.setPhases(new ArrayList<>());
 
 				projectRepository.save(dashboardProject);
-				
+
 				assignProjectToAdmins(dashboardProject.getId());
 
 				auditService.saveAuditLog(AuditAction.CREATE_PROJECT, AuditEntity.PROJECT,
@@ -174,24 +179,23 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 				|| !Objects.equals(entity.getDigitalChannels(), model.getDigitalChannels())
 				|| !Objects.equals(entity.getPaymentSystems(), model.getPaymentSystems());
 	}
-	
-	
+
 	private void assignProjectToAdmins(String projectId) {
 
-	    List<User> admins = userRepository.findByRole("ADMIN");
+		List<User> admins = userRepository.findByRole("ADMIN");
 
-	    for (User admin : admins) {
+		for (User admin : admins) {
 
-	        if (admin.getProjectIds() == null) {
-	            admin.setProjectIds(new ArrayList<>());
-	        }
+			if (admin.getProjectIds() == null) {
+				admin.setProjectIds(new ArrayList<>());
+			}
 
-	        if (!admin.getProjectIds().contains(projectId)) {
-	            admin.getProjectIds().add(projectId);
-	        }
-	    }
+			if (!admin.getProjectIds().contains(projectId)) {
+				admin.getProjectIds().add(projectId);
+			}
+		}
 
-	    userRepository.saveAll(admins);
+		userRepository.saveAll(admins);
 	}
 
 	@Override

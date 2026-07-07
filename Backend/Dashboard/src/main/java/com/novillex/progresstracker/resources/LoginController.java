@@ -17,8 +17,11 @@ import com.novillex.progresstracker.service.UserService;
 public class LoginController {
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-	@Autowired
 	private UserService userService;
+	
+	public LoginController(UserService userService) {
+		this.userService=userService;
+	}
 	
 	@PostMapping("/login")
 	public Response login(@RequestBody LoginModel loginModel) {

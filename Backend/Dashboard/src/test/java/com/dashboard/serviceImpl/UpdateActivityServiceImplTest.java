@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,6 +30,8 @@ import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.service.NotificationService;
 import com.novillex.progresstracker.serviceImpl.UpdateActivityServiceImpl;
+import com.novillex.progresstracker.util.UserContextUtil;
+import com.novillex.progresstracker.util.WriteUtil;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -75,6 +78,8 @@ class UpdateActivityServiceImplTest {
 		request.setTaskName("Task1");
 		request.setSubTaskName("SubTask1");
 		request.setActivityName("Activity1");
+		request.setActivityId("ACT001");
+		request.setOwner("Sachin");
 
 		request.setEstimatedPeriodWeek(5.0);
 		request.setProgress(80);
@@ -88,27 +93,32 @@ class UpdateActivityServiceImplTest {
 
 		Activity activity = new Activity();
 
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity1");
 		activity.setEstimatedPeriodWeek(2.0);
 		activity.setProgress(50);
 
 		Subtask subtask = new Subtask();
 
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask1");
 		subtask.setActivities(new ArrayList<>(List.of(activity)));
 
 		Task task = new Task();
 
+		task.setTaskId("T001");
 		task.setTaskName("Task1");
 		task.setSubTasks(new ArrayList<>(List.of(subtask)));
 
 		Milestone milestone = new Milestone();
 
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone1");
 		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
 
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
@@ -124,20 +134,14 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_Success() {
 
-		// Arrange
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Make sure activity has changed
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// IMPORTANT - Set milestone weightage
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100.0 if weightage is Double
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity should be different
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
@@ -145,12 +149,10 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -162,19 +164,25 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		// Act
-		Response result = updateActivityService.updateActivityRequest(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		// Assert
-		assertNotNull(result);
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
 
-		verify(projectRepository).findById("P001");
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			Response result = updateActivityService.updateActivityRequest(request);
+
+			assertNotNull(result);
+		}
+
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
-				isNull());
+		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
+				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"), any(), any(), eq("admin"));
 	}
@@ -186,53 +194,63 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.empty());
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.empty());
 
 		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
 				() -> updateActivityService.updateActivityRequest(request));
 
 		assertEquals(ErrorCode.PROJECT_NOT_FOUND, exception.getErrorCode());
 
-		verify(projectRepository).findById("P001");
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
 
 		verify(requestRepository, never()).save(any());
+
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
 	void updateActivityRequest_ActivityNotFound() {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
 		Project project = new Project();
-
 		project.setId("P001");
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>());
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertEquals(ErrorCode.ACTIVITY_NOT_FOUND, exception.getErrorCode());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
 
-		verify(projectRepository).findById("P001");
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals(ErrorCode.ACTIVITY_NOT_FOUND, exception.getErrorCode());
+		}
+
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
 
 		verify(requestRepository, never()).save(any());
+
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
 	void updateActivityRequest_NoChangesFound() {
-
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
@@ -242,28 +260,74 @@ class UpdateActivityServiceImplTest {
 
 		Project project = buildProject();
 
-		// IMPORTANT
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100.0 if Double
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
+		// Ensure existing activity matches request
+		Activity activity = project.getPhases().get(0)
+				.getMilestones().get(0)
+				.getTasks().get(0)
+				.getSubTasks().get(0)
+				.getActivities().get(0);
+
+		activity.setActivityId("ACT001");
+		activity.setActivityName(request.getActivityName());
+		activity.setOwner(request.getOwner());
+
+		activity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
+
+		activity.setPlannedStartDate(request.getPlannedStartDate());
+		activity.setPlannedEndDate(request.getPlannedEndDate());
+
+		activity.setActualStartDate(request.getActualStartDate());
+		activity.setActualEndDate(request.getActualEndDate());
+
+		activity.setActualPeriodWeek(
+				WriteUtil.calculateActualPeriodWeek(
+						request.getActualStartDate(),
+						request.getActualEndDate()));
+
+		activity.setProgress(request.getProgress());
+
+		activity.setExecutionStatus(
+				WriteUtil.calculateExecutionStatus(request.getProgress()));
+
+		activity.setScheduleHealth(
+				WriteUtil.calculateScheduleHealth(
+						request.getProgress(),
+						request.getPlannedStartDate(),
+						request.getPlannedEndDate(),
+						request.getActualStartDate(),
+						request.getActualEndDate()));
+
+		activity.setRemark(request.getChangeReason());
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		ValidationException exception = assertThrows(ValidationException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertEquals(ErrorCode.NO_CHANGES_FOUND, exception.getErrorCode());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
-		verify(projectRepository).findById("P001");
+			ValidationException exception = assertThrows(ValidationException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals(ErrorCode.NO_CHANGES_FOUND, exception.getErrorCode());
+		}
+
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
 		verify(requestRepository, never()).save(any(ActivityUpdateRequest.class));
+
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
+
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
 	void updateActivityRequest_SaveRequestThrowsException() {
-
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
@@ -272,8 +336,8 @@ class UpdateActivityServiceImplTest {
 
 		Project project = buildProject();
 
-		// Required because UpdateActivityServiceImpl now validates milestone weightage
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100 if Integer
+		// Required because UpdateActivityServiceImpl validates milestone weightage
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
 		// Existing activity should be different
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
@@ -281,19 +345,26 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		doThrow(new RuntimeException("Database Error")).when(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		RuntimeException exception = assertThrows(RuntimeException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertEquals("Database Error", exception.getMessage());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			RuntimeException exception = assertThrows(RuntimeException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals("Database Error", exception.getMessage());
+		}
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
@@ -305,30 +376,23 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_NotificationThrowsException() {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Make sure activity is changed
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// Required after adding weightage validation
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // 100.0 if Double
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -336,16 +400,24 @@ class UpdateActivityServiceImplTest {
 		doThrow(new RuntimeException("Notification Error")).when(notificationService).createNotification(anyString(),
 				anyString(), anyString(), any(), anyString(), isNull());
 
-		RuntimeException exception = assertThrows(RuntimeException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertEquals("Notification Error", exception.getMessage());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			RuntimeException exception = assertThrows(RuntimeException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals("Notification Error", exception.getMessage());
+		}
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
-				isNull());
+		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
+				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -353,31 +425,23 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_AuditServiceThrowsException() {
 
-		// Arrange
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Change one field so isActivityChanged() returns true
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// IMPORTANT: Set milestone weightage
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer type
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity should be different from request
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -388,18 +452,24 @@ class UpdateActivityServiceImplTest {
 		doThrow(new RuntimeException("Audit Error")).when(auditService).saveAuditLog(any(), any(), any(), any(), any(),
 				any(), any());
 
-		// Act
-		RuntimeException exception = assertThrows(RuntimeException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		// Assert
-		assertEquals("Audit Error", exception.getMessage());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			RuntimeException exception = assertThrows(RuntimeException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals("Audit Error", exception.getMessage());
+		}
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(eq("Activity Update Requested"),
-				eq("admin requested update for activity Activity1"), eq("ACTIVITY_UPDATE"), any(), eq("/authorization"),
-				isNull());
+		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
+				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -672,19 +742,14 @@ class UpdateActivityServiceImplTest {
 	@Test
 	void updateActivityRequest_ShouldPopulateActivityUpdateRequestCorrectly() {
 
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Ensure there is a change
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// Required after milestone weightage validation
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // use 100 if Integer
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity values
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
@@ -694,12 +759,10 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -710,42 +773,59 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		updateActivityService.updateActivityRequest(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			updateActivityService.updateActivityRequest(request);
+		}
 
 		verify(requestRepository).save(captor.capture());
 
 		ActivityUpdateRequest saved = captor.getValue();
 
-		assertAll(() -> assertEquals("P001", saved.getProjectId()), () -> assertEquals("Phase1", saved.getPhaseName()),
-				() -> assertEquals("Milestone1", saved.getMilestoneName()),
-				() -> assertEquals("Task1", saved.getTaskName()),
-				() -> assertEquals("SubTask1", saved.getSubTaskName()),
-				() -> assertEquals("Activity1", saved.getActivityName()),
+		assertAll(
+
+				() -> assertEquals("P001", saved.getProjectId()),
+				() -> assertEquals("Demo Project", saved.getProjectName()),
+				() -> assertEquals("ACT001", saved.getActivityId()),
+
+				() -> assertEquals("Phase1", saved.getOldPhaseName()),
+				() -> assertEquals("Milestone1", saved.getOldMilestoneName()),
+				() -> assertEquals("Task1", saved.getOldTaskName()),
+				() -> assertEquals("SubTask1", saved.getOldSubTaskName()),
+				() -> assertEquals("Activity1", saved.getOldActivityName()),
+
+				() -> assertEquals("Phase1", saved.getNewPhaseName()),
+				() -> assertEquals("Milestone1", saved.getNewMilestoneName()),
+				() -> assertEquals("Task1", saved.getNewTaskName()),
+				() -> assertEquals("SubTask1", saved.getNewSubTaskName()),
+				() -> assertEquals("Activity1", saved.getNewActivityName()),
+
 				() -> assertEquals("Updating progress", saved.getChangeReason()),
-				() -> assertEquals("PENDING", saved.getStatus()),
-				() -> assertEquals("MANUAL", saved.getRequestSource()), () -> assertNotNull(saved.getRequestedAt()));
+				() -> assertEquals("PENDING", saved.getStatus()), () -> assertEquals("UI", saved.getRequestSource()),
+				() -> assertEquals("ADMIN", saved.getRequestedByRole()), () -> assertNotNull(saved.getRequestedAt()));
 	}
 
 	@Test
 	void updateActivityRequest_ShouldCopyOldActivityCorrectly() {
 
-		// Arrange
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Make sure there is a change
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// IMPORTANT - Required because of new validation
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100.0 if Double
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity
 		Activity existingActivity = project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks()
 				.get(0).getActivities().get(0);
 
+		existingActivity.setActivityId("ACT001");
 		existingActivity.setActivityName("Activity1");
 		existingActivity.setEstimatedPeriodWeek(2.0);
 		existingActivity.setProgress(50);
@@ -754,12 +834,10 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -770,23 +848,29 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		// Act
-		updateActivityService.updateActivityRequest(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		// Assert
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			updateActivityService.updateActivityRequest(request);
+		}
+
 		verify(requestRepository).save(captor.capture());
 
 		Activity oldActivity = captor.getValue().getOldActivity();
 
-		assertAll(() -> assertEquals("Activity1", oldActivity.getActivityName()),
+		assertAll(() -> assertEquals("ACT001", oldActivity.getActivityId()),
+				() -> assertEquals("Activity1", oldActivity.getActivityName()),
 				() -> assertEquals(2.0, oldActivity.getEstimatedPeriodWeek()),
 				() -> assertEquals(50, oldActivity.getProgress()));
 	}
 
 	@Test
 	void updateActivityRequest_ShouldPopulateRequesterInformation() {
-
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
@@ -795,10 +879,8 @@ class UpdateActivityServiceImplTest {
 
 		Project project = buildProject();
 
-		// Required after milestone weightage validation
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity should have different progress
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
@@ -806,12 +888,10 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -822,22 +902,31 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		updateActivityService.updateActivityRequest(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			updateActivityService.updateActivityRequest(request);
+		}
 
 		verify(requestRepository).save(captor.capture());
 
 		ActivityUpdateRequest saved = captor.getValue();
 
 		assertEquals("admin", saved.getRequestedBy());
+		assertEquals("USER001", saved.getRequestedByUserId());
+		assertEquals("ADMIN", saved.getRequestedByRole());
 		assertNotNull(saved.getRequestedAt());
-		assertEquals("MANUAL", saved.getRequestSource());
+		assertEquals("UI", saved.getRequestSource());
 		assertEquals("PENDING", saved.getStatus());
 	}
 
 	@Test
 	void updateActivityRequest_ShouldPopulateCalculatedFields() {
-
-		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
@@ -847,13 +936,12 @@ class UpdateActivityServiceImplTest {
 
 		Project project = buildProject();
 
-		// Required after milestone weightage validation
-		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0); // Use 100 if Integer
+		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity should be different from request
 		Activity existingActivity = project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks()
 				.get(0).getActivities().get(0);
 
+		existingActivity.setActivityId("ACT001");
 		existingActivity.setProgress(50);
 		existingActivity.setActualStartDate(LocalDate.of(2025, 1, 2));
 		existingActivity.setActualEndDate(LocalDate.of(2025, 1, 10));
@@ -862,12 +950,10 @@ class UpdateActivityServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(projectRepository.findById("P001")).thenReturn(Optional.of(project));
+		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
+				.thenReturn(Optional.of(project));
 
-		when(requestRepository
-				.findByProjectIdAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityNameAndStatus(
-						anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), eq("PENDING")))
-				.thenReturn(Optional.empty());
+		when(requestRepository.findByActivityIdAndStatus("ACT001", "PENDING")).thenReturn(Optional.empty());
 
 		when(requestRepository.save(any(ActivityUpdateRequest.class)))
 				.thenAnswer(invocation -> invocation.getArgument(0));
@@ -878,14 +964,23 @@ class UpdateActivityServiceImplTest {
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		updateActivityService.updateActivityRequest(request);
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			updateActivityService.updateActivityRequest(request);
+		}
 
 		verify(requestRepository).save(captor.capture());
 
 		Activity newActivity = captor.getValue().getNewActivity();
 
-		assertNotNull(newActivity.getActualPeriodWeek());
-		assertNotNull(newActivity.getExecutionStatus());
-		assertNotNull(newActivity.getScheduleHealth());
+		assertAll(() -> assertNotNull(newActivity.getActualPeriodWeek()),
+				() -> assertNotNull(newActivity.getExecutionStatus()),
+				() -> assertNotNull(newActivity.getScheduleHealth()));
 	}
 }

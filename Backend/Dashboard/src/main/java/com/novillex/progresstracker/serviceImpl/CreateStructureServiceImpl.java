@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.novillex.progresstracker.common.AuditAction;
 import com.novillex.progresstracker.common.AuditEntity;
@@ -37,15 +38,21 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CreateStructureServiceImpl.class);
 
-	@Autowired
 	private ProjectRepository projectRepository;
 
-	@Autowired
 	private ApplicationContext context;
 
-	@Autowired
 	private AuditService auditService;
 
+	public CreateStructureServiceImpl(ProjectRepository projectRepository, ApplicationContext context,
+			AuditService auditService) {
+
+		this.projectRepository = projectRepository;
+		this.context = context;
+		this.auditService = auditService;
+	}
+
+	@Transactional
 	@Override
 	public Response createStructure(ActivityModel request) {
 
@@ -58,13 +65,9 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		boolean subtaskCreated = false;
 		boolean activityCreated = false;
 
-		Project project = projectRepository.findById(request.getProjectId()).orElse(null);
-		if (project == null) {
-			logger.warn("Project not found. Project: {}", request.getProjectId());
-
-			throw new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					request.getProjectId());
-		}
+		Project project = projectRepository.findById(request.getProjectId())
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+						request.getProjectId()));
 		Phase phase = null;
 
 		if (project.getPhases() != null) {
@@ -204,7 +207,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_PHASE, AuditEntity.PHASE, phase.getPhaseName(),
 					project.getProjectName(), null, phase, username);
-			
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Phase created successfully", project);
 
@@ -215,7 +218,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_MILESTONE, AuditEntity.MILESTONE, milestone.getMilestoneName(),
 					project.getProjectName(), null, milestone, username);
-			
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Milestone created successfully", project);
 
@@ -224,7 +227,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_TASK, AuditEntity.TASK, task.getTaskName(),
 					project.getProjectName(), null, task, username);
-			
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Task created successfully", project);
 
@@ -234,7 +237,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			auditService.saveAuditLog(AuditAction.CREATE_SUBTASK, AuditEntity.SUBTASK, subtask.getSubTaskName(),
 					project.getProjectName(), null, subtask, username);
-			
+
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Subtask created successfully", project);
 

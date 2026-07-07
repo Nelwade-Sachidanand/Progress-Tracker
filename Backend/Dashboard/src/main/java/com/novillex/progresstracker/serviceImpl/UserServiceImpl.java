@@ -1,11 +1,9 @@
 package com.novillex.progresstracker.serviceImpl;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,7 +14,6 @@ import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
-import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
@@ -41,20 +38,24 @@ public class UserServiceImpl implements UserService {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
-	@Autowired
 	private UserRepository userRepository;
 
-	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	@Autowired
 	private ApplicationContext context;
 
-	@Autowired
 	private AuditService auditService;
 
-	@Autowired
 	private ProjectRepository projectRepository;
+	
+	public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, ApplicationContext context,
+							AuditService auditService, ProjectRepository projectRepository) {
+		this.userRepository=userRepository;
+		this.passwordEncoder=passwordEncoder;
+		this.context=context;
+		this.auditService=auditService;
+		this.projectRepository=projectRepository;
+	}
 
 	@Override
 	public Response register(UserModel userModel) {

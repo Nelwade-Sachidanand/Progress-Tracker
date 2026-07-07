@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,7 @@ import com.novillex.progresstracker.entity.Phase;
 import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.Subtask;
 import com.novillex.progresstracker.entity.Task;
+import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.ActivityUpdateRequestRepository;
 import com.novillex.progresstracker.repository.AuditLogRepository;
@@ -77,6 +79,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		Activity activity = new Activity();
 
+		activity.setActivityId("ACT1");
 		activity.setActivityName("Activity1");
 		activity.setProgress(20);
 		activity.setExecutionStatus("In Progress");
@@ -89,6 +92,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		Activity activity = new Activity();
 
+		activity.setActivityId("ACT1");
 		activity.setActivityName("Activity1");
 		activity.setProgress(100);
 		activity.setExecutionStatus("Completed");
@@ -106,20 +110,33 @@ class ActivityUpdateRequestServiceImplTest {
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 
 		request.setId("REQ1");
+
 		request.setProjectId("P001");
+
+		request.setProjectName("Demo Project");
+
+		request.setActivityId("ACT1");
 
 		request.setStatus("PENDING");
 
-		request.setPhaseName("Phase1");
-		request.setMilestoneName("Milestone1");
-		request.setTaskName("Task1");
-		request.setSubTaskName("SubTask1");
-		request.setActivityName("Activity1");
+		request.setNewPhaseName("Phase1");
+
+		request.setNewMilestoneName("Milestone1");
+
+		request.setNewTaskName("Task1");
+
+		request.setNewSubTaskName("SubTask1");
+
+		request.setNewActivityName("Activity1");
 
 		request.setRequestedByUserId("USER1");
+
 		request.setRequestedBy("developer");
 
+		request.setRequestedByRole("Admin");
+
 		request.setOldActivity(oldActivity);
+
 		request.setNewActivity(newActivity);
 
 		return request;
@@ -130,18 +147,22 @@ class ActivityUpdateRequestServiceImplTest {
 		Activity activity = buildActivity();
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST1");
 		subtask.setSubTaskName("SubTask1");
 		subtask.setActivities(new ArrayList<>(List.of(activity)));
 
 		Task task = new Task();
+		task.setTaskId("T1");
 		task.setTaskName("Task1");
 		task.setSubTasks(new ArrayList<>(List.of(subtask)));
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M1");
 		milestone.setMilestoneName("Milestone1");
 		milestone.setTasks(new ArrayList<>(List.of(task)));
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH1");
 		phase.setPhaseName("Phase1");
 		phase.setMilestones(new ArrayList<>(List.of(milestone)));
 
@@ -157,11 +178,25 @@ class ActivityUpdateRequestServiceImplTest {
 	private AuditLog buildAuditLog() {
 
 		AuditLog auditLog = new AuditLog();
+
+		auditLog.setId("AUD1");
+
 		auditLog.setProjectName("Demo Project");
+
+		auditLog.setEntityName("Activity1");
+
+		auditLog.setRequestedByRole("Admin");
+
+		auditLog.setOldData("{}");
+
+		auditLog.setNewData("{}");
+
+		auditLog.setModifiedBy("admin");
+
+		auditLog.setModifiedDate(LocalDateTime.now());
 
 		return auditLog;
 	}
-
 
 	@Test
 	void getPendingRequests_Success() {
@@ -214,11 +249,45 @@ class ActivityUpdateRequestServiceImplTest {
 
 		when(requestRepository.findByStatus("PENDING")).thenThrow(new RuntimeException("Database unavailable"));
 
-		assertThrows(RuntimeException.class, () -> service.getPendingRequests());
+		assertThrows(DatabaseException.class, () -> service.getPendingRequests());
 
 		verify(requestRepository).findByStatus("PENDING");
 
 		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+	}
+
+	@Test
+	void approveRequest_NotPendingRequest() {
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+		ActivityUpdateRequest request = buildRequest();
+
+		request.setStatus("APPROVED");
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			when(requestRepository.findById("REQ1")).thenReturn(Optional.of(request));
+
+			assertThrows(IllegalStateException.class, () -> service.approveRequest("REQ1"));
+
+			verify(requestRepository).findById("REQ1");
+
+			verify(projectRepository, never()).findById(anyString());
+
+			verify(projectRepository, never()).save(any(Project.class));
+
+			verify(requestRepository, never()).save(any(ActivityUpdateRequest.class));
+
+			verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(), anyString(),
+					anyString(), anyString());
+
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
+		}
 	}
 
 	@Test
@@ -230,6 +299,8 @@ class ActivityUpdateRequestServiceImplTest {
 
 		ActivityUpdateRequest request = buildRequest();
 
+		request.setStatus("PENDING");
+
 		Project project = buildProject();
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
@@ -237,6 +308,8 @@ class ActivityUpdateRequestServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
 
 			when(requestRepository.findById("REQ1")).thenReturn(Optional.of(request));
 
@@ -249,7 +322,7 @@ class ActivityUpdateRequestServiceImplTest {
 			doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 
 			when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -284,7 +357,8 @@ class ActivityUpdateRequestServiceImplTest {
 					eq("ACTIVITY_APPROVED"), eq("REQ1"), eq("/tasks"), eq(request.getRequestedByUserId()));
 
 			verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"),
-					eq(request.getOldActivity()), eq(request.getNewActivity()), eq("admin"));
+					eq(request.getOldActivity()), eq(request.getNewActivity()), eq("admin"),
+					eq(request.getRequestedByRole()));
 		}
 	}
 
@@ -314,7 +388,7 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 		}
 	}
 
@@ -324,6 +398,8 @@ class ActivityUpdateRequestServiceImplTest {
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ActivityUpdateRequest request = buildRequest();
+
+		request.setStatus("PENDING");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
@@ -348,7 +424,7 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(notificationService, never()).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 		}
 	}
 
@@ -541,8 +617,15 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
-		}
+			verify(auditService).saveAuditLog(
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any());		}
 	}
 
 	@Test
@@ -573,8 +656,7 @@ class ActivityUpdateRequestServiceImplTest {
 			doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
-
+			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 			when(responseBuilder.createResponse(any(), any(), eq("Request approved successfully"), eq(request)))
 					.thenReturn(response);
 
@@ -614,7 +696,7 @@ class ActivityUpdateRequestServiceImplTest {
 			doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
 					anyString(), anyString());
 
-			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 
 			when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -640,11 +722,15 @@ class ActivityUpdateRequestServiceImplTest {
 
 		ActivityUpdateRequest request = buildRequest();
 
+		request.setStatus("PENDING");
+
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
 
 			when(requestRepository.findById("REQ1")).thenReturn(Optional.of(request));
 
@@ -676,7 +762,7 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(notificationService).createNotification(eq("Activity Update Rejected"), contains("Activity1"),
 					eq("ACTIVITY_REJECTED"), eq("REQ1"), eq("/tasks"), eq(request.getRequestedByUserId()));
 
-			verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), isNull(), eq(request.getOldActivity()),
+			verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"), eq(request.getOldActivity()),
 					eq(request.getNewActivity()), eq("admin"));
 		}
 	}
@@ -814,11 +900,15 @@ class ActivityUpdateRequestServiceImplTest {
 
 		ActivityUpdateRequest request = buildRequest();
 
+		request.setStatus("PENDING");
+
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
 
 			when(requestRepository.findById("REQ1")).thenReturn(Optional.of(request));
 
@@ -844,11 +934,12 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 			verify(notificationService).createNotification(eq("Activity Update Rejected"),
-					contains(request.getActivityName()), eq("ACTIVITY_REJECTED"), eq(request.getId()), eq("/tasks"),
+					contains(request.getNewActivityName()), eq("ACTIVITY_REJECTED"), eq(request.getId()), eq("/tasks"),
 					eq(request.getRequestedByUserId()));
 
-			verify(auditService).saveAuditLog(any(), any(), eq(request.getActivityName()), isNull(),
-					eq(request.getOldActivity()), eq(request.getNewActivity()), eq("admin"));
+			verify(auditService).saveAuditLog(any(), any(), eq(request.getNewActivityName()),
+					eq(request.getProjectName()), eq(request.getOldActivity()), eq(request.getNewActivity()),
+					eq("admin"));
 		}
 	}
 
@@ -861,6 +952,8 @@ class ActivityUpdateRequestServiceImplTest {
 
 		ActivityUpdateRequest request = buildRequest();
 
+		request.setStatus("PENDING");
+
 		Project project = buildProject();
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
@@ -868,6 +961,8 @@ class ActivityUpdateRequestServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
 
 			when(requestRepository.findAllById(List.of("REQ1"))).thenReturn(List.of(request));
 
@@ -877,7 +972,10 @@ class ActivityUpdateRequestServiceImplTest {
 
 			when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
+					anyString(), anyString());
+
+			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 
 			Response result = service.approveSelectedRequests(List.of("REQ1"));
 
@@ -897,7 +995,12 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(requestRepository).saveAll(any());
 
-			verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("admin"));
+			verify(notificationService).createNotification(eq("Activity Update Approved"), contains("Activity1"),
+					eq("ACTIVITY_APPROVED"), eq("REQ1"), eq("/tasks"), eq(request.getRequestedByUserId()));
+
+			verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"),
+					eq(request.getOldActivity()), eq(request.getNewActivity()), eq("admin"),
+					eq(request.getRequestedByRole()));
 		}
 	}
 
@@ -924,7 +1027,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(requestRepository, never()).saveAll(any());
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 		}
 	}
 
@@ -1093,10 +1196,16 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(projectRepository).save(any(Project.class));
 
-			verify(requestRepository).saveAll(any());
-
-			verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("admin"));
-		}
+			verify(requestRepository, never()).saveAll(any());
+			verify(auditService).saveAuditLog(
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        eq("admin"),
+			        eq("Admin"));		}
 	}
 
 	@Test
@@ -1108,15 +1217,22 @@ class ActivityUpdateRequestServiceImplTest {
 
 		ActivityUpdateRequest request = buildRequest();
 
+		request.setStatus("PENDING");
+
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
 
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
 			when(requestRepository.findAllById(List.of("REQ1"))).thenReturn(List.of(request));
 
 			when(requestRepository.saveAll(any())).thenReturn(List.of(request));
+
+			doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(), anyString(),
+					anyString(), anyString());
 
 			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
@@ -1138,7 +1254,10 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(requestRepository).saveAll(any());
 
-			verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("admin"));
+			verify(notificationService).createNotification(eq("Activity Update Rejected"), contains("Activity1"),
+					eq("ACTIVITY_REJECTED"), eq("REQ1"), eq("/tasks"), eq(request.getRequestedByUserId()));
+
+			verify(auditService).saveAuditLog(any(), any(), eq("Bulk Rejection"), isNull(), any(), any(), eq("admin"));
 		}
 	}
 
@@ -1161,6 +1280,8 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(requestRepository).findAllById(List.of("REQ1"));
 
 			verify(requestRepository, never()).saveAll(any());
+
+			verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
 
 			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 		}
@@ -1315,7 +1436,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 			when(projectRepository.save(any(Project.class))).thenReturn(project);
 
-			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 
 			when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -1330,7 +1451,7 @@ class ActivityUpdateRequestServiceImplTest {
 			verify(projectRepository).save(any(Project.class));
 
 			verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"), isNull(), eq(activity),
-					eq("admin"));
+					eq("admin"), eq(auditLog.getRequestedByRole()));
 		}
 	}
 
@@ -1355,7 +1476,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(projectRepository, never()).save(any());
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 		}
 	}
 
@@ -1384,7 +1505,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(projectRepository, never()).save(any());
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any(), any());
 		}
 	}
 
@@ -1486,8 +1607,15 @@ class ActivityUpdateRequestServiceImplTest {
 
 			verify(projectRepository).save(any(Project.class));
 
-			verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("admin"));
-		}
+			verify(auditService).saveAuditLog(
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        any(),
+			        eq("admin"),
+			        eq("Admin"));		}
 	}
 
 	@Test
@@ -1531,7 +1659,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(requestRepository.findAll()).thenReturn(requests);
+		when(requestRepository.findAllByOrderByRequestedAtDesc()).thenReturn(requests);
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -1539,7 +1667,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		assertNotNull(result);
 
-		verify(requestRepository).findAll();
+		verify(requestRepository).findAllByOrderByRequestedAtDesc();
 	}
 
 	@Test
@@ -1551,7 +1679,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(requestRepository.findAll()).thenReturn(new ArrayList<>());
+		when(requestRepository.findAllByOrderByRequestedAtDesc()).thenReturn(new ArrayList<>());
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
@@ -1559,7 +1687,7 @@ class ActivityUpdateRequestServiceImplTest {
 
 		assertNotNull(result);
 
-		verify(requestRepository).findAll();
+		verify(requestRepository).findAllByOrderByRequestedAtDesc();
 	}
 
 	@Test
@@ -1569,11 +1697,10 @@ class ActivityUpdateRequestServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(requestRepository.findAll()).thenThrow(new RuntimeException("Database Error"));
+		when(requestRepository.findAllByOrderByRequestedAtDesc()).thenThrow(new RuntimeException("Database Error"));
 
-		assertThrows(RuntimeException.class, () -> service.getAllRequests());
+		assertThrows(DatabaseException.class, () -> service.getAllRequests());
 
-		verify(requestRepository).findAll();
+		verify(requestRepository).findAllByOrderByRequestedAtDesc();
 	}
-
 }

@@ -20,8 +20,12 @@ public class ExcelController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ExcelController.class);
 
-	@Autowired
+	
 	private ExcelService excelService;
+	
+	public ExcelController(ExcelService excelService) {
+		this.excelService=excelService;
+	}
 
 	@PostMapping("/upload")
 	public Response uploadExcel(@RequestParam("file") MultipartFile file) {

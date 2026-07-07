@@ -27,12 +27,15 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/documents")
-@RequiredArgsConstructor
 public class DocumentController {
 
 	private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
 
 	private final DocumentService documentService;
+	
+	public DocumentController(DocumentService documentService) {
+		this.documentService=documentService;
+	}
 
 	@PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@PreAuthorize("hasAnyRole('USER','ADMIN')")

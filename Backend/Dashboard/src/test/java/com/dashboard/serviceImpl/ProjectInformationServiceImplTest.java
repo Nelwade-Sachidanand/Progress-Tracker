@@ -2,15 +2,16 @@ package com.dashboard.serviceImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.modelmapper.ModelMapper;
@@ -29,13 +31,19 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.novillex.progresstracker.common.ErrorCode;
+import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
+import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.ProjectInformation;
+import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.repository.ProjectInformationRepository;
+import com.novillex.progresstracker.repository.ProjectRepository;
+import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
 import com.novillex.progresstracker.serviceImpl.ProjectInformationServiceImpl;
+import com.novillex.progresstracker.util.UserContextUtil;
 
 @ExtendWith(MockitoExtension.class)
 public class ProjectInformationServiceImplTest {
@@ -54,6 +62,11 @@ public class ProjectInformationServiceImplTest {
 
 	@Mock
 	private ModelMapper modelMapper;
+	@Mock
+	private ProjectRepository projectRepository;
+
+	@Mock
+	private UserRepository userRepository;
 
 	@InjectMocks
 	private ProjectInformationServiceImpl service;
@@ -70,24 +83,66 @@ public class ProjectInformationServiceImplTest {
 	void shouldCreateProjectInformationSuccessfully() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
+		model.setProjectManager("Manager");
 
 		ProjectInformation project = new ProjectInformation();
-
+		project.setId("PI001");
 		project.setProjectName("Tracker");
+		project.setBankName("HDFC");
+		project.setProjectManager("Manager");
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
 
-		when(modelMapper.map(any(ProjectInformationModel.class), eq(ProjectInformation.class))).thenReturn(project);
+		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
-		service.createProjectInformation(model);
+		when(repository.save(any(ProjectInformation.class))).thenReturn(project);
 
-		verify(repository, times(1)).save(any(ProjectInformation.class));
+		when(projectRepository.findByProjectInformationId("PI001")).thenReturn(Optional.empty());
 
-		verify(auditService, times(1)).saveAuditLog(any(), any(), anyString(), anyString(), any(), any(), anyString());
+		when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+			Project dashboard = invocation.getArgument(0);
+			dashboard.setId("DASH001");
+			return dashboard;
+		});
+
+		User admin = new User();
+		admin.setId("ADMIN001");
+		admin.setRole("ADMIN");
+		admin.setProjectIds(new ArrayList<>());
+
+		when(userRepository.findByRole("ADMIN")).thenReturn(List.of(admin));
+
+		when(userRepository.saveAll(anyList())).thenReturn(List.of(admin));
+
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			Response result = service.createProjectInformation(model);
+
+			assertEquals(response, result);
+
+			verify(repository).save(any(ProjectInformation.class));
+
+			verify(projectRepository).save(any(Project.class));
+
+			verify(userRepository).findByRole("ADMIN");
+			verify(userRepository).saveAll(anyList());
+
+			verify(auditService, times(2)).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("testUser"));
+		}
 	}
-
 
 	@Test
 	void shouldGetAllProjectInformationSuccessfully() {
@@ -261,20 +316,56 @@ public class ProjectInformationServiceImplTest {
 	void shouldAuditProjectCreation() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
+		model.setProjectManager("Manager");
 
 		ProjectInformation project = new ProjectInformation();
-
+		project.setId("PI001");
 		project.setProjectName("Tracker");
+		project.setBankName("HDFC");
+		project.setProjectManager("Manager");
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
 
-		when(modelMapper.map(any(), eq(ProjectInformation.class))).thenReturn(project);
+		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
-		service.createProjectInformation(model);
+		when(repository.save(any(ProjectInformation.class))).thenReturn(project);
 
-		verify(auditService).saveAuditLog(any(), any(), eq("Tracker"), eq("Tracker"), any(), any(), eq("testUser"));
+		when(projectRepository.findByProjectInformationId("PI001")).thenReturn(Optional.empty());
+
+		when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+			Project dashboard = invocation.getArgument(0);
+			dashboard.setId("DASH001");
+			return dashboard;
+		});
+
+		User admin = new User();
+		admin.setId("ADMIN001");
+		admin.setRole("ADMIN");
+		admin.setProjectIds(new ArrayList<>());
+
+		when(userRepository.findByRole("ADMIN")).thenReturn(List.of(admin));
+
+		when(userRepository.saveAll(anyList())).thenReturn(List.of(admin));
+
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			service.createProjectInformation(model);
+
+			verify(auditService, times(2)).saveAuditLog(any(), any(), eq("Tracker"), eq("Tracker"), any(), any(),
+					eq("testUser"));
+		}
 	}
 
 	@Test
@@ -342,20 +433,73 @@ public class ProjectInformationServiceImplTest {
 	void shouldSetDefaultFieldsDuringCreate() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
+		model.setProjectManager("Manager");
 
 		ProjectInformation project = new ProjectInformation();
+		project.setId("PI001");
+		project.setProjectName("Tracker");
+		project.setBankName("HDFC");
+		project.setProjectManager("Manager");
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
 
-		when(modelMapper.map(any(), eq(ProjectInformation.class))).thenReturn(project);
+		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
-		service.createProjectInformation(model);
+		when(repository.save(any(ProjectInformation.class))).thenReturn(project);
 
-		assertEquals("ACTIVE", project.getStatus());
+		when(projectRepository.findByProjectInformationId("PI001")).thenReturn(Optional.empty());
 
-		assertEquals("testUser", project.getCreatedBy());
+		when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> {
+			Project p = invocation.getArgument(0);
+			p.setId("DASH001");
+			return p;
+		});
+
+		// Mock admin assignment
+		User admin = new User();
+		admin.setId("ADMIN001");
+		admin.setRole("ADMIN");
+		admin.setProjectIds(new ArrayList<>());
+
+		when(userRepository.findByRole("ADMIN")).thenReturn(List.of(admin));
+
+		when(userRepository.saveAll(anyList())).thenReturn(List.of(admin));
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
+
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			Response result = service.createProjectInformation(model);
+
+			assertNotNull(result);
+
+			assertEquals("ACTIVE", project.getStatus());
+			assertEquals("testUser", project.getCreatedBy());
+			assertEquals("testUser", project.getUpdatedBy());
+
+			assertNotNull(project.getCreatedAt());
+			assertNotNull(project.getUpdatedAt());
+
+			verify(repository).save(project);
+
+			verify(projectRepository).save(any(Project.class));
+
+			verify(userRepository).findByRole("ADMIN");
+			verify(userRepository).saveAll(anyList());
+
+			verify(auditService, times(2)).saveAuditLog(any(), any(), any(), any(), any(), any(), eq("testUser"));
+		}
 	}
 
 	@Test

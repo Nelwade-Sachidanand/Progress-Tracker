@@ -47,9 +47,6 @@ public class VirusScanServiceImpl implements VirusScanService {
 				OutputStream outputStream = socket.getOutputStream();
 				InputStream inputStream = socket.getInputStream()) {
 
-			/*
-			 * Start INSTREAM command
-			 */
 			outputStream.write("zINSTREAM\0".getBytes());
 			outputStream.flush();
 
@@ -64,9 +61,6 @@ public class VirusScanServiceImpl implements VirusScanService {
 				outputStream.write(buffer, 0, bytesRead);
 			}
 
-			/*
-			 * End of Stream
-			 */
 			outputStream.write(new byte[] { 0, 0, 0, 0 });
 
 			outputStream.flush();

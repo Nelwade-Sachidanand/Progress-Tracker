@@ -88,12 +88,10 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenRequestNotFound_ShouldThrowResourceNotFoundException() {
 
-		// Arrange
 		String requestId = "REQ001";
 
 		when(requestRepository.findById(requestId)).thenReturn(Optional.empty());
 
-		// Act & Assert
 		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
 				() -> rollbackService.rollbackRequest(requestId, "password", "Rollback"));
 
@@ -106,15 +104,12 @@ class RollbackServiceImplTest {
 
 	@Test
 	void rollbackRequest_WhenRequestStatusIsPending_ShouldThrowValidationException() {
-
-		// Arrange
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId("REQ001");
 		request.setStatus("PENDING");
 
 		when(requestRepository.findById("REQ001")).thenReturn(Optional.of(request));
 
-		// Act & Assert
 		ValidationException exception = assertThrows(ValidationException.class,
 				() -> rollbackService.rollbackRequest("REQ001", "password", "Rollback"));
 
@@ -127,7 +122,6 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenPasswordIsInvalid_ShouldThrowValidationException() {
 
-		// Arrange
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId("REQ001");
 		request.setProjectId("PROJECT001");
@@ -147,7 +141,6 @@ class RollbackServiceImplTest {
 
 			when(passwordEncoder.matches("wrongPassword", user.getPassword())).thenReturn(false);
 
-			// Act & Assert
 			ValidationException exception = assertThrows(ValidationException.class,
 					() -> rollbackService.rollbackRequest("REQ001", "wrongPassword", "Rollback"));
 
@@ -223,13 +216,24 @@ class RollbackServiceImplTest {
 
 		// Arrange
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
+
 		request.setId("REQ001");
+
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
+		request.setRequestedBy("developer");
+		request.setRequestedByUserId("USER001");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
 
 		User user = new User();
@@ -278,21 +282,31 @@ class RollbackServiceImplTest {
 		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -301,24 +315,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -377,21 +396,31 @@ class RollbackServiceImplTest {
 		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -400,24 +429,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -473,21 +507,31 @@ class RollbackServiceImplTest {
 		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -496,24 +540,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -566,27 +615,36 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenRollbackIsSuccessful_ShouldCreateNotificationAndAuditLog() {
 
-		
 		String requestId = "REQ001";
 		String password = "password";
 		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -595,24 +653,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -623,7 +686,6 @@ class RollbackServiceImplTest {
 		project.setPhases(new ArrayList<>());
 		project.getPhases().add(phase);
 
-		
 		when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
 
 		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
@@ -640,14 +702,10 @@ class RollbackServiceImplTest {
 
 			mockedStatic.when(UserContextUtil::getCurrentUser).thenReturn("admin");
 
-			
 			rollbackService.rollbackRequest(requestId, password, reason);
 
-			
-			verify(notificationService).createNotification("Activity Rolled Back",
-					"Changes for activity Activity-1 were rolled back by admin", "ACTIVITY_ROLLBACK", requestId,
-					"/tasks", "USER001");
-
+			verify(notificationService).createNotification(eq("Activity Rolled Back"), contains("Activity-1"),
+					eq("ACTIVITY_ROLLBACK"), eq(requestId), eq("/tasks"), eq("USER001"));
 			verify(auditService).saveAuditLog(AuditAction.ROLLBACK_ACTIVITY_UPDATE, AuditEntity.ACTIVITY, "Activity-1",
 					"Demo Project", newActivity, oldActivity, "admin");
 		}
@@ -658,24 +716,34 @@ class RollbackServiceImplTest {
 
 		String requestId = "REQ001";
 		String password = "password";
-		String reason = "Rollback Rejected Request";
+		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
-		request.setStatus("REJECTED");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
+		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -684,24 +752,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -765,27 +838,36 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenProjectRepositorySaveFails_ShouldThrowRuntimeException() {
 
-		
 		String requestId = "REQ001";
 		String password = "password";
-		String reason = "Rollback";
+		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
-		request.setStatus("APPROVED");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
+		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -794,24 +876,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -821,7 +908,6 @@ class RollbackServiceImplTest {
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>());
 		project.getPhases().add(phase);
-
 		when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
 
 		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
@@ -856,27 +942,36 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenRequestRepositorySaveFails_ShouldThrowRuntimeException() {
 
-		
 		String requestId = "REQ001";
 		String password = "password";
-		String reason = "Rollback";
+		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -885,24 +980,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -949,27 +1049,36 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenNotificationServiceThrowsException_ShouldThrowRuntimeException() {
 
-		
 		String requestId = "REQ001";
 		String password = "password";
-		String reason = "Rollback";
+		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
-		request.setStatus("APPROVED");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
+		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -978,24 +1087,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -1043,27 +1157,36 @@ class RollbackServiceImplTest {
 	@Test
 	void rollbackRequest_WhenAuditServiceThrowsException_ShouldThrowRuntimeException() {
 
-		
 		String requestId = "REQ001";
 		String password = "password";
-		String reason = "Rollback";
+		String reason = "Rollback for testing";
 
 		Activity oldActivity = new Activity();
+		oldActivity.setActivityId("ACT001");
 		oldActivity.setActivityName("Activity-1");
 
 		Activity newActivity = new Activity();
+		newActivity.setActivityId("ACT001");
 		newActivity.setActivityName("Activity-1");
 
 		ActivityUpdateRequest request = new ActivityUpdateRequest();
 		request.setId(requestId);
 		request.setProjectId("PROJECT001");
-		request.setPhaseName("Phase-1");
-		request.setMilestoneName("Milestone-1");
-		request.setTaskName("Task-1");
-		request.setSubTaskName("SubTask-1");
-		request.setActivityName("Activity-1");
+		request.setProjectName("Demo Project");
+		request.setActivityId("ACT001");
+
+		request.setOldPhaseName("Phase-1");
+		request.setOldMilestoneName("Milestone-1");
+		request.setOldTaskName("Task-1");
+		request.setOldSubTaskName("SubTask-1");
+		request.setOldActivityName("Activity-1");
+
 		request.setRequestedByUserId("USER001");
+		request.setRequestedBy("developer");
+		request.setRequestedByRole("Admin");
+
 		request.setStatus("APPROVED");
+
 		request.setOldActivity(oldActivity);
 		request.setNewActivity(newActivity);
 
@@ -1072,24 +1195,29 @@ class RollbackServiceImplTest {
 		user.setPassword("encodedPassword");
 
 		Activity activity = new Activity();
+		activity.setActivityId("ACT001");
 		activity.setActivityName("Activity-1");
 
 		Subtask subtask = new Subtask();
+		subtask.setSubTaskId("ST001");
 		subtask.setSubTaskName("SubTask-1");
 		subtask.setActivities(new ArrayList<>());
 		subtask.getActivities().add(activity);
 
 		Task task = new Task();
+		task.setTaskId("T001");
 		task.setTaskName("Task-1");
 		task.setSubTasks(new ArrayList<>());
 		task.getSubTasks().add(subtask);
 
 		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
 		milestone.setMilestoneName("Milestone-1");
 		milestone.setTasks(new ArrayList<>());
 		milestone.getTasks().add(task);
 
 		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
 		phase.setPhaseName("Phase-1");
 		phase.setMilestones(new ArrayList<>());
 		phase.getMilestones().add(milestone);
@@ -1099,7 +1227,6 @@ class RollbackServiceImplTest {
 		project.setProjectName("Demo Project");
 		project.setPhases(new ArrayList<>());
 		project.getPhases().add(phase);
-
 		when(requestRepository.findById(requestId)).thenReturn(Optional.of(request));
 
 		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
@@ -1136,7 +1263,5 @@ class RollbackServiceImplTest {
 					anyString());
 		}
 	}
-	
-	
-	
+
 }

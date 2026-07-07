@@ -17,8 +17,12 @@ import com.novillex.progresstracker.service.AuditService;
 @PreAuthorize("hasRole('ADMIN')")
 public class AuditController {
 
-	@Autowired
+	
 	private AuditService auditService;
+	
+	public AuditController(AuditService auditService) {
+		this.auditService=auditService;
+	}
 	
 	@Autowired
 	private ActivityUpdateRequestService activityUpdateRequestService;

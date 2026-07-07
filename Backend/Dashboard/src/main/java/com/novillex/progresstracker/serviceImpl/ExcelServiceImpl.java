@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.novillex.progresstracker.common.AuditAction;
@@ -60,32 +61,38 @@ import com.novillex.progresstracker.util.WriteUtil;
 @Service
 public class ExcelServiceImpl implements ExcelService {
 
-	private final ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl;
-
 	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
 
-	@Autowired
 	private AuditService auditService;
 
-	@Autowired
 	private ProjectRepository projectRepository;
 
-	@Autowired
 	private UserRepository userRepository;
 
-	@Autowired
 	private ApplicationContext context;
 
-	@Autowired
 	private ActivityUpdateRequestRepository requestRepository;
 
-	@Autowired
 	private ProjectInformationRepository projectInformationRepository;
 
-	ExcelServiceImpl(ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl) {
+	private ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl;
+
+	public ExcelServiceImpl(AuditService auditService, ProjectRepository projectRepository,
+							UserRepository userRepository, ApplicationContext context,
+							ActivityUpdateRequestRepository requestRepository,
+							ProjectInformationRepository projectInformationRepository,
+							ActivityUpdateRequestServiceImpl activityUpdateRequestServiceImpl) {
+
+		this.auditService = auditService;
+		this.projectRepository = projectRepository;
+		this.userRepository = userRepository;
+		this.context = context;
+		this.requestRepository = requestRepository;
+		this.projectInformationRepository = projectInformationRepository;
 		this.activityUpdateRequestServiceImpl = activityUpdateRequestServiceImpl;
 	}
 
+	@Transactional
 	@Override
 	public Response uploadExcel(MultipartFile file) {
 
@@ -223,11 +230,11 @@ public class ExcelServiceImpl implements ExcelService {
 
 					BeanUtils.copyProperties(activity, oldActivity);
 					if (Boolean.TRUE.equals(activity.getLocked())
-					        && !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
+							&& !"ADMIN".equalsIgnoreCase(UserContextUtil.getCurrentUserRole())) {
 
-					    logger.info("Skipping locked activity {} during Excel upload", activity.getActivityName());
+						logger.info("Skipping locked activity {} during Excel upload", activity.getActivityName());
 
-					    continue; // Skip this activity
+						continue; // Skip this activity
 					}
 					if (isActivityChanged(oldActivity, newActivity)) {
 
@@ -241,13 +248,11 @@ public class ExcelServiceImpl implements ExcelService {
 							request.setProjectId(project.getId());
 							request.setProjectName(project.getProjectName());
 
-
 							request.setPhaseId(phase.getPhaseId());
 							request.setMilestoneId(milestone.getMilestoneId());
 							request.setTaskId(task.getTaskId());
 							request.setSubTaskId(subTask.getSubTaskId());
 							request.setActivityId(activity.getActivityId());
-
 
 							request.setOldPhaseName(phase.getPhaseName());
 							request.setOldMilestoneName(milestone.getMilestoneName());
@@ -264,7 +269,6 @@ public class ExcelServiceImpl implements ExcelService {
 
 							request.setNewOwner(model.getOwner()); // if Excel contains owner
 							request.setNewActivityName(model.getActivityName());
-
 
 							request.setOldActivity(oldActivity);
 							request.setNewActivity(newActivity);

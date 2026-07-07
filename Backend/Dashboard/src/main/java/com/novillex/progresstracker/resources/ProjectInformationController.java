@@ -23,8 +23,12 @@ import jakarta.validation.Valid;
 @PreAuthorize("hasRole('ADMIN')")
 public class ProjectInformationController {
 
-	@Autowired
+	
 	private ProjectInformationService projectInformationService;
+	
+	public ProjectInformationController(ProjectInformationService projectInformationService) {
+		this.projectInformationService=projectInformationService;
+	}
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {

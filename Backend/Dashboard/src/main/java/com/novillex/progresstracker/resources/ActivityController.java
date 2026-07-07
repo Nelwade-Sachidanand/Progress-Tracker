@@ -26,11 +26,16 @@ public class ActivityController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ActivityController.class);
 
-	@Autowired
-	private UpdateActivityService updateActivityService;
+	private  UpdateActivityService updateActivityService;
 
-	@Autowired
-	private CreateStructureService createStructureService;
+	private  CreateStructureService createStructureService;
+
+	public ActivityController(UpdateActivityService updateActivityService,CreateStructureService createStructureService) {
+
+		this.updateActivityService = updateActivityService;
+		this.createStructureService = createStructureService;
+	}
+
 
 	@PreAuthorize("hasAnyRole('ADMIN','IMPLEMENTATION USER')")
 	@PutMapping("/update/request")

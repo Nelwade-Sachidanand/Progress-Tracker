@@ -14,12 +14,15 @@ import com.novillex.progresstracker.util.UserContextUtil;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
 
-	private static final Logger logger = LoggerFactory.getLogger(ExcelServiceImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
 	private final NotificationRepository notificationRepository;
+	
+	public NotificationServiceImpl(NotificationRepository notificationRepository) {
+		this.notificationRepository=notificationRepository;
+	}
 
 	@Override
 	public void createNotification(String title, String message, String type, String referenceId, String redirectUrl,

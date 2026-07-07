@@ -24,13 +24,17 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/notifications")
-@RequiredArgsConstructor
 public class NotificationController {
 
 	private final NotificationRepository notificationRepository;
 
-	@Autowired
+	
 	private ApplicationContext context;
+	
+	public NotificationController(NotificationRepository notificationRepository, ApplicationContext context) {
+		this.notificationRepository=notificationRepository;
+		this.context=context;
+	}
 
 	@GetMapping
 	public Response getNotifications() {

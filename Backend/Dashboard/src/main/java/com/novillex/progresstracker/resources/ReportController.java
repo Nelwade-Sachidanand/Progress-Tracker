@@ -20,11 +20,15 @@ import com.novillex.progresstracker.service.ReportService;
 @RequestMapping("/reports")
 public class ReportController {
 	
-	@Autowired
+	
 	private ReportService reportService;
 	
-	@Autowired
+	
 	private ExcelService excelService;
+	
+	public ReportController(ReportService reportService, ExcelService excelService) {
+		this.reportService=reportService;
+	}
 
 	@PostMapping("/generate/report")
 	public ResponseEntity<byte[]> export(@RequestBody GenerateReportModel request) {
