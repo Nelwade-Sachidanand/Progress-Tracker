@@ -185,9 +185,9 @@ public class WriteUtil {
 			throw new ValidationException(ErrorCode.PROJECT_ID_REQUIRED, "Project id is required");
 		}
 
-		if (isBlank(request.getProjectName())) {
-			throw new ValidationException(ErrorCode.PROJECT_NAME_REQUIRED, "Project name is required");
-		}
+//		if (isBlank(request.getProjectName())) {
+//			throw new ValidationException(ErrorCode.PROJECT_NAME_REQUIRED, "Project name is required");
+//		}
 
 		if (isBlank(request.getPhaseName())) {
 			throw new ValidationException(ErrorCode.PHASE_NAME_REQUIRED, "Phase name is required");

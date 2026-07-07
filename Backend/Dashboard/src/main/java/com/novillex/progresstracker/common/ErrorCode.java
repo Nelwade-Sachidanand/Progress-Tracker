@@ -30,6 +30,10 @@ public class ErrorCode {
 	public static final String PASSWORD_MISMATCH = "ERR-043";
 	public static final String PASSWORD_ALREADY_USED = "ERR-044";
 	public static final String ACTIVITY_LOCKED = "VAL_21";
+	public static final String SUBTASK_ALREADY_EXISTS = "VAL_22";
+	public static final String TASK_ALREADY_EXISTS = "VAL_23";
+	public static final String MILESTONE_ALREADY_EXISTS = "VAL_24";
+	public static final String PHASE_ALREADY_EXISTS = "VAL_25";
 
 
 
@@ -76,7 +80,5 @@ public class ErrorCode {
 	
 	public static final String VIRUS_FOUND = "ERR-041";
 	public static final String VIRUS_SCAN_FAILED = "ERR-042";
-	
-	
 	
 }
