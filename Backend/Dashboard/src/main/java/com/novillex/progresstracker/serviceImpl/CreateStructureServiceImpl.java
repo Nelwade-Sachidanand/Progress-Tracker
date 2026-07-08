@@ -50,7 +50,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 	public Response createStructure(ActivityModel request) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-//		WriteUtil.validateRequest(request);
+		WriteUtil.validateRequest(request);
 
 		boolean phaseCreated = false;
 		boolean milestoneCreated = false;
