@@ -1,5 +1,6 @@
 package com.novillex.progresstracker.entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
@@ -14,11 +15,11 @@ public class User {
 
     @Id
     private String id;
-    
+
     private String fullname;
 
     private String username;
-    
+
     @Indexed(unique = true)
     private String email;
 
@@ -29,4 +30,10 @@ public class User {
     private List<String> projectIds;
 
     private Boolean status;
+
+    private Boolean loggedIn = false;
+
+    private String sessionId;
+
+    private LocalDateTime loginTime;
 }

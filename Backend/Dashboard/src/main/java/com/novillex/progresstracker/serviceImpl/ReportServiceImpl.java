@@ -26,18 +26,15 @@ import com.novillex.progresstracker.service.ReportService;
 @Service
 public class ReportServiceImpl implements ReportService {
 
-	
 	private ProjectRepository projectRepository;
 
-	
 	private ActivityMapper mapper;
 
 	private static final Logger logger = LoggerFactory.getLogger(ReportServiceImpl.class);
-	
-	
-	public ReportServiceImpl(ProjectRepository projectRepository,ActivityMapper mapper) {
-		this.projectRepository=projectRepository;
-		this.mapper=mapper;
+
+	public ReportServiceImpl(ProjectRepository projectRepository, ActivityMapper mapper) {
+		this.projectRepository = projectRepository;
+		this.mapper = mapper;
 	}
 
 	@Override
@@ -143,6 +140,11 @@ public class ReportServiceImpl implements ReportService {
 						}
 
 						for (Activity activity : subtask.getActivities()) {
+
+							if (hasText(req.getActivityName())
+									&& !activity.getActivityName().equalsIgnoreCase(req.getActivityName())) {
+								continue;
+							}
 
 							if (hasText(req.getExecutionStatus())
 									&& !activity.getExecutionStatus().equalsIgnoreCase(req.getExecutionStatus())) {

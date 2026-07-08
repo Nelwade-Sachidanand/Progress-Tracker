@@ -12,6 +12,8 @@ public interface UserService {
 	Response getAllUsers();
 
 	Response login(LoginModel loginModel);
+	
+	Response logout();
 
 	/*
 	 * Response updateUserProjects(UserProjectUpdateModel model);

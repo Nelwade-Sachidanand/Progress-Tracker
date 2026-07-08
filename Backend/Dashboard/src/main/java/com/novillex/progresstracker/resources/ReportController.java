@@ -27,6 +27,7 @@ public class ReportController {
 	
 	public ReportController(ReportService reportService, ExcelService excelService) {
 		this.reportService=reportService;
+		this.excelService=excelService;
 	}
 
 	@PostMapping("/generate/report")

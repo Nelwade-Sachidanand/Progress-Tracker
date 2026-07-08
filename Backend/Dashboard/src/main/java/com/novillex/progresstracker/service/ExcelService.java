@@ -9,6 +9,8 @@ import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.model.ActivityModel;
 
 public interface ExcelService {
+	
 	byte[] generateExcel(List<ActivityModel> reportRequest);
+	
     Response uploadExcel(MultipartFile file);
 }

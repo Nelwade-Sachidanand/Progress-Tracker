@@ -1,7 +1,9 @@
 package com.novillex.progresstracker.serviceImpl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.ApplicationContext;
@@ -47,14 +49,14 @@ public class UserServiceImpl implements UserService {
 	private AuditService auditService;
 
 	private ProjectRepository projectRepository;
-	
+
 	public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, ApplicationContext context,
-							AuditService auditService, ProjectRepository projectRepository) {
-		this.userRepository=userRepository;
-		this.passwordEncoder=passwordEncoder;
-		this.context=context;
-		this.auditService=auditService;
-		this.projectRepository=projectRepository;
+			AuditService auditService, ProjectRepository projectRepository) {
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
+		this.context = context;
+		this.auditService = auditService;
+		this.projectRepository = projectRepository;
 	}
 
 	@Override
@@ -114,32 +116,57 @@ public class UserServiceImpl implements UserService {
 
 		String username = loginModel.getUsername();
 		String password = loginModel.getPassword();
+
 		logger.info("Login attempt for username: {}", username);
+
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
 		User user = userRepository.findByUsername(username).orElse(null);
+
 		if (user == null) {
+
 			logger.warn("Login failed. User not found: {}", username);
+
 			throw new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username);
 		}
 
 		if (!Boolean.TRUE.equals(user.getStatus())) {
+
 			logger.warn("Login failed. User inactive: {}", username);
+
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "User is inactive",
 					null);
+		}
+
+		if (Boolean.TRUE.equals(user.getLoggedIn())) {
+
+			logger.warn("Login denied. User '{}' is already logged in.", username);
+
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+					"User is already logged in", null);
 		}
 
 		boolean isPasswordValid = passwordEncoder.matches(password, user.getPassword());
 
 		if (!isPasswordValid) {
+
+			logger.warn("Login failed. Invalid password for username: {}", username);
+
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
 					null);
 		}
 
-		user.setPassword(null);
+		user.setLoggedIn(true);
+		user.setSessionId(UUID.randomUUID().toString());
+		user.setLoginTime(LocalDateTime.now());
+
+		userRepository.save(user);
 
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
 		String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
+
+		user.setPassword(null);
 
 		LoginResponseModel responseModel = new LoginResponseModel();
 		responseModel.setUser(user);
@@ -147,8 +174,32 @@ public class UserServiceImpl implements UserService {
 		responseModel.setRefreshToken(refreshToken);
 
 		logger.info("Login successful. Username: {}, Role: {}", username, user.getRole());
+
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Login successful",
 				responseModel);
+	}
+
+	@Override
+	public Response logout() {
+
+		logger.info("Logout initiated for user: {}", UserContextUtil.getCurrentUser());
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		User user = userRepository.findByUsername(UserContextUtil.getCurrentUser())
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found",
+						UserContextUtil.getCurrentUser()));
+
+		user.setLoggedIn(false);
+		user.setSessionId(null);
+		user.setLoginTime(null);
+
+		userRepository.save(user);
+
+		logger.info("Logout successful for user: {}", user.getUsername());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Logout successful.",
+				null);
 	}
 
 	@Override
