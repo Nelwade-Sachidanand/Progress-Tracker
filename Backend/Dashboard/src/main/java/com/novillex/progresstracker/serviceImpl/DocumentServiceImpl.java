@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -33,7 +32,6 @@ import com.novillex.progresstracker.service.DocumentService;
 import com.novillex.progresstracker.service.VirusScanService;
 import com.novillex.progresstracker.util.UserContextUtil;
 
-import lombok.RequiredArgsConstructor;
 
 @Service
 public class DocumentServiceImpl implements DocumentService {

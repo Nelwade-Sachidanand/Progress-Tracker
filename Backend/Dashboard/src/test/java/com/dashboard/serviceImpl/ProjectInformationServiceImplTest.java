@@ -30,12 +30,15 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.novillex.progresstracker.common.AuditAction;
+import com.novillex.progresstracker.common.AuditEntity;
 import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.ProjectInformation;
 import com.novillex.progresstracker.entity.User;
+import com.novillex.progresstracker.exception.ApplicationException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.repository.ProjectInformationRepository;
@@ -147,70 +150,117 @@ public class ProjectInformationServiceImplTest {
 	@Test
 	void shouldGetAllProjectInformationSuccessfully() {
 
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
+
 		List<ProjectInformation> projects = List.of(new ProjectInformation(), new ProjectInformation());
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findAll()).thenReturn(projects);
 
-		service.getAllProjectInformation();
+		when(responseBuilder.createResponse(any(), any(), anyString(), eq(projects))).thenReturn(response);
+
+		Response result = service.getAllProjectInformation();
+
+		assertEquals(response, result);
 
 		verify(repository).findAll();
+
+		verify(responseBuilder).createResponse(any(), any(), eq("Project information fetched successfully"),
+				eq(projects));
 	}
 
 	@Test
 	void shouldGetProjectInformationByIdSuccessfully() {
 
-		ProjectInformation project = new ProjectInformation();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
+		ProjectInformation project = new ProjectInformation();
 		project.setId("P001");
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(project));
 
-		service.getProjectInformationById("P001");
+		when(responseBuilder.createResponse(any(), any(), anyString(), eq(project))).thenReturn(response);
+
+		Response result = service.getProjectInformationById("P001");
+
+		assertEquals(response, result);
 
 		verify(repository).findById("P001");
+
+		verify(responseBuilder).createResponse(any(), any(), eq("Project information fetched successfully"),
+				eq(project));
 	}
 
 	@Test
-    void shouldThrowProjectNotFoundForGetById() {
+	void shouldThrowProjectNotFoundForGetById() {
 
-        when(repository.findById("P001"))
-                .thenReturn(Optional.empty());
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-        ResourceNotFoundException ex =
-                assertThrows(
-                        ResourceNotFoundException.class,
-                        () -> service.getProjectInformationById("P001"));
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-        assertEquals(
-                ErrorCode.PROJECT_NOT_FOUND,
-                ex.getErrorCode());
-    }
+		when(repository.findById("P001")).thenReturn(Optional.empty());
+
+		ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+				() -> service.getProjectInformationById("P001"));
+
+		assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
+
+		verify(repository).findById("P001");
+
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+	}
 
 	@Test
 	void shouldUpdateProjectInformationSuccessfully() {
 
-		ProjectInformation existing = new ProjectInformation();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
+		ProjectInformation existing = new ProjectInformation();
 		existing.setId("P001");
 		existing.setProjectName("Old");
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("New");
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
 
-		service.updateProjectInformation("P001", model);
+		when(repository.save(any(ProjectInformation.class))).thenReturn(existing);
 
-		verify(repository).save(any(ProjectInformation.class));
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-		verify(auditService).saveAuditLog(any(), any(), anyString(), anyString(), any(), any(), anyString());
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			Response result = service.updateProjectInformation("P001", model);
+
+			assertEquals(response, result);
+
+			verify(repository).save(any(ProjectInformation.class));
+
+			verify(auditService).saveAuditLog(eq(AuditAction.UPDATE_PROJECT_INFORMATION), eq(AuditEntity.PROJECT),
+					anyString(), anyString(), any(), any(), eq("testUser"));
+		}
 	}
 
 	@Test
 	void shouldThrowProjectNotFoundForUpdate() {
 
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
 		ProjectInformationModel model = new ProjectInformationModel();
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.empty());
 
@@ -218,98 +268,189 @@ public class ProjectInformationServiceImplTest {
 				() -> service.updateProjectInformation("P001", model));
 
 		assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
+
+		verify(repository).findById("P001");
+
+		verify(repository, never()).save(any());
+
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
 
 	@Test
 	void shouldDeleteProjectInformationSuccessfully() {
 
-		ProjectInformation project = new ProjectInformation();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
+		ProjectInformation project = new ProjectInformation();
 		project.setId("P001");
 		project.setProjectName("Tracker");
 
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+
 		when(repository.findById("P001")).thenReturn(Optional.of(project));
 
-		service.deleteProjectInformation("P001");
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-		verify(repository).delete(project);
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
-		verify(auditService).saveAuditLog(any(), any(), anyString(), anyString(), any(), any(), anyString());
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			Response result = service.deleteProjectInformation("P001");
+
+			assertEquals(response, result);
+
+			verify(repository).delete(project);
+
+			verify(auditService).saveAuditLog(eq(AuditAction.DELETE_PROJECT_INFORMATION), eq(AuditEntity.PROJECT),
+					eq("Tracker"), eq("Tracker"), eq(project), isNull(), eq("testUser"));
+		}
 	}
 
 	@Test
-    void shouldThrowProjectNotFoundForDelete() {
+	void shouldThrowProjectNotFoundForDelete() {
 
-        when(repository.findById("P001"))
-                .thenReturn(Optional.empty());
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-        ResourceNotFoundException ex =
-                assertThrows(
-                        ResourceNotFoundException.class,
-                        () -> service.deleteProjectInformation("P001"));
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-        assertEquals(
-                ErrorCode.PROJECT_NOT_FOUND,
-                ex.getErrorCode());
-    }
+		when(repository.findById("P001")).thenReturn(Optional.empty());
+
+		ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
+				() -> service.deleteProjectInformation("P001"));
+
+		assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
+
+		verify(repository).findById("P001");
+
+		verify(repository, never()).delete(any());
+
+		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+	}
 
 	@Test
-    void shouldReturnEmptyListWhenNoProjectsExist() {
+	void shouldReturnEmptyListWhenNoProjectsExist() {
 
-        when(repository.findAll())
-                .thenReturn(List.of());
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		Response response = new Response();
 
-        service.getAllProjectInformation();
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-        verify(repository).findAll();
-    }
+		when(repository.findAll()).thenReturn(List.of());
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
+
+		Response result = service.getAllProjectInformation();
+
+		assertEquals(response, result);
+
+		verify(repository).findAll();
+
+		verify(responseBuilder).createResponse(any(), any(), eq("Project information fetched successfully"),
+				eq(List.of()));
+	}
 
 	@Test
 	void shouldThrowExceptionWhenRepositoryFailsDuringCreate() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
 
 		ProjectInformation project = new ProjectInformation();
 
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+
 		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
 
-		when(modelMapper.map(any(ProjectInformationModel.class), eq(ProjectInformation.class))).thenReturn(project);
+		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
-		when(repository.save(any())).thenThrow(new RuntimeException("DB error"));
+		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("DB error"));
 
-		assertThrows(RuntimeException.class, () -> service.createProjectInformation(model));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			ApplicationException ex = assertThrows(ApplicationException.class,
+					() -> service.createProjectInformation(model));
+
+			assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
+
+			verify(repository).save(any(ProjectInformation.class));
+
+			verify(projectRepository, never()).save(any(Project.class));
+
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		}
 	}
 
 	@Test
 	void shouldThrowExceptionWhenUpdateFails() {
 
-		ProjectInformation existing = new ProjectInformation();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
+		ProjectInformation existing = new ProjectInformation();
 		existing.setId("P001");
+		existing.setProjectName("Tracker");
 
 		ProjectInformationModel model = new ProjectInformationModel();
 
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
 
-		when(repository.save(any())).thenThrow(new RuntimeException("Database error"));
+		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("Database error"));
 
-		assertThrows(RuntimeException.class, () -> service.updateProjectInformation("P001", model));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			RuntimeException ex = assertThrows(RuntimeException.class,
+					() -> service.updateProjectInformation("P001", model));
+
+			assertEquals("Database error", ex.getMessage());
+
+			verify(repository).findById("P001");
+			verify(repository).save(any(ProjectInformation.class));
+
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		}
 	}
 
 	@Test
 	void shouldThrowExceptionWhenDeleteFails() {
 
-		ProjectInformation project = new ProjectInformation();
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
+		ProjectInformation project = new ProjectInformation();
 		project.setId("P001");
+		project.setProjectName("Tracker");
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(project));
 
+		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+
 		doThrow(new RuntimeException("Delete failed")).when(repository).delete(project);
 
-		assertThrows(RuntimeException.class, () -> service.deleteProjectInformation("P001"));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			RuntimeException ex = assertThrows(RuntimeException.class, () -> service.deleteProjectInformation("P001"));
+
+			assertEquals("Delete failed", ex.getMessage());
+
+			verify(repository).findById("P001");
+			verify(repository).delete(project);
+
+			verify(auditService).saveAuditLog(eq(AuditAction.DELETE_PROJECT_INFORMATION), eq(AuditEntity.PROJECT),
+					eq("Tracker"), eq("Tracker"), eq(project), isNull(), eq("testUser"));
+		}
 	}
 
 	@Test

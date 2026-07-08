@@ -11,7 +11,6 @@ import com.novillex.progresstracker.repository.NotificationRepository;
 import com.novillex.progresstracker.service.NotificationService;
 import com.novillex.progresstracker.util.UserContextUtil;
 
-import lombok.RequiredArgsConstructor;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {

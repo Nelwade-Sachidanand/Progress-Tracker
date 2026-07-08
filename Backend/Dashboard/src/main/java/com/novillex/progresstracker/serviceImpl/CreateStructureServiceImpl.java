@@ -3,7 +3,6 @@ package com.novillex.progresstracker.serviceImpl;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,12 +71,11 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		if (project.getPhases() != null) {
 
-			for (Phase p : project.getPhases()) {
-				if (p.getPhaseId().equals(request.getPhaseId())) {
-					phase = p;
-					break;
-				}
-			}
+			phase = project.getPhases().stream()
+					.filter(p -> (request.getPhaseId() != null && request.getPhaseId().equals(p.getPhaseId()))
+							|| (request.getPhaseName() != null
+									&& request.getPhaseName().trim().equalsIgnoreCase(p.getPhaseName().trim())))
+					.findFirst().orElse(null);
 		}
 
 		if (phase == null) {
@@ -94,16 +92,16 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			project.getPhases().add(phase);
 			phaseCreated = true;
 		}
+
 		Milestone milestone = null;
 		if (request.getMilestoneName() != null) {
 
-			for (Milestone m : phase.getMilestones()) {
+			milestone = phase.getMilestones().stream().filter(
+					m -> (request.getMilestoneId() != null && request.getMilestoneId().equals(m.getMilestoneId()))
+							|| (request.getMilestoneName() != null
+									&& request.getMilestoneName().trim().equalsIgnoreCase(m.getMilestoneName().trim())))
+					.findFirst().orElse(null);
 
-				if (m.getMilestoneId().equals(request.getMilestoneId())) {
-					milestone = m;
-					break;
-				}
-			}
 			if (milestone == null) {
 				milestone = new Milestone();
 				milestone.setMilestoneId(UUID.randomUUID().toString());
@@ -117,13 +115,11 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		Task task = null;
 		if (request.getTaskName() != null) {
 
-			for (Task t : milestone.getTasks()) {
-
-				if (t.getTaskId().equals(request.getTaskId())) {
-					task = t;
-					break;
-				}
-			}
+			task = milestone.getTasks().stream()
+					.filter(t -> (request.getTaskId() != null && request.getTaskId().equals(t.getTaskId()))
+							|| (request.getTaskName() != null
+									&& request.getTaskName().trim().equalsIgnoreCase(t.getTaskName().trim())))
+					.findFirst().orElse(null);
 
 			if (task == null) {
 
@@ -139,13 +135,12 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 		if (request.getSubTaskName() != null) {
 
-			for (Subtask st : task.getSubTasks()) {
+			subtask = task.getSubTasks().stream()
+					.filter(st -> (request.getSubTaskId() != null && request.getSubTaskId().equals(st.getSubTaskId()))
+							|| (request.getSubTaskName() != null
+									&& request.getSubTaskName().trim().equalsIgnoreCase(st.getSubTaskName().trim())))
+					.findFirst().orElse(null);
 
-				if (st.getSubTaskId().equals(request.getSubTaskId())) {
-					subtask = st;
-					break;
-				}
-			}
 			if (subtask == null) {
 				subtask = new Subtask();
 				subtask.setSubTaskId(UUID.randomUUID().toString());

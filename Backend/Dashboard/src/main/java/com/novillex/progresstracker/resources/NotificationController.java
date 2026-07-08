@@ -2,7 +2,6 @@ package com.novillex.progresstracker.resources;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,7 +19,6 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.repository.NotificationRepository;
 import com.novillex.progresstracker.util.UserContextUtil;
 
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/notifications")

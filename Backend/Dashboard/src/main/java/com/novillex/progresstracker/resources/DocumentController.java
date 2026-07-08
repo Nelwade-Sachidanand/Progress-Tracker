@@ -23,7 +23,6 @@ import com.novillex.progresstracker.model.UploadDocumentRequest;
 import com.novillex.progresstracker.service.DocumentService;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/documents")
