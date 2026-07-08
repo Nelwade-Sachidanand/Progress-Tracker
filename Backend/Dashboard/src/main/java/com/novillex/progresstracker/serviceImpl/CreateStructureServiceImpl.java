@@ -67,18 +67,18 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 		Project project = projectRepository.findById(request.getProjectId())
 				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
 						request.getProjectId()));
-		Phase phase = null;
 
-		if (project.getPhases() != null) {
+
+		Phase phase = null;
+		if (request.isNewPhase()) {
 
 			phase = project.getPhases().stream()
-					.filter(p -> (request.getPhaseId() != null && request.getPhaseId().equals(p.getPhaseId()))
-							|| (request.getPhaseName() != null
-									&& request.getPhaseName().trim().equalsIgnoreCase(p.getPhaseName().trim())))
-					.findFirst().orElse(null);
-		}
+					.filter(p -> p.getPhaseName().trim().equalsIgnoreCase(request.getPhaseName().trim())).findFirst()
+					.orElse(null);
 
-		if (phase == null) {
+			if (phase != null) {
+				throw new ValidationException(ErrorCode.PHASE_ALREADY_EXISTS, "Phase already exists");
+			}
 
 			phase = new Phase();
 			phase.setPhaseId(UUID.randomUUID().toString());
@@ -88,73 +88,107 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			if (project.getPhases() == null) {
 				project.setPhases(new ArrayList<>());
 			}
-
 			project.getPhases().add(phase);
 			phaseCreated = true;
+
+		} else {
+			phase = project.getPhases().stream().filter(p -> p.getPhaseId().equals(request.getPhaseId())).findFirst()
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
+							request.getPhaseId()));
 		}
 
 		Milestone milestone = null;
-		if (request.getMilestoneName() != null) {
-
-			milestone = phase.getMilestones().stream().filter(
-					m -> (request.getMilestoneId() != null && request.getMilestoneId().equals(m.getMilestoneId()))
-							|| (request.getMilestoneName() != null
-									&& request.getMilestoneName().trim().equalsIgnoreCase(m.getMilestoneName().trim())))
+		if (request.isNewMilestone()) {
+			milestone = phase.getMilestones().stream()
+					.filter(m -> m.getMilestoneName().trim().equalsIgnoreCase(request.getMilestoneName().trim()))
 					.findFirst().orElse(null);
 
-			if (milestone == null) {
-				milestone = new Milestone();
-				milestone.setMilestoneId(UUID.randomUUID().toString());
-				milestone.setMilestoneName(request.getMilestoneName());
-				milestone.setTasks(new ArrayList<>());
-				phase.getMilestones().add(milestone);
-				milestoneCreated = true;
+			if (milestone != null) {
+				throw new ValidationException(ErrorCode.MILESTONE_ALREADY_EXISTS, "Milestone already exists");
 			}
+
+			milestone = new Milestone();
+			milestone.setMilestoneId(UUID.randomUUID().toString());
+			milestone.setMilestoneName(request.getMilestoneName());
+			milestone.setTasks(new ArrayList<>());
+
+			phase.getMilestones().add(milestone);
+			milestoneCreated = true;
+
+		} else {
+			milestone = phase.getMilestones().stream().filter(m -> m.getMilestoneId().equals(request.getMilestoneId()))
+					.findFirst().orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND,
+							"Milestone not found", request.getMilestoneId()));
 		}
 
 		Task task = null;
-		if (request.getTaskName() != null) {
+		if (request.isNewTask()) {
 
 			task = milestone.getTasks().stream()
-					.filter(t -> (request.getTaskId() != null && request.getTaskId().equals(t.getTaskId()))
-							|| (request.getTaskName() != null
-									&& request.getTaskName().trim().equalsIgnoreCase(t.getTaskName().trim())))
-					.findFirst().orElse(null);
+					.filter(t -> t.getTaskName().trim().equalsIgnoreCase(request.getTaskName().trim())).findFirst()
+					.orElse(null);
 
-			if (task == null) {
+			if (task != null) {
 
-				task = new Task();
-				task.setTaskId(UUID.randomUUID().toString());
-				task.setTaskName(request.getTaskName());
-				task.setSubTasks(new ArrayList<>());
-				milestone.getTasks().add(task);
-				taskCreated = true;
+				logger.warn("Task already exists. Task: {}, Milestone: {}", request.getTaskName(),
+						milestone.getMilestoneName());
+
+				throw new ValidationException(ErrorCode.TASK_ALREADY_EXISTS, "Task already exists");
 			}
-		}
-		Subtask subtask = null;
 
-		if (request.getSubTaskName() != null) {
+			task = new Task();
+			task.setTaskId(UUID.randomUUID().toString());
+			task.setTaskName(request.getTaskName());
+			task.setSubTasks(new ArrayList<>());
+
+			milestone.getTasks().add(task);
+
+			taskCreated = true;
+
+		} else {
+
+			task = milestone.getTasks().stream().filter(t -> t.getTaskId().equals(request.getTaskId())).findFirst()
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.TASK_NOT_FOUND, "Task not found",
+							request.getTaskId()));
+		}
+
+		Subtask subtask = null;
+		if (request.isNewSubTask()) {
 
 			subtask = task.getSubTasks().stream()
-					.filter(st -> (request.getSubTaskId() != null && request.getSubTaskId().equals(st.getSubTaskId()))
-							|| (request.getSubTaskName() != null
-									&& request.getSubTaskName().trim().equalsIgnoreCase(st.getSubTaskName().trim())))
+					.filter(st -> st.getSubTaskName().trim().equalsIgnoreCase(request.getSubTaskName().trim()))
 					.findFirst().orElse(null);
 
-			if (subtask == null) {
-				subtask = new Subtask();
-				subtask.setSubTaskId(UUID.randomUUID().toString());
-				subtask.setSubTaskName(request.getSubTaskName());
-				subtask.setActivities(new ArrayList<>());
-				task.getSubTasks().add(subtask);
-				subtaskCreated = true;
+			if (subtask != null) {
+
+				logger.warn("SubTask already exists. SubTask: {}, Task: {}", request.getSubTaskName(),
+						task.getTaskName());
+
+				throw new ValidationException(ErrorCode.SUBTASK_ALREADY_EXISTS, "SubTask already exists");
 			}
+
+			subtask = new Subtask();
+			subtask.setSubTaskId(UUID.randomUUID().toString());
+			subtask.setSubTaskName(request.getSubTaskName());
+			subtask.setActivities(new ArrayList<>());
+
+			task.getSubTasks().add(subtask);
+
+			subtaskCreated = true;
+
+		} else {
+
+			subtask = task.getSubTasks().stream().filter(st -> st.getSubTaskId().equals(request.getSubTaskId()))
+					.findFirst().orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SUBTASK_NOT_FOUND,
+							"SubTask not found", request.getSubTaskId()));
 		}
+
 		Activity activity = null;
 		if (request.getActivityName() != null) {
 
 			Activity existingActivity = subtask.getActivities().stream()
-					.filter(a -> a.getActivityName().equals(request.getActivityName())).findFirst().orElse(null);
+					.filter(a -> a.getActivityName().trim().equalsIgnoreCase(request.getActivityName().trim()))
+					.findFirst().orElse(null);
 
 			if (existingActivity != null) {
 				logger.warn("Activity already exists. Activity: {}, Project: {}", request.getActivityName(),
@@ -166,6 +200,7 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 			activity = new Activity();
 			activity.setActivityId(UUID.randomUUID().toString());
 			activity.setActivityName(request.getActivityName());
+			activity.setOwner(request.getOwner());
 			activity.setEstimatedPeriodWeek(request.getEstimatedPeriodWeek());
 			activity.setPlannedStartDate(request.getPlannedStartDate());
 			activity.setPlannedEndDate(request.getPlannedEndDate());

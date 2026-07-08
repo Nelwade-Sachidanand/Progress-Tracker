@@ -21,6 +21,11 @@ public class ActivityModel {
 
 	private String subTaskId;
 	private String subTaskName;
+	
+	private boolean newPhase;
+	private boolean newMilestone;
+	private boolean newTask;
+	private boolean newSubTask;
 
 	private String activityName;
 

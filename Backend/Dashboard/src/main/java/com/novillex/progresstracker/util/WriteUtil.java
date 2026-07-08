@@ -185,55 +185,104 @@ public class WriteUtil {
 			throw new ValidationException(ErrorCode.PROJECT_ID_REQUIRED, "Project id is required");
 		}
 
-		if (isBlank(request.getProjectName())) {
-			throw new ValidationException(ErrorCode.PROJECT_NAME_REQUIRED, "Project name is required");
+		// Phase
+		if (request.isNewPhase()) {
+
+			if (isBlank(request.getPhaseName())) {
+				throw new ValidationException(ErrorCode.PHASE_NAME_REQUIRED, "Phase name is required");
+			}
+
+		} else {
+
+			if (isBlank(request.getPhaseId())) {
+				throw new ValidationException(ErrorCode.PHASE_ID_REQUIRED, "Phase id is required");
+			}
 		}
 
-		if (isBlank(request.getPhaseName())) {
-			throw new ValidationException(ErrorCode.PHASE_NAME_REQUIRED, "Phase name is required");
+		// Milestone
+		if (request.isNewMilestone()) {
+
+			if (isBlank(request.getMilestoneName())) {
+				throw new ValidationException(ErrorCode.MILESTONE_REQUIRED, "Milestone name is required");
+			}
+
+		} else {
+
+			if (isBlank(request.getMilestoneId())) {
+				throw new ValidationException(ErrorCode.MILESTONE_ID_REQUIRED, "Milestone id is required");
+			}
 		}
 
-		if (isBlank(request.getMilestoneName())) {
-			throw new ValidationException(ErrorCode.MILESTONE_REQUIRED, "Milestone name is required");
+		// Task
+		if (request.isNewTask()) {
+
+			if (isBlank(request.getTaskName())) {
+				throw new ValidationException(ErrorCode.TASK_REQUIRED, "Task name is required");
+			}
+
+		} else {
+
+			if (isBlank(request.getTaskId())) {
+				throw new ValidationException(ErrorCode.TASK_ID_REQUIRED, "Task id is required");
+			}
 		}
 
-		if (isBlank(request.getTaskName())) {
-			throw new ValidationException(ErrorCode.TASK_REQUIRED, "Task name is required");
+		// SubTask
+		if (request.isNewSubTask()) {
+
+			if (isBlank(request.getSubTaskName())) {
+				throw new ValidationException(ErrorCode.SUBTASK_REQUIRED, "SubTask name is required");
+			}
+
+		} else {
+
+			if (isBlank(request.getSubTaskId())) {
+				throw new ValidationException(ErrorCode.SUBTASK_ID_REQUIRED, "SubTask id is required");
+			}
 		}
 
-		if (isBlank(request.getSubTaskName())) {
-			throw new ValidationException(ErrorCode.SUBTASK_REQUIRED, "SubTask name is required");
-		}
-
+		// Activity
 		if (isBlank(request.getActivityName())) {
 			throw new ValidationException(ErrorCode.ACTIVITY_NAME_REQUIRED, "Activity name is required");
 		}
+
+		// Planned Dates
 		if (request.getPlannedStartDate() != null && request.getPlannedEndDate() != null
 				&& request.getPlannedStartDate().isAfter(request.getPlannedEndDate())) {
+
 			throw new ValidationException(ErrorCode.INVALID_PLANNED_DATES,
 					"Planned start date cannot be after planned end date");
 		}
 
+		// Actual Dates
 		if (request.getActualStartDate() != null && request.getActualEndDate() != null
 				&& request.getActualStartDate().isAfter(request.getActualEndDate())) {
+
 			throw new ValidationException(ErrorCode.INVALID_ACTUAL_DATES,
 					"Actual start date cannot be after actual end date");
 		}
 
 		if (request.getActualStartDate() != null && request.getPlannedStartDate() == null) {
+
 			throw new ValidationException(ErrorCode.PLANNED_DATE_REQUIRED,
 					"Planned start date is required before actual start date");
 		}
 
 		if (request.getActualEndDate() != null && request.getActualStartDate() == null) {
+
 			throw new ValidationException(ErrorCode.ACTUAL_START_REQUIRED,
 					"Actual start date is required before actual end date");
 		}
 
+		// Progress
 		if (request.getProgress() != null && (request.getProgress() < 0 || request.getProgress() > 100)) {
+
 			throw new ValidationException(ErrorCode.INVALID_PROGRESS, "Progress must be between 0 and 100");
 		}
+
+		// Estimated Weeks
 		if (request.getEstimatedPeriodWeek() != null && request.getEstimatedPeriodWeek() <= 0) {
+
 			throw new ValidationException(ErrorCode.ESTIMATED_PERIOD_INVALID,
 					"Estimated period week must be greater than zero");
 		}

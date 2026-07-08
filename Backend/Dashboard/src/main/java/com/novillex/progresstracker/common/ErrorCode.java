@@ -30,6 +30,10 @@ public class ErrorCode {
 	public static final String PASSWORD_MISMATCH = "ERR-043";
 	public static final String PASSWORD_ALREADY_USED = "ERR-044";
 	public static final String ACTIVITY_LOCKED = "VAL_21";
+	public static final String SUBTASK_ALREADY_EXISTS = "VAL_22";
+	public static final String TASK_ALREADY_EXISTS = "VAL_23";
+	public static final String MILESTONE_ALREADY_EXISTS = "VAL_24";
+	public static final String PHASE_ALREADY_EXISTS = "VAL_25";
 
 
 
@@ -55,7 +59,7 @@ public class ErrorCode {
     public static final String EXCEL_TEMPLATE_NOT_FOUND = "EXL_404";
 
     // Validation
-    public static final String BANK_NAME_REQUIRED = "VAL_021";
+    public static final String BANK_NAME_REQUIRED = "VAL_026";
     public static final String NO_REPORT_DATA_FOUND = "VAL_033";
     
 
@@ -76,7 +80,9 @@ public class ErrorCode {
 	
 	public static final String VIRUS_FOUND = "ERR-041";
 	public static final String VIRUS_SCAN_FAILED = "ERR-042";
-	
-	
+	public static final String SUBTASK_ID_REQUIRED = "VAL_27";
+	public static final String TASK_ID_REQUIRED = "VAL_28";
+	public static final String MILESTONE_ID_REQUIRED = "VAL_29";
+	public static final String PHASE_ID_REQUIRED = "VAL_30";
 	
 }
