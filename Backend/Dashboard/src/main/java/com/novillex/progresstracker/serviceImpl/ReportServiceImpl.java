@@ -45,25 +45,28 @@ public class ReportServiceImpl implements ReportService {
 		validateReportRequest(req);
 
 		Project project = projectRepository.findById(req.getProjectId()).orElseThrow(() -> {
-			logger.warn("Project not found: {}", req.getProjectId());
+
+			logger.warn("Project not found. ProjectId={}", req.getProjectId());
 
 			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", req.getProjectId());
 		});
 
-		logger.info("Project found successfully: {}", project.getProjectName());
+		logger.info("Project found successfully. ProjectName={}", project.getProjectName());
 
 		List<ActivityModel> rows = getActivities(project, req);
 
 		if (rows.isEmpty()) {
 
-			logger.warn("No report data found. Project: {}, Phase: {}, Milestone: {}, Task: {}", req.getProjectName(),
-					req.getPhaseName(), req.getMilestoneNames(), req.getTaskName());
+			logger.warn(
+					"No report data found. ProjectId={}, PhaseId={}, MilestoneIds={}, TaskId={}, SubTaskId={}, ActivityId={}",
+					req.getProjectId(), req.getPhaseId(), req.getMilestoneIds(), req.getTaskId(), req.getSubTaskId(),
+					req.getActivityId());
 
 			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No records found for selected filters",
-					req.getProjectName());
+					req.getProjectId());
 		}
 
-		logger.info("Report generated successfully. Records found: {}", rows.size());
+		logger.info("Report generated successfully. Records found={}", rows.size());
 
 		return rows;
 	}
@@ -78,31 +81,37 @@ public class ReportServiceImpl implements ReportService {
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Project Name is required");
 		}
 
-		boolean phaseSelected = model.getPhaseName() != null && !model.getPhaseName().isBlank();
+		boolean phaseSelected = model.getPhaseId() != null && !model.getPhaseId().isBlank();
 
-		boolean milestoneSelected = model.getMilestoneNames() != null && !model.getMilestoneNames().isEmpty();
+		boolean milestoneSelected = model.getMilestoneIds() != null && !model.getMilestoneIds().isEmpty();
 
-		boolean taskSelected = model.getTaskName() != null && !model.getTaskName().isBlank();
+		boolean taskSelected = model.getTaskId() != null && !model.getTaskId().isBlank();
 
-		boolean subTaskSelected = model.getSubtaskName() != null && !model.getSubtaskName().isBlank();
+		boolean subTaskSelected = model.getSubTaskId() != null && !model.getSubTaskId().isBlank();
 
-		boolean activitySelected = model.getActivityName() != null && !model.getActivityName().isBlank();
+		boolean activitySelected = model.getActivityId() != null && !model.getActivityId().isBlank();
 
-		// If anything below phase is selected, phase is mandatory
+		// Phase is mandatory if anything below it is selected
 		if ((milestoneSelected || taskSelected || subTaskSelected || activitySelected) && !phaseSelected) {
 
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Phase first");
 		}
 
+		// Milestone is mandatory before Task
 		if (taskSelected && !milestoneSelected) {
+
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Milestone before Task");
 		}
 
+		// Task is mandatory before SubTask
 		if (subTaskSelected && !taskSelected) {
+
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Task before Subtask");
 		}
 
+		// SubTask is mandatory before Activity
 		if (activitySelected && !subTaskSelected) {
+
 			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Please select Subtask before Activity");
 		}
 	}
@@ -115,34 +124,32 @@ public class ReportServiceImpl implements ReportService {
 
 		for (Phase phase : project.getPhases()) {
 
-			if (hasText(req.getPhaseName()) && !phase.getPhaseName().equalsIgnoreCase(req.getPhaseName())) {
+			if (hasText(req.getPhaseId()) && !phase.getPhaseId().equals(req.getPhaseId())) {
 				continue;
 			}
 
 			for (Milestone milestone : phase.getMilestones()) {
 
-				if (req.getMilestoneNames() != null && !req.getMilestoneNames().isEmpty() && req.getMilestoneNames()
-						.stream().noneMatch(m -> m.equalsIgnoreCase(milestone.getMilestoneName()))) {
+				if (req.getMilestoneIds() != null && !req.getMilestoneIds().isEmpty()
+						&& !req.getMilestoneIds().contains(milestone.getMilestoneId())) {
 					continue;
 				}
 
 				for (Task task : milestone.getTasks()) {
 
-					if (hasText(req.getTaskName()) && !task.getTaskName().equalsIgnoreCase(req.getTaskName())) {
+					if (hasText(req.getTaskId()) && !task.getTaskId().equals(req.getTaskId())) {
 						continue;
 					}
 
 					for (Subtask subtask : task.getSubTasks()) {
 
-						if (hasText(req.getSubtaskName())
-								&& !subtask.getSubTaskName().equalsIgnoreCase(req.getSubtaskName())) {
+						if (hasText(req.getSubTaskId()) && !subtask.getSubTaskId().equals(req.getSubTaskId())) {
 							continue;
 						}
 
 						for (Activity activity : subtask.getActivities()) {
 
-							if (hasText(req.getActivityName())
-									&& !activity.getActivityName().equalsIgnoreCase(req.getActivityName())) {
+							if (hasText(req.getActivityId()) && !activity.getActivityId().equals(req.getActivityId())) {
 								continue;
 							}
 

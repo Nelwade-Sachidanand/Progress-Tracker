@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
 
 		user.setPassword(passwordEncoder.encode(userModel.getPassword()));
 
-		user.setStatus(true);
+		user.setStatus(userModel.getStatus());
 
 		User savedUser = userRepository.save(user);
 		logger.info("User registered successfully. Username: {}", savedUser.getUsername());
