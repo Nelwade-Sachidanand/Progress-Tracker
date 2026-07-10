@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import com.novillex.progresstracker.common.ErrorCode;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.ActivityModel;
+import com.novillex.progresstracker.model.ActivityUpdateRequestModel;
 import com.novillex.progresstracker.model.ExcelRowModel;
 
 public class WriteUtil {
@@ -107,48 +108,20 @@ public class WriteUtil {
 		return "In Progress";
 	}
 
+	
 	public static String calculateScheduleHealth(Integer progress, LocalDate plannedStartDate, LocalDate plannedEndDate,
-			LocalDate actualStartDate, LocalDate actualEndDate) {
-
-		LocalDate today = LocalDate.now();
-		if (progress != null && progress >= 100) {
-
-			if (actualEndDate != null && plannedEndDate != null && actualEndDate.isAfter(plannedEndDate)) {
-				return "Delayed";
-			}
-			return "On Track";
-		}
-
-		if (plannedStartDate != null && today.isBefore(plannedStartDate)) {
-			return "On Track";
-		}
-
-		if ((progress == null || progress == 0) && plannedEndDate != null && today.isAfter(plannedEndDate)) {
-			return "Delayed";
-		}
-
-		if (actualStartDate != null && plannedStartDate != null && actualStartDate.isAfter(plannedStartDate)) {
-			return "At Risk";
-		}
-
-		if (plannedEndDate != null && today.isAfter(plannedEndDate)) {
-			return "Delayed";
-		}
-		return "On Track";
-	}
-
-	public static String calculateScheduleHealth(Integer progress, LocalDate plannedEndDate, LocalDate actualStartDate,
-			LocalDate actualEndDate, Double actualPeriodWeek) {
+			LocalDate actualStartDate, LocalDate actualEndDate, Double actualPeriodWeek) {
 
 		LocalDate today = LocalDate.now();
 
+		// IF($N>=1, IF($M>$K,"Delayed","On Track"))
 		if (progress != null && progress >= 100) {
 
 			if (actualPeriodWeek != null && actualStartDate != null) {
 
-				double kValue = actualStartDate.toEpochDay();
+				double actualStartSerial = actualStartDate.toEpochDay();
 
-				if (actualPeriodWeek > kValue) {
+				if (actualPeriodWeek > actualStartSerial) {
 					return "Delayed";
 				}
 			}
@@ -156,23 +129,23 @@ public class WriteUtil {
 			return "On Track";
 		}
 
+		// IF(TODAY()<$J,"On Track")
 		if (plannedEndDate != null && today.isBefore(plannedEndDate)) {
-
 			return "On Track";
 		}
 
+		// IF(AND($N=0,TODAY()>$K),"Delayed")
 		if (progress != null && progress == 0 && actualStartDate != null && today.isAfter(actualStartDate)) {
-
 			return "Delayed";
 		}
 
+		// IF(AND($L<>"",$L>$J),"At Risk")
 		if (actualEndDate != null && plannedEndDate != null && actualEndDate.isAfter(plannedEndDate)) {
-
 			return "At Risk";
 		}
 
+		// IF(TODAY()>$K,"Delayed")
 		if (actualStartDate != null && today.isAfter(actualStartDate)) {
-
 			return "Delayed";
 		}
 
@@ -359,6 +332,92 @@ public class WriteUtil {
 		if (model.getProgress() < 0 || model.getProgress() > 100) {
 			throw new ValidationException(ErrorCode.INVALID_PROGRESS, "Progress must be between 0 and 100");
 		}
+	}
+
+	public static void validateUpdateRequest(ActivityUpdateRequestModel request) {
+
+		if (isBlank(request.getProjectId())) {
+			throw new ValidationException(ErrorCode.PROJECT_ID_REQUIRED, "Project id is required");
+		}
+
+		if (isBlank(request.getPhaseId())) {
+			throw new ValidationException(ErrorCode.PHASE_ID_REQUIRED, "Phase id is required");
+		}
+
+		if (isBlank(request.getMilestoneId())) {
+			throw new ValidationException(ErrorCode.MILESTONE_ID_REQUIRED, "Milestone id is required");
+		}
+
+		if (isBlank(request.getTaskId())) {
+			throw new ValidationException(ErrorCode.TASK_ID_REQUIRED, "Task id is required");
+		}
+
+		if (isBlank(request.getSubTaskId())) {
+			throw new ValidationException(ErrorCode.SUBTASK_ID_REQUIRED, "SubTask id is required");
+		}
+
+		if (isBlank(request.getActivityId())) {
+			throw new ValidationException(ErrorCode.ACTIVITY_ID_REQUIRED, "Activity id is required");
+		}
+
+		if (isBlank(request.getActivityName())) {
+			throw new ValidationException(ErrorCode.ACTIVITY_NAME_REQUIRED, "Activity name is required");
+		}
+
+		if (request.getEstimatedPeriodWeek() == null || request.getEstimatedPeriodWeek() <= 0) {
+			throw new ValidationException(ErrorCode.ESTIMATED_PERIOD_INVALID,
+					"Estimated period week must be greater than zero");
+		}
+
+		// Planned dates
+		if (request.getPlannedStartDate() == null) {
+			throw new ValidationException(ErrorCode.PLANNED_DATE_REQUIRED, "Planned start date is required");
+		}
+
+		if (request.getPlannedEndDate() == null) {
+			throw new ValidationException(ErrorCode.PLANNED_DATE_REQUIRED, "Planned end date is required");
+		}
+
+		if (request.getPlannedStartDate().isAfter(request.getPlannedEndDate())) {
+			throw new ValidationException(ErrorCode.INVALID_PLANNED_DATES,
+					"Planned start date cannot be after planned end date");
+		}
+
+		// Progress validation
+		if (request.getProgress() == null) {
+			throw new ValidationException(ErrorCode.INVALID_PROGRESS, "Progress is required");
+		}
+
+		if (request.getProgress() < 0 || request.getProgress() > 100) {
+			throw new ValidationException(ErrorCode.INVALID_PROGRESS, "Progress must be between 0 and 100");
+		}
+
+		// If progress is entered, actual dates become mandatory
+		if (request.getProgress() > 0) {
+
+			if (request.getActualStartDate() == null) {
+				throw new ValidationException(ErrorCode.ACTUAL_START_REQUIRED, "Actual start date is required");
+			}
+
+			if (request.getActualEndDate() == null) {
+				throw new ValidationException(ErrorCode.ACTUAL_END_REQUIRED, "Actual end date is required");
+			}
+		}
+
+		// Actual date validation
+		if (request.getActualStartDate() != null && request.getActualEndDate() != null
+				&& request.getActualStartDate().isAfter(request.getActualEndDate())) {
+
+			throw new ValidationException(ErrorCode.INVALID_ACTUAL_DATES,
+					"Actual start date cannot be after actual end date");
+		}
+
+		// Completed activity
+		if (request.getProgress() == 100 && request.getActualEndDate() == null) {
+			throw new ValidationException(ErrorCode.ACTUAL_END_REQUIRED,
+					"Actual end date is required when progress is 100%");
+		}
+
 	}
 
 	public static boolean isBlank(String value) {

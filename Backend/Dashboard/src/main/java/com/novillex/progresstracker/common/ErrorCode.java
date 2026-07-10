@@ -34,6 +34,9 @@ public class ErrorCode {
 	public static final String TASK_ALREADY_EXISTS = "VAL_23";
 	public static final String MILESTONE_ALREADY_EXISTS = "VAL_24";
 	public static final String PHASE_ALREADY_EXISTS = "VAL_25";
+	public static final String ACTUAL_END_REQUIRED = "VAL_26";
+	public static final String CHANGE_REASON_REQUIRED = "VAL_27";
+	public static final String ACTIVITY_ID_REQUIRED = "VAL_28";
 
 
 

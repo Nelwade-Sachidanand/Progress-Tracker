@@ -75,7 +75,7 @@ public class UserController {
 	}
 	
 	@PreAuthorize("hasRole('ADMIN')")
-	@PutMapping("/reset-password")
+	@PutMapping("/resetPassword")
 	public Response resetPassword(
 	        @Valid @RequestBody ResetPasswordRequest request) {
 

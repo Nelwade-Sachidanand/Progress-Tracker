@@ -68,7 +68,6 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
 						request.getProjectId()));
 
-
 		Phase phase = null;
 		if (request.isNewPhase()) {
 
@@ -214,9 +213,11 @@ public class CreateStructureServiceImpl implements CreateStructureService {
 
 			activity.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
 
-			activity.setScheduleHealth(
-					WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
-							request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
+			activity.setScheduleHealth(WriteUtil.calculateScheduleHealth(request.getProgress(),
+					request.getPlannedStartDate(), request.getPlannedEndDate(), request.getActualStartDate(),
+					request.getActualEndDate(),
+					WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate())));
+			
 			subtask.getActivities().add(activity);
 			activityCreated = true;
 		}

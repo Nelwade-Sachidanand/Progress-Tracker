@@ -39,32 +39,27 @@ import org.slf4j.LoggerFactory;
 public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 	private static final Logger logger = LoggerFactory.getLogger(UpdateActivityServiceImpl.class);
-	
+
 	private ProjectRepository projectRepository;
 
-	
 	private ApplicationContext context;
 
-	
 	private ActivityUpdateRequestRepository requestRepository;
 
-	
 	private AuditService auditService;
 
-	
 	private NotificationService notificationService;
-	
-	
-	public UpdateActivityServiceImpl(ProjectRepository projectRepository, ApplicationContext context, AuditService auditService,
-									 ActivityUpdateRequestRepository  requestRepository, NotificationService notificationService) {
-		this.projectRepository=projectRepository;
-		this.context=context;
-		this.requestRepository=requestRepository;
-		this.auditService=auditService;
-		this.notificationService=notificationService;
-		
+
+	public UpdateActivityServiceImpl(ProjectRepository projectRepository, ApplicationContext context,
+			AuditService auditService, ActivityUpdateRequestRepository requestRepository,
+			NotificationService notificationService) {
+		this.projectRepository = projectRepository;
+		this.context = context;
+		this.requestRepository = requestRepository;
+		this.auditService = auditService;
+		this.notificationService = notificationService;
+
 	}
-	
 
 	private boolean isActivityChanged(Activity oldActivity, Activity newActivity) {
 
@@ -86,6 +81,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	public Response updateActivityRequest(ActivityUpdateRequestModel request) {
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		WriteUtil.validateUpdateRequest(request);
 
 		Project project = projectRepository
 				.findByPhasesMilestonesTasksSubTasksActivitiesActivityId(request.getActivityId())
@@ -149,7 +145,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 			logger.warn("Update denied. Activity '{}' is locked. User '{}' attempted modification.",
 					activityToUpdate.getActivityName(), UserContextUtil.getCurrentUser());
-			
+
 			throw new ValidationException(ErrorCode.ACTIVITY_LOCKED,
 					"This activity has already been approved. Only Admin can update it.");
 		}
@@ -194,8 +190,8 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		newActivity.setScheduleHealth(
 				WriteUtil.calculateScheduleHealth(request.getProgress(), request.getPlannedStartDate(),
-						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate()));
-
+						request.getPlannedEndDate(), request.getActualStartDate(), request.getActualEndDate(),
+						WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(), request.getActualEndDate())));
 		newActivity.setRemark(oldActivity.getRemark());
 
 		boolean hierarchyChanged = !Objects.equals(oldPhaseName, newPhaseName)
