@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novillex.progresstracker.common.AuditAction;
 import com.novillex.progresstracker.common.AuditEntity;
 import com.novillex.progresstracker.common.ErrorCode;
@@ -24,6 +25,7 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.ProjectInformation;
 import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.ApplicationException;
+import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.repository.ProjectInformationRepository;
@@ -47,18 +49,21 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 	private ModelMapper modelMapper;
 
 	private ProjectRepository projectRepository;
-	
+
 	private UserRepository userRepository;
-	
-	
-	public ProjectInformationServiceImpl(ProjectInformationRepository projectInformationRepository, ApplicationContext context,
-										AuditService auditService,ModelMapper mapper, ProjectRepository projectRepository,UserRepository userRepository) {
-		this.repository=projectInformationRepository;
-		this.context=context;
-		this.auditService=auditService;
-		this.modelMapper=mapper;
-		this.projectRepository=projectRepository;
-		this.userRepository=userRepository;
+
+	private final ObjectMapper objectMapper;
+
+	public ProjectInformationServiceImpl(ProjectInformationRepository projectInformationRepository,
+			ApplicationContext context, AuditService auditService, ModelMapper mapper,
+			ProjectRepository projectRepository, UserRepository userRepository, ObjectMapper objectMapper) {
+		this.repository = projectInformationRepository;
+		this.context = context;
+		this.auditService = auditService;
+		this.modelMapper = mapper;
+		this.projectRepository = projectRepository;
+		this.userRepository = userRepository;
+		this.objectMapper = objectMapper;
 	}
 
 	@Transactional
@@ -261,27 +266,36 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 	}
 
 	@Override
-	public Response updateProjectInformation(String id, ProjectInformationModel model) {
+	public Response updateProjectInformation(ProjectInformationModel model) {
 
-		logger.info("Project information update initiated. ProjectId={}, UpdatedBy={}", id,
+		logger.info("Project information update initiated. ProjectId={}, UpdatedBy={}", model.getId(),
 				UserContextUtil.getCurrentUser());
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		try {
 
-			ProjectInformation project = repository.findById(id)
+			ProjectInformation project = repository.findById(model.getId())
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
-							"Project information not found", id));
+							"Project information not found", model.getId()));
 
-			ProjectInformation oldProject = new ProjectInformation();
-			BeanUtils.copyProperties(project, oldProject);
+			// Deep copy for audit
+			ProjectInformation oldProject = objectMapper.readValue(objectMapper.writeValueAsString(project),
+					ProjectInformation.class);
 
-			BeanUtils.copyProperties(model, project);
+			logger.info("Before Mapping: {}", project);
+
+			modelMapper.map(model, project);
+
+			logger.info("After Mapping: {}", project);
 
 			project.setUpdatedAt(LocalDateTime.now());
+			project.setUpdatedBy(UserContextUtil.getCurrentUser());
 
 			repository.save(project);
+
+			logger.info("Old Project : {}", oldProject);
+			logger.info("New Project : {}", project);
 
 			auditService.saveAuditLog(AuditAction.UPDATE_PROJECT_INFORMATION, AuditEntity.PROJECT,
 					project.getProjectName(), project.getProjectName(), oldProject, project,
@@ -293,10 +307,17 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 					"Project information updated successfully", project);
 
+		} catch (ResourceNotFoundException ex) {
+
+			logger.error("Project information not found. ProjectId={}", model.getId());
+
+			throw ex;
+
 		} catch (Exception ex) {
 
-			logger.error("Failed to update project information. ProjectId={}", id, ex);
-			throw ex;
+			logger.error("Failed to update project information. ProjectId={}", model.getId(), ex);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to update project information");
 		}
 	}
 

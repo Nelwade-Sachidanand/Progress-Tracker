@@ -54,9 +54,9 @@ public class ProjectInformationController {
 	}
 
 	@PutMapping("/update/{id}")
-	public Response updateProjectInformation(@PathVariable String id, @RequestBody ProjectInformationModel model) {
-
-		return projectInformationService.updateProjectInformation(id, model);
+	public Response updateProjectInformation(@RequestBody ProjectInformationModel model) {
+		System.out.println(model);
+		return projectInformationService.updateProjectInformation( model);
 	}
 
 	@DeleteMapping("/delete/{id}")

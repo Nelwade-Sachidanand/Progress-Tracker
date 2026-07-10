@@ -135,11 +135,9 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 		} else {
 
-			ref.getActivity().setLocked(false);
-
-			ref.getActivity().setLockedBy(null);
-
-			ref.getActivity().setLockedAt(null);
+			ref.getActivity().setLocked(true);
+			ref.getActivity().setLockedBy(UserContextUtil.getCurrentUser());
+			ref.getActivity().setLockedAt(approvedAt);
 		}
 
 		projectRepository.save(project);
@@ -234,11 +232,9 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 
 			} else {
 
-				ref.getActivity().setLocked(false);
-
-				ref.getActivity().setLockedBy(null);
-
-				ref.getActivity().setLockedAt(null);
+				ref.getActivity().setLocked(true);
+				ref.getActivity().setLockedBy(UserContextUtil.getCurrentUser());
+				ref.getActivity().setLockedAt(approvedAt);
 			}
 
 			projectRepository.save(project);

@@ -11,7 +11,7 @@ public interface ProjectInformationService {
 
 	Response getProjectInformationById(String id);
 
-	Response updateProjectInformation(String id, ProjectInformationModel model);
+	Response updateProjectInformation(ProjectInformationModel model);
 
 	Response deleteProjectInformation(String id);
 	

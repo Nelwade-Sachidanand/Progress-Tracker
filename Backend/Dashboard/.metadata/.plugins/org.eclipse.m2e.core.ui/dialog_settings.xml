@@ -2,6 +2,7 @@
 <section name="Workbench">
 	<section name="MavenProjectImportWizardPage">
 		<list key="rootDirectory">
+			<item value="D:\Progress_Tracker_Project\Backend\Dashboard"/>
 			<item value="D:\Progress_Tracker_Project\Backend"/>
 		</list>
 		<list key="projectNameTemplate">

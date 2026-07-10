@@ -44,16 +44,14 @@ public class ProjectServiceImpl implements ProjectService {
 	private UserRepository userRepository;
 
 	private AuditService auditService;
-	
-	public ProjectServiceImpl(ApplicationContext context,ProjectRepository projectRepository,UserRepository userRepository,
-							  AuditService auditService) {
-		this.context=context;
-		this.projectRepository=projectRepository;
-		this.userRepository=userRepository;
-		this.auditService=auditService;
+
+	public ProjectServiceImpl(ApplicationContext context, ProjectRepository projectRepository,
+			UserRepository userRepository, AuditService auditService) {
+		this.context = context;
+		this.projectRepository = projectRepository;
+		this.userRepository = userRepository;
+		this.auditService = auditService;
 	}
-	
-	
 
 	@Override
 	@Transactional
@@ -164,7 +162,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 	@Override
 	public Response updateMilestoneWeightages(UpdateMilestoneWeightageRequest request) {
-
+		System.out.println(request);
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		logger.info("Updating milestone weightages. ProjectId={}", request.getProjectId());
@@ -193,16 +191,17 @@ public class ProjectServiceImpl implements ProjectService {
 
 			for (MilestoneWeightageModel milestoneReq : request.getMilestones()) {
 
-				Phase phase = project.getPhases().stream()
-						.filter(p -> p.getPhaseName().equalsIgnoreCase(milestoneReq.getPhaseName())).findFirst()
-						.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
-								milestoneReq.getPhaseName()));
+				Phase phase = project.getPhases().stream().filter(p -> p.getPhaseId().equals(milestoneReq.getPhaseId()))
+						.findFirst().orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND,
+								"Phase not found", milestoneReq.getPhaseId()));
 
 				Milestone milestone = phase.getMilestones().stream()
-						.filter(m -> m.getMilestoneName().equalsIgnoreCase(milestoneReq.getMilestoneName())).findFirst()
-						.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND,
-								"Milestone not found", milestoneReq.getMilestoneName()));
-
+				        .filter(m -> m.getMilestoneId().equals(milestoneReq.getMilestoneId()))
+				        .findFirst()
+				        .orElseThrow(() -> new ResourceNotFoundException(
+				                ErrorCode.MILESTONE_NOT_FOUND,
+				                "Milestone not found",
+				                milestoneReq.getMilestoneId()));
 				milestone.setWeightage(milestoneReq.getWeightage());
 			}
 

@@ -138,14 +138,6 @@ public class UserServiceImpl implements UserService {
 					null);
 		}
 
-		if (Boolean.TRUE.equals(user.getLoggedIn())) {
-
-			logger.warn("Login denied. User '{}' is already logged in.", username);
-
-			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
-					"User is already logged in", null);
-		}
-
 		boolean isPasswordValid = passwordEncoder.matches(password, user.getPassword());
 
 		if (!isPasswordValid) {
@@ -155,11 +147,6 @@ public class UserServiceImpl implements UserService {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
 					null);
 		}
-
-		user.setLoggedIn(true);
-		user.setSessionId(UUID.randomUUID().toString());
-		user.setLoginTime(LocalDateTime.now());
-
 		userRepository.save(user);
 
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
@@ -179,28 +166,27 @@ public class UserServiceImpl implements UserService {
 				responseModel);
 	}
 
-	@Override
-	public Response logout() {
-
-		logger.info("Logout initiated for user: {}", UserContextUtil.getCurrentUser());
-
-		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-
-		User user = userRepository.findByUsername(UserContextUtil.getCurrentUser())
-				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found",
-						UserContextUtil.getCurrentUser()));
-
-		user.setLoggedIn(false);
-		user.setSessionId(null);
-		user.setLoginTime(null);
-
-		userRepository.save(user);
-
-		logger.info("Logout successful for user: {}", user.getUsername());
-
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Logout successful.",
-				null);
-	}
+	/*
+	 * @Override public Response logout() {
+	 * 
+	 * logger.info("Logout initiated for user: {}",
+	 * UserContextUtil.getCurrentUser());
+	 * 
+	 * ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+	 * 
+	 * User user = userRepository.findByUsername(UserContextUtil.getCurrentUser())
+	 * .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND,
+	 * "User not found", UserContextUtil.getCurrentUser()));
+	 * 
+	 * user.setLoggedIn(false); user.setSessionId(null); user.setLoginTime(null);
+	 * 
+	 * userRepository.save(user);
+	 * 
+	 * logger.info("Logout successful for user: {}", user.getUsername());
+	 * 
+	 * return responseBuilder.createResponse(StatusCode.SUCCESS,
+	 * StatusCode.SUCCESS_STATUS_TYPE, "Logout successful.", null); }
+	 */
 
 	@Override
 	public Response updateUser(UserUpdateModel model) {

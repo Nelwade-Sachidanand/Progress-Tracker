@@ -32,12 +32,14 @@ public class LoginController {
 		return userService.login(loginModel);
 	}
 	
-	@PreAuthorize("isAuthenticated()")
-	@PostMapping("/logout")
-	public Response logout() {
-
-	    logger.info("Logout request received for user: {}", UserContextUtil.getCurrentUser());
-
-	    return userService.logout();
-	}
+	/*
+	 * @PreAuthorize("isAuthenticated()")
+	 * 
+	 * @PostMapping("/logout") public Response logout() {
+	 * 
+	 * logger.info("Logout request received for user: {}",
+	 * UserContextUtil.getCurrentUser());
+	 * 
+	 * return userService.logout(); }
+	 */
 }

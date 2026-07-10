@@ -13,7 +13,7 @@ public interface UserService {
 
 	Response login(LoginModel loginModel);
 	
-	Response logout();
+	//Response logout();
 
 	/*
 	 * Response updateUserProjects(UserProjectUpdateModel model);

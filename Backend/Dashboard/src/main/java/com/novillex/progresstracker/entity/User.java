@@ -31,9 +31,5 @@ public class User {
 
     private Boolean status;
 
-    private Boolean loggedIn = false;
-
-    private String sessionId;
-
-    private LocalDateTime loginTime;
+  
 }

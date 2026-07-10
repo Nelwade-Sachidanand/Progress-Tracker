@@ -4,9 +4,10 @@ import lombok.Data;
 
 @Data
 public class MilestoneWeightageModel {
-	private String phaseName;
-	
-    private String milestoneName;
+
+    private String phaseId;
+
+    private String milestoneId;
 
     private Double weightage;
 }
