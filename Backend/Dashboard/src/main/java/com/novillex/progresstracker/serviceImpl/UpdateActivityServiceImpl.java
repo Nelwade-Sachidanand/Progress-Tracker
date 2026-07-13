@@ -277,47 +277,46 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 	@Override
 	public Response addRemark(AddRemarkModel model) {
-
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
-		logger.info("Add remark request received for projectId: {}, activity: {}", model.getProjectId(),
-				model.getActivityName());
+		logger.info("Add remark request received for projectId: {}, activityId: {}", model.getProjectId(),
+				model.getActivityId());
 
 		Project project = projectRepository.findById(model.getProjectId()).orElseThrow(() -> {
 			logger.error("Project not found with id: {}", model.getProjectId());
 			return new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
-					model.getActivityName());
+					model.getProjectId());
 		});
 
 		boolean activityFound = false;
 
 		for (Phase phase : project.getPhases()) {
 
-			if (!phase.getPhaseName().equals(model.getPhaseName())) {
+			if (!phase.getPhaseId().equals(model.getPhaseId())) {
 				continue;
 			}
 
 			for (Milestone milestone : phase.getMilestones()) {
 
-				if (!milestone.getMilestoneName().equals(model.getMilestoneName())) {
+				if (!milestone.getMilestoneId().equals(model.getMilestoneId())) {
 					continue;
 				}
 
 				for (Task task : milestone.getTasks()) {
 
-					if (!task.getTaskName().equals(model.getTaskName())) {
+					if (!task.getTaskId().equals(model.getTaskId())) {
 						continue;
 					}
 
 					for (Subtask subTask : task.getSubTasks()) {
 
-						if (!subTask.getSubTaskName().equals(model.getSubTaskName())) {
+						if (!subTask.getSubTaskId().equals(model.getSubTaskId())) {
 							continue;
 						}
 
 						for (Activity activity : subTask.getActivities()) {
 
-							if (!activity.getActivityName().equals(model.getActivityName())) {
+							if (!activity.getActivityId().equals(model.getActivityId())) {
 								continue;
 							}
 
@@ -331,20 +330,37 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 							activityFound = true;
 
-							logger.info("Remark added successfully for activity '{}'", activity.getActivityName());
+							logger.info("Remark added successfully for activityId '{}'", activity.getActivityId());
 
 							break;
 						}
+
+						if (activityFound) {
+							break;
+						}
+					}
+
+					if (activityFound) {
+						break;
 					}
 				}
+
+				if (activityFound) {
+					break;
+				}
+			}
+
+			if (activityFound) {
+				break;
 			}
 		}
 
 		if (!activityFound) {
-			logger.error("Activity '{}' not found in project '{}'", model.getActivityName(), model.getProjectName());
+
+			logger.error("Activity not found. ActivityId={}", model.getActivityId());
 
 			throw new ResourceNotFoundException(ErrorCode.ACTIVITY_NOT_FOUND, "Activity not found",
-					model.getActivityName());
+					model.getActivityId());
 		}
 
 		projectRepository.save(project);
@@ -353,6 +369,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Remark added successfully", null);
+
 	}
 
 }
