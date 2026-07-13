@@ -393,15 +393,8 @@ public class WriteUtil {
 		}
 
 		// If progress is entered, actual dates become mandatory
-		if (request.getProgress() > 0) {
-
-			if (request.getActualStartDate() == null) {
+		if (request.getProgress() > 0 && request.getActualStartDate() == null) {
 				throw new ValidationException(ErrorCode.ACTUAL_START_REQUIRED, "Actual start date is required");
-			}
-
-			if (request.getActualEndDate() == null) {
-				throw new ValidationException(ErrorCode.ACTUAL_END_REQUIRED, "Actual end date is required");
-			}
 		}
 
 		// Actual date validation

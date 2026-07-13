@@ -76,7 +76,7 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 		try {
 
-			Optional<ProjectInformation> existingProjectOpt = repository.findByProjectName(model.getProjectName());
+			Optional<ProjectInformation> existingProjectOpt = repository.findByProjectNameAndBankName(model.getProjectName(),model.getBankName());
 
 			if (existingProjectOpt.isPresent()) {
 
@@ -266,18 +266,18 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 	}
 
 	@Override
-	public Response updateProjectInformation(ProjectInformationModel model) {
+	public Response updateProjectInformation(String id, ProjectInformationModel model) {
 
-		logger.info("Project information update initiated. ProjectId={}, UpdatedBy={}", model.getId(),
+		logger.info("Project information update initiated. ProjectId={}, UpdatedBy={}", id,
 				UserContextUtil.getCurrentUser());
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
 
 		try {
 
-			ProjectInformation project = repository.findById(model.getId())
+			ProjectInformation project = repository.findById(id)
 					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND,
-							"Project information not found", model.getId()));
+							"Project information not found", id));
 
 			// Deep copy for audit
 			ProjectInformation oldProject = objectMapper.readValue(objectMapper.writeValueAsString(project),
@@ -309,13 +309,13 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 		} catch (ResourceNotFoundException ex) {
 
-			logger.error("Project information not found. ProjectId={}", model.getId());
+			logger.error("Project information not found. ProjectId={}", id);
 
 			throw ex;
 
 		} catch (Exception ex) {
 
-			logger.error("Failed to update project information. ProjectId={}", model.getId(), ex);
+			logger.error("Failed to update project information. ProjectId={}", id, ex);
 
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to update project information");
 		}

@@ -12,8 +12,6 @@ import lombok.Data;
 @Data
 public class ProjectInformationModel {
 
-    @Id
-    private String id;
 
     // Bank Details
     @NotBlank(message = "Project Name is required")

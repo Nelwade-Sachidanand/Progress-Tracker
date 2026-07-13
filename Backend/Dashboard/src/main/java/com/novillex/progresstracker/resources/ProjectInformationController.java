@@ -31,7 +31,7 @@ public class ProjectInformationController {
 
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
-		
+		System.out.println("in create");
 		return projectInformationService.createProjectInformation(model);
 	}
 
@@ -53,9 +53,10 @@ public class ProjectInformationController {
 		return projectInformationService.getProjectInformationById(id);
 	}
 
-	@PutMapping("/update")
-	public Response updateProjectInformation(@RequestBody ProjectInformationModel model) {
-		return projectInformationService.updateProjectInformation( model);
+	@PutMapping("/update/{id}")
+	public Response updateProjectInformation(@PathVariable String id, @RequestBody ProjectInformationModel model) {
+		System.out.println("in update");
+		return projectInformationService.updateProjectInformation(id, model);
 	}
 
 	@DeleteMapping("/delete/{id}")

@@ -39,8 +39,9 @@ public class ActivityController {
 	@PreAuthorize("hasAnyRole('ADMIN','IMPLEMENTATION USER')")
 	@PutMapping("/update/request")
 	public Response updateActivityRequest(@Valid @RequestBody ActivityUpdateRequestModel request) {
-System.out.println(request);
+		
 		logger.info("Update Activity Request received for Activity: {}", request.getActivityName());
+		
 		return updateActivityService.updateActivityRequest(request);
 	}
 	
