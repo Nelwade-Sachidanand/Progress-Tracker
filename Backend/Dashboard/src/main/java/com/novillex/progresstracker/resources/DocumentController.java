@@ -75,7 +75,7 @@ public class DocumentController {
 	@GetMapping("/getAll/{projectId}")
 	public Response getDocumentsByProjectId(@PathVariable String projectId) {
 
-		logger.info("Fetch documents request received");
+		logger.info("Fetch documents request received for id={}", projectId);
 
 		return documentService.getDocumentsByProjectId(projectId);
 	}
