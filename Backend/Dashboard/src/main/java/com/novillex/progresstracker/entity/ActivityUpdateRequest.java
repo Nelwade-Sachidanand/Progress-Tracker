@@ -18,9 +18,6 @@ public class ActivityUpdateRequest {
     private String projectId;
     private String projectName;
 
-    // =========================
-    // Hierarchy IDs
-    // =========================
 
     private String phaseId;
     private String milestoneId;
@@ -28,9 +25,6 @@ public class ActivityUpdateRequest {
     private String subTaskId;
     private String activityId;
 
-    // =========================
-    // Old Hierarchy
-    // =========================
 
     private String oldPhaseName;
     private String oldMilestoneName;
@@ -39,9 +33,6 @@ public class ActivityUpdateRequest {
     private String oldOwner;
     private String oldActivityName;
 
-    // =========================
-    // New Hierarchy
-    // =========================
 
     private String newPhaseName;
     private String newMilestoneName;
@@ -50,44 +41,16 @@ public class ActivityUpdateRequest {
     private String newOwner;
     private String newActivityName;
 
-    // =========================
-    // Activity Snapshot
-    // =========================
-
     private Activity oldActivity;
     private Activity newActivity;
 
-    // =========================
-    // Request Details
-    // =========================
-
-    /**
-     * UI
-     * EXCEL
-     * API
-     */
     private String requestSource;
 
-    /**
-     * CREATE
-     * UPDATE
-     * DELETE
-     */
     private String requestType;
 
-    /**
-     * PENDING
-     * APPROVED
-     * REJECTED
-     * ROLLED_BACK
-     */
     private String status;
 
     private String changeReason;
-
-    // =========================
-    // Requested By
-    // =========================
 
     private String requestedBy;
 
@@ -95,25 +58,13 @@ public class ActivityUpdateRequest {
 
     private LocalDateTime requestedAt;
 
-    // =========================
-    // Approval
-    // =========================
-
     private String approvedBy;
 
     private String approvedByUserId;
 
     private LocalDateTime approvedAt;
-
-    // =========================
-    // Rejection
-    // =========================
-
+    
     private String rejectionReason;
-
-    // =========================
-    // Rollback
-    // =========================
 
     private String rollbackReason;
 

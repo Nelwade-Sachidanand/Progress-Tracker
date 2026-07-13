@@ -55,7 +55,6 @@ public class ProjectInformationController {
 
 	@PutMapping("/update")
 	public Response updateProjectInformation(@RequestBody ProjectInformationModel model) {
-		System.out.println(model);
 		return projectInformationService.updateProjectInformation( model);
 	}
 
