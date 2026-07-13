@@ -42,7 +42,7 @@ public class DocumentController {
 			@RequestPart("file") MultipartFile file) {
 
 		logger.info("Upload request received. Project={}, Activity={}", request.getProjectName(),
-				request.getActivityName());
+				request.getActivityId());
 
 		return documentService.uploadDocument(request, file);
 	}
@@ -67,17 +67,17 @@ public class DocumentController {
 	public Response getDocumentsByActivity(@RequestBody UploadDocumentRequest request) {
 
 		logger.info("Fetch documents request received. Project={}, Activity={}", request.getProjectName(),
-				request.getActivityName());
+				request.getActivityId());
 
 		return documentService.getDocuments(request);
 	}
 
-	@GetMapping("/getAll")
-	public Response getAllDocuments() {
+	@GetMapping("/getAll/{projectId}")
+	public Response getDocumentsByProjectId(@PathVariable String projectId) {
 
 		logger.info("Fetch documents request received");
 
-		return documentService.getAllDocuments();
+		return documentService.getDocumentsByProjectId(projectId);
 	}
 
 }

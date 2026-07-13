@@ -1,6 +1,7 @@
 package com.novillex.progresstracker.service;
 
 import com.novillex.progresstracker.common.Response;
+import com.novillex.progresstracker.model.ChangeTemporaryPasswordRequest;
 import com.novillex.progresstracker.model.LoginModel;
 import com.novillex.progresstracker.model.ResetPasswordRequest;
 import com.novillex.progresstracker.model.UserModel;
@@ -26,5 +27,13 @@ public interface UserService {
 	Response deleteUser(String userId);
 	
 	Response resetPassword(ResetPasswordRequest request);
+	
+	Response forgotPassword(String username);
+
+	Response getForgotPasswordRequests();
+
+	Response generateTemporaryPassword(String userId, String temporaryPassword);
+
+	Response changeTemporaryPassword(ChangeTemporaryPasswordRequest request);
 
 }

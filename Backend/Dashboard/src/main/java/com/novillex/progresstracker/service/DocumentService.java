@@ -14,7 +14,7 @@ public interface DocumentService {
 
 	Response getDocuments(UploadDocumentRequest request);
 	
-	Response getAllDocuments();
+	Response getDocumentsByProjectId(String projectId);
 
 //    Response viewDocuments(UploadDocumentRequest request);
 

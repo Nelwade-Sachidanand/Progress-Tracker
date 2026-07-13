@@ -52,4 +52,10 @@ public class AuditAction {
 
 	public static final String RESET_PASSWORD = "RESET_PASSWORD";
 
+	public static final String FORGOT_PASSWORD_REQUEST = "FORGOT_PASSWORD_REQUEST";
+
+	public static final String GENERATE_TEMPORARY_PASSWORD = "GENERATE_TEMPORARY_PASSWORD";
+
+	public static final String CHANGE_TEMPORARY_PASSWORD = "CHANGE_TEMPORARY_PASSWORD";
+
 }

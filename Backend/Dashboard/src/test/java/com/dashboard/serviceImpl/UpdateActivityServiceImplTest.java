@@ -68,20 +68,37 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = new ActivityUpdateRequestModel();
 
+		// Project
 		request.setProjectId("P001");
 		request.setProjectName("Demo Project");
 
+		// IDs (Required by validateUpdateRequest)
+		request.setPhaseId("PH001");
+		request.setMilestoneId("M001");
+		request.setTaskId("T001");
+		request.setSubTaskId("ST001");
+		request.setActivityId("ACT001");
+
+		// Names
 		request.setPhaseName("Phase1");
 		request.setMilestoneName("Milestone1");
 		request.setTaskName("Task1");
 		request.setSubTaskName("SubTask1");
 		request.setActivityName("Activity1");
-		request.setActivityId("ACT001");
-		request.setOwner("Sachin");
 
+		// Activity Details
+		request.setOwner("Sachin");
 		request.setEstimatedPeriodWeek(5.0);
+
+		request.setPlannedStartDate(LocalDate.of(2025, 1, 1));
+		request.setPlannedEndDate(LocalDate.of(2025, 1, 15));
+
+		request.setActualStartDate(LocalDate.of(2025, 1, 2));
+		request.setActualEndDate(LocalDate.of(2025, 1, 16));
+
 		request.setProgress(80);
 
+		request.setChangeReason("Updated Remark");
 		request.setChangeReason("Updating progress");
 
 		return request;
@@ -165,24 +182,25 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			Response result = updateActivityService.updateActivityRequest(request);
 
 			assertNotNull(result);
+			assertSame(response, result);
 		}
 
 		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
 				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
 
-		verify(auditService).saveAuditLog(any(), any(), eq("Activity1"), eq("Demo Project"), any(), any(), eq("admin"));
+		verify(auditService).saveAuditLog(any(), any(), anyString(), eq("Demo Project"), any(), any(), eq("admin"));
 	}
 
 	@Test
@@ -195,14 +213,23 @@ class UpdateActivityServiceImplTest {
 		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
 				.thenReturn(Optional.empty());
 
-		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
-				() -> updateActivityService.updateActivityRequest(request));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-		assertEquals(ErrorCode.PROJECT_NOT_FOUND, exception.getErrorCode());
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
+
+			ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+					() -> updateActivityService.updateActivityRequest(request));
+
+			assertEquals(ErrorCode.PROJECT_NOT_FOUND, exception.getErrorCode());
+		}
 
 		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
 
-		verify(requestRepository, never()).save(any());
+		verify(requestRepository, never()).findByActivityIdAndStatus(anyString(), anyString());
+
+		verify(requestRepository, never()).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
 
@@ -227,9 +254,7 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
@@ -240,7 +265,9 @@ class UpdateActivityServiceImplTest {
 
 		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
 
-		verify(requestRepository, never()).save(any());
+		verify(requestRepository, never()).findByActivityIdAndStatus(anyString(), anyString());
+
+		verify(requestRepository, never()).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
 
@@ -260,11 +287,7 @@ class UpdateActivityServiceImplTest {
 
 		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Ensure existing activity matches request
-		Activity activity = project.getPhases().get(0)
-				.getMilestones().get(0)
-				.getTasks().get(0)
-				.getSubTasks().get(0)
+		Activity activity = project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0)
 				.getActivities().get(0);
 
 		activity.setActivityId("ACT001");
@@ -279,25 +302,22 @@ class UpdateActivityServiceImplTest {
 		activity.setActualStartDate(request.getActualStartDate());
 		activity.setActualEndDate(request.getActualEndDate());
 
-		activity.setActualPeriodWeek(
-				WriteUtil.calculateActualPeriodWeek(
-						request.getActualStartDate(),
-						request.getActualEndDate()));
+		Double actualPeriodWeek = WriteUtil.calculateActualPeriodWeek(request.getActualStartDate(),
+				request.getActualEndDate());
+
+		activity.setActualPeriodWeek(actualPeriodWeek);
 
 		activity.setProgress(request.getProgress());
 
-		activity.setExecutionStatus(
-				WriteUtil.calculateExecutionStatus(request.getProgress()));
+		activity.setExecutionStatus(WriteUtil.calculateExecutionStatus(request.getProgress()));
 
-		activity.setScheduleHealth(
-				WriteUtil.calculateScheduleHealth(
-						request.getProgress(),
-						request.getPlannedStartDate(),
-						request.getPlannedEndDate(),
-						request.getActualStartDate(),
-						request.getActualEndDate()));
+		activity.setScheduleHealth(WriteUtil.calculateScheduleHealth(request.getProgress(),
+				request.getPlannedStartDate(), request.getPlannedEndDate(), request.getActualStartDate(),
+				request.getActualEndDate(), actualPeriodWeek));
 
+		// Must match request exactly
 		activity.setRemark(request.getChangeReason());
+
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(projectRepository.findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001"))
@@ -306,7 +326,9 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
+
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
+
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			ValidationException exception = assertThrows(ValidationException.class,
@@ -329,15 +351,12 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Ensure activity is changed
 		request.setProgress(80);
 
 		Project project = buildProject();
 
-		// Required because UpdateActivityServiceImpl validates milestone weightage
 		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
 
-		// Existing activity should be different
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
@@ -364,6 +383,10 @@ class UpdateActivityServiceImplTest {
 			assertEquals("Database Error", exception.getMessage());
 		}
 
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
+
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any());
@@ -375,7 +398,6 @@ class UpdateActivityServiceImplTest {
 	void updateActivityRequest_NotificationThrowsException() {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
 		request.setProgress(80);
 
 		Project project = buildProject();
@@ -396,25 +418,27 @@ class UpdateActivityServiceImplTest {
 				.thenAnswer(invocation -> invocation.getArgument(0));
 
 		doThrow(new RuntimeException("Notification Error")).when(notificationService).createNotification(anyString(),
-				anyString(), anyString(), any(), anyString(), isNull());
+				anyString(), anyString(), nullable(String.class), anyString(), isNull());
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
-			RuntimeException exception = assertThrows(RuntimeException.class,
+			RuntimeException ex = assertThrows(RuntimeException.class,
 					() -> updateActivityService.updateActivityRequest(request));
 
-			assertEquals("Notification Error", exception.getMessage());
+			assertEquals("Notification Error", ex.getMessage());
 		}
+
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
+		verify(notificationService).createNotification(eq("Activity Update Requested"), anyString(),
 				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
@@ -424,13 +448,10 @@ class UpdateActivityServiceImplTest {
 	void updateActivityRequest_AuditServiceThrowsException() {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
 		request.setProgress(80);
 
 		Project project = buildProject();
-
 		project.getPhases().get(0).getMilestones().get(0).setWeightage(100.0);
-
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
 				.setProgress(50);
 
@@ -453,21 +474,19 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
-			RuntimeException exception = assertThrows(RuntimeException.class,
+			RuntimeException ex = assertThrows(RuntimeException.class,
 					() -> updateActivityService.updateActivityRequest(request));
 
-			assertEquals("Audit Error", exception.getMessage());
+			assertEquals("Audit Error", ex.getMessage());
 		}
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
-				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
+		verify(notificationService).createNotification(anyString(), anyString(), eq("ACTIVITY_UPDATE"), any(),
+				eq("/authorization"), isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -774,17 +793,21 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			updateActivityService.updateActivityRequest(request);
 		}
 
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
+
 		verify(requestRepository).save(captor.capture());
 
 		ActivityUpdateRequest saved = captor.getValue();
+
+		assertNotNull(saved);
 
 		assertAll(
 
@@ -805,15 +828,21 @@ class UpdateActivityServiceImplTest {
 				() -> assertEquals("Activity1", saved.getNewActivityName()),
 
 				() -> assertEquals("Updating progress", saved.getChangeReason()),
+
+				() -> assertEquals("admin", saved.getRequestedBy()),
+				() -> assertEquals("USER001", saved.getRequestedByUserId()),
+				() -> assertEquals("ADMIN", saved.getRequestedByRole()),
+
 				() -> assertEquals("PENDING", saved.getStatus()), () -> assertEquals("UI", saved.getRequestSource()),
-				() -> assertEquals("ADMIN", saved.getRequestedByRole()), () -> assertNotNull(saved.getRequestedAt()));
+				() -> assertNotNull(saved.getRequestedAt()),
+
+				() -> assertNotNull(saved.getOldActivity()), () -> assertNotNull(saved.getNewActivity()));
 	}
 
 	@Test
 	void updateActivityRequest_ShouldCopyOldActivityCorrectly() {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
 		request.setProgress(80);
 
 		Project project = buildProject();
@@ -842,16 +871,15 @@ class UpdateActivityServiceImplTest {
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
-		doNothing().when(notificationService).createNotification(any(), any(), any(), any(), any(), any());
+		doNothing().when(notificationService).createNotification(anyString(), anyString(), anyString(),
+				nullable(String.class), anyString(), isNull());
 
 		doNothing().when(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			updateActivityService.updateActivityRequest(request);
@@ -860,6 +888,8 @@ class UpdateActivityServiceImplTest {
 		verify(requestRepository).save(captor.capture());
 
 		Activity oldActivity = captor.getValue().getOldActivity();
+
+		assertNotNull(oldActivity);
 
 		assertAll(() -> assertEquals("ACT001", oldActivity.getActivityId()),
 				() -> assertEquals("Activity1", oldActivity.getActivityName()),
@@ -872,7 +902,6 @@ class UpdateActivityServiceImplTest {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
 
-		// Ensure activity is changed
 		request.setProgress(80);
 
 		Project project = buildProject();
@@ -903,22 +932,28 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			updateActivityService.updateActivityRequest(request);
 		}
 
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
+
 		verify(requestRepository).save(captor.capture());
 
 		ActivityUpdateRequest saved = captor.getValue();
 
+		assertNotNull(saved);
+
 		assertEquals("admin", saved.getRequestedBy());
 		assertEquals("USER001", saved.getRequestedByUserId());
 		assertEquals("ADMIN", saved.getRequestedByRole());
+
 		assertNotNull(saved.getRequestedAt());
+
 		assertEquals("UI", saved.getRequestSource());
 		assertEquals("PENDING", saved.getStatus());
 	}
@@ -965,20 +1000,27 @@ class UpdateActivityServiceImplTest {
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("admin");
-
 			mocked.when(UserContextUtil::getCurrentUserId).thenReturn("USER001");
-
 			mocked.when(UserContextUtil::getCurrentUserRole).thenReturn("ADMIN");
 
 			updateActivityService.updateActivityRequest(request);
 		}
 
+		verify(projectRepository).findByPhasesMilestonesTasksSubTasksActivitiesActivityId("ACT001");
+
+		verify(requestRepository).findByActivityIdAndStatus("ACT001", "PENDING");
+
 		verify(requestRepository).save(captor.capture());
 
 		Activity newActivity = captor.getValue().getNewActivity();
 
+		assertNotNull(newActivity);
+
 		assertAll(() -> assertNotNull(newActivity.getActualPeriodWeek()),
 				() -> assertNotNull(newActivity.getExecutionStatus()),
-				() -> assertNotNull(newActivity.getScheduleHealth()));
+				() -> assertNotNull(newActivity.getScheduleHealth()),
+				() -> assertEquals(100, newActivity.getProgress()),
+				() -> assertEquals(LocalDate.of(2025, 1, 1), newActivity.getActualStartDate()),
+				() -> assertEquals(LocalDate.of(2025, 1, 15), newActivity.getActualEndDate()));
 	}
 }

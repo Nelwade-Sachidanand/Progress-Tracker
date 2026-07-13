@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.novillex.progresstracker.common.Response;
 import com.novillex.progresstracker.common.StatusCode;
+import com.novillex.progresstracker.model.ChangeTemporaryPasswordRequest;
 import com.novillex.progresstracker.model.ResetPasswordRequest;
 import com.novillex.progresstracker.model.UserModel;
 import com.novillex.progresstracker.model.UserUpdateModel;
@@ -30,13 +31,12 @@ public class UserController {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
-	
 	private UserService userService;
-	
+
 	public UserController(UserService userService) {
-		this.userService=userService;
+		this.userService = userService;
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/register")
 	public Response registerUser(@RequestBody UserModel userModel) {
@@ -45,8 +45,7 @@ public class UserController {
 
 		return userService.register(userModel);
 	}
-	
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/getAllUsers")
 	public Response getAllUsers() {
@@ -55,7 +54,7 @@ public class UserController {
 
 		return userService.getAllUsers();
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/updateUser")
 	public Response updateUser(@RequestBody UserUpdateModel model) {
@@ -64,7 +63,7 @@ public class UserController {
 
 		return userService.updateUser(model);
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/deleteUser/{userId}")
 	public Response deleteUser(@PathVariable String userId) {
@@ -73,18 +72,17 @@ public class UserController {
 
 		return userService.deleteUser(userId);
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/resetPassword")
-	public Response resetPassword(
-	        @Valid @RequestBody ResetPasswordRequest request) {
+	public Response resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
 
-	    return userService.resetPassword(request);
+		return userService.resetPassword(request);
 	}
 
 	@PostMapping("/refresh")
 	public Response refreshToken(@RequestParam String refreshToken) {
-		
+
 		logger.info("Refreshing Token");
 
 		Claims claims = JwtUtil.extractClaims(refreshToken);
@@ -92,12 +90,52 @@ public class UserController {
 		String username = claims.getSubject();
 
 		String role = (String) claims.get("role");
-		
+
 		String userId = (String) claims.get("userId");
 
-		String newAccessToken = JwtUtil.generateAccessToken(userId,username, role);
+		String newAccessToken = JwtUtil.generateAccessToken(userId, username, role);
 
 		return new Response(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Token refreshed successfully",
 				newAccessToken);
 	}
+	
+	@PostMapping("/forgotPassword")
+	public Response forgotPassword(@RequestParam String username) {
+
+	    logger.info("Forgot password request received. Username={}", username);
+
+	    return userService.forgotPassword(username);
+	}
+	
+	@PreAuthorize("hasRole('ADMIN')")
+	@GetMapping("/forgotPasswordRequests")
+	public Response getForgotPasswordRequests() {
+
+	    logger.info("Fetching forgot password requests");
+
+	    return userService.getForgotPasswordRequests();
+	}
+	
+	@PreAuthorize("hasRole('ADMIN')")
+	@PutMapping("/generateTemporaryPassword")
+	public Response generateTemporaryPassword(
+	        @RequestParam String userId,
+	        @RequestParam String temporaryPassword) {
+
+	    logger.info("Generating temporary password for UserId={}", userId);
+
+	    return userService.generateTemporaryPassword(userId, temporaryPassword);
+	}
+	
+	@PutMapping("/changeTemporaryPassword")
+	public Response changeTemporaryPassword(
+	        @Valid @RequestBody ChangeTemporaryPasswordRequest request) {
+
+	    logger.info("Changing password using temporary password");
+
+	    return userService.changeTemporaryPassword(request);
+	}
+	
+	
+	
 }

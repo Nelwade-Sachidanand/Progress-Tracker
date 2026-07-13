@@ -53,7 +53,7 @@ public class ProjectInformationController {
 		return projectInformationService.getProjectInformationById(id);
 	}
 
-	@PutMapping("/update/{id}")
+	@PutMapping("/update")
 	public Response updateProjectInformation(@RequestBody ProjectInformationModel model) {
 		System.out.println(model);
 		return projectInformationService.updateProjectInformation( model);

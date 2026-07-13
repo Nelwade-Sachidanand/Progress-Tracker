@@ -5,28 +5,28 @@ import lombok.Data;
 
 @Data
 public class UploadDocumentRequest {
-	
-	@NotBlank(message = "Project Id Required")
-	private String projectId;
-	
-	@NotBlank(message = "Project Name Required")
-	private String projectName;
-	
-	@NotBlank(message = "Bank Name Required")
-	private String bankName;
-	
-	@NotBlank(message = "Phase Name Required")
-    private String phaseName;
-	
-	@NotBlank(message = "Milestone Name Required")
-    private String milestoneName;
-	
-	@NotBlank(message = "Task Name Required")
-    private String taskName;
-	
-	@NotBlank(message = "Subtask Name Required")
-    private String subTaskName;
-	
-	@NotBlank(message = "Activity Name Required")
-    private String activityName;
+
+    @NotBlank(message = "Project Id is required")
+    private String projectId;
+
+    @NotBlank(message = "Project Name is required")
+    private String projectName;
+
+    @NotBlank(message = "Bank Name is required")
+    private String bankName;
+
+    @NotBlank(message = "Phase Id is required")
+    private String phaseId;
+
+    @NotBlank(message = "Milestone Id is required")
+    private String milestoneId;
+
+    @NotBlank(message = "Task Id is required")
+    private String taskId;
+
+    @NotBlank(message = "Subtask Id is required")
+    private String subTaskId;
+
+    @NotBlank(message = "Activity Id is required")
+    private String activityId;
 }
