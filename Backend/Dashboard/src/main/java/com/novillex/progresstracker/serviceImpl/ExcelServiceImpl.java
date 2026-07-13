@@ -416,7 +416,7 @@ public class ExcelServiceImpl implements ExcelService {
 
 			throw new ResourceNotFoundException(ErrorCode.NO_REPORT_DATA_FOUND, "No report data found", null);
 		}
-		ClassPathResource resource = new ClassPathResource("templates/Project_Template 2.xlsx");
+		ClassPathResource resource = new ClassPathResource("templates/Project_Template.xlsx");
 
 		try (Workbook workbook = WorkbookFactory.create(resource.getInputStream())) {
 
