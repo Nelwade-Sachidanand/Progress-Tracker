@@ -37,6 +37,9 @@ public class ErrorCode {
 	public static final String ACTUAL_END_REQUIRED = "VAL_26";
 	public static final String CHANGE_REASON_REQUIRED = "VAL_27";
 	public static final String ACTIVITY_ID_REQUIRED = "VAL_28";
+	public static final String USER_INACTIVE = "VAL_29";
+	public static final String TEMP_PASSWORD_ACTIVE = "VAL_30";
+	public static final String TEMP_PASSWORD_EXPIRED = "VAL_31";
 
 
 

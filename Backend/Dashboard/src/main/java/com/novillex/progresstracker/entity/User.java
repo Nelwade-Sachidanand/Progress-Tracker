@@ -30,6 +30,14 @@ public class User {
     private List<String> projectIds;
 
     private Boolean status;
+    
+    private Boolean passwordResetRequested = false;
+
+    private Boolean temporaryPasswordActive = false;
+
+    private Boolean forcePasswordChange = false;
+
+    private LocalDateTime temporaryPasswordExpiry;
 
   
 }

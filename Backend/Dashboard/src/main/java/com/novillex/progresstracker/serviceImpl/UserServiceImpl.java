@@ -20,6 +20,7 @@ import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
+import com.novillex.progresstracker.model.ChangeTemporaryPasswordRequest;
 import com.novillex.progresstracker.model.LoginModel;
 import com.novillex.progresstracker.model.LoginResponseModel;
 import com.novillex.progresstracker.model.ResetPasswordRequest;
@@ -28,6 +29,7 @@ import com.novillex.progresstracker.model.UserUpdateModel;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
+import com.novillex.progresstracker.service.NotificationService;
 import com.novillex.progresstracker.service.UserService;
 import com.novillex.progresstracker.util.JwtUtil;
 import com.novillex.progresstracker.util.UserContextUtil;
@@ -50,13 +52,16 @@ public class UserServiceImpl implements UserService {
 
 	private ProjectRepository projectRepository;
 
+	private NotificationService notificationService;
+
 	public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, ApplicationContext context,
-			AuditService auditService, ProjectRepository projectRepository) {
+			AuditService auditService, ProjectRepository projectRepository, NotificationService notificationService) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.context = context;
 		this.auditService = auditService;
 		this.projectRepository = projectRepository;
+		this.notificationService = notificationService;
 	}
 
 	@Override
@@ -147,6 +152,23 @@ public class UserServiceImpl implements UserService {
 			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
 					null);
 		}
+
+		if (Boolean.TRUE.equals(user.getTemporaryPasswordActive())) {
+
+			if (user.getTemporaryPasswordExpiry() != null
+					&& LocalDateTime.now().isAfter(user.getTemporaryPasswordExpiry())) {
+
+				user.setTemporaryPasswordActive(false);
+				user.setForcePasswordChange(false);
+				user.setTemporaryPasswordExpiry(null);
+
+				userRepository.save(user);
+
+				throw new ValidationException(ErrorCode.TEMP_PASSWORD_EXPIRED,
+						"Temporary password has expired. Please raise a new forgot password request.");
+			}
+		}
+
 		userRepository.save(user);
 
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
@@ -159,6 +181,7 @@ public class UserServiceImpl implements UserService {
 		responseModel.setUser(user);
 		responseModel.setAccessToken(accessToken);
 		responseModel.setRefreshToken(refreshToken);
+		responseModel.setForcePasswordChange(user.getForcePasswordChange());
 
 		logger.info("Login successful. Username: {}, Role: {}", username, user.getRole());
 
@@ -338,6 +361,165 @@ public class UserServiceImpl implements UserService {
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
 				"Password reset successfully.", null);
+	}
+
+	@Override
+	public Response forgotPassword(String username) {
+
+		logger.info("Forgot password request initiated. Username={}", username);
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		User user = userRepository.findByUsername(username)
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", username));
+
+		if (!Boolean.TRUE.equals(user.getStatus())) {
+
+			throw new ValidationException(ErrorCode.USER_INACTIVE, "User account is inactive.");
+		}
+
+		if (Boolean.TRUE.equals(user.getPasswordResetRequested())) {
+
+			throw new ValidationException(ErrorCode.REQUEST_ALREADY_PENDING,
+					"Forgot password request is already pending.");
+		}
+
+		if (Boolean.TRUE.equals(user.getTemporaryPasswordActive())) {
+
+			throw new ValidationException(ErrorCode.TEMP_PASSWORD_ACTIVE,
+					"Temporary password is already active. Please use it to login.");
+		}
+
+		user.setPasswordResetRequested(true);
+
+		userRepository.save(user);
+
+		List<User> admins = userRepository.findByRole("ADMIN");
+
+		for (User admin : admins) {
+
+			notificationService.createNotification("Forgot Password Request",
+					user.getUsername() + " has requested a password reset.", "FORGOT_PASSWORD_REQUEST", user.getId(),
+					null, admin.getId());
+		}
+
+		auditService.saveAuditLog(AuditAction.FORGOT_PASSWORD_REQUEST, AuditEntity.USER, user.getUsername(), null, null,
+				null, user.getUsername());
+
+		logger.info("Forgot password request submitted successfully. Username={}", username);
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Forgot password request submitted successfully. Please contact the administrator.", null);
+	}
+
+	@Override
+	public Response generateTemporaryPassword(String userId, String temporaryPassword) {
+
+		logger.info("Generating temporary password for UserId={}", userId);
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", userId));
+
+		if (!Boolean.TRUE.equals(user.getPasswordResetRequested())) {
+
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "No forgot password request found for this user.");
+		}
+
+		user.setPassword(passwordEncoder.encode(temporaryPassword));
+
+		user.setPasswordResetRequested(false);
+
+		user.setTemporaryPasswordActive(true);
+
+		user.setForcePasswordChange(true);
+
+		user.setTemporaryPasswordExpiry(LocalDateTime.now().plusHours(72));
+
+		userRepository.save(user);
+
+		notificationService.createNotification("Temporary Password Generated",
+				"Temporary password has been generated for your account. Please login using the temporary password and change it within 72 hours.",
+				"TEMP_PASSWORD_GENERATED", user.getId(), null, user.getId());
+
+		auditService.saveAuditLog(AuditAction.GENERATE_TEMPORARY_PASSWORD, AuditEntity.USER, user.getUsername(), null,
+				null, null, UserContextUtil.getCurrentUser());
+
+		logger.info("Temporary password generated successfully for Username={}", user.getUsername());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Temporary password generated successfully.", null);
+	}
+
+	@Override
+	public Response changeTemporaryPassword(ChangeTemporaryPasswordRequest request) {
+
+		logger.info("Changing temporary password. Username={}", UserContextUtil.getCurrentUser());
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		
+		User user = userRepository.findById(request.getUserId()).orElseThrow(
+				() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", request.getUserId()));
+
+		if (!Boolean.TRUE.equals(user.getTemporaryPasswordActive())) {
+
+			throw new ValidationException(ErrorCode.INVALID_REQUEST, "Temporary password is not active.");
+		}
+
+		if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+
+			throw new ValidationException(ErrorCode.INVALID_PASSWORD, "Current password is incorrect.");
+		}
+
+		if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+
+			throw new ValidationException(ErrorCode.PASSWORD_MISMATCH,
+					"New password and confirm password do not match.");
+		}
+
+		if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+
+			throw new ValidationException(ErrorCode.INVALID_REQUEST,
+					"New password cannot be the same as the temporary password.");
+		}
+
+		user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+
+		user.setPasswordResetRequested(false);
+
+		user.setTemporaryPasswordActive(false);
+
+		user.setForcePasswordChange(false);
+
+		user.setTemporaryPasswordExpiry(null);
+
+		userRepository.save(user);
+
+		auditService.saveAuditLog(AuditAction.CHANGE_TEMPORARY_PASSWORD, AuditEntity.USER, user.getUsername(), null,
+				null, null, user.getUsername());
+
+		logger.info("Temporary password changed successfully. Username={}", user.getUsername());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Password changed successfully.", null);
+	}
+
+	@Override
+	public Response getForgotPasswordRequests() {
+
+		logger.info("Fetching all forgot password requests.");
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		List<User> users = userRepository.findByPasswordResetRequestedTrue();
+
+		users.forEach(user -> user.setPassword(null));
+
+		logger.info("Total forgot password requests found: {}", users.size());
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Forgot password requests fetched successfully.", users);
 	}
 
 }

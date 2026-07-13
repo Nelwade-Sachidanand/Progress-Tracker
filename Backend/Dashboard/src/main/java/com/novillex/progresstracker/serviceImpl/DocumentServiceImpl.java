@@ -24,35 +24,39 @@ import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.ActivityDocument;
 import com.novillex.progresstracker.entity.Documents;
+import com.novillex.progresstracker.entity.Milestone;
+import com.novillex.progresstracker.entity.Phase;
+import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.UploadDocumentRequest;
 import com.novillex.progresstracker.repository.DocumentRepository;
+import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.DocumentService;
 import com.novillex.progresstracker.service.VirusScanService;
 import com.novillex.progresstracker.util.UserContextUtil;
 
-
 @Service
 public class DocumentServiceImpl implements DocumentService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
+	private static final Logger logger = LoggerFactory.getLogger(DocumentServiceImpl.class);
 
-    private  DocumentRepository documentRepository;
+	private DocumentRepository documentRepository;
 
-    private  VirusScanService virusScanService;
+	private VirusScanService virusScanService;
 
-    private  ResponseBuilder responseBuilder;
+	private ResponseBuilder responseBuilder;
 
-    public DocumentServiceImpl(DocumentRepository documentRepository,VirusScanService virusScanService,
-            				   ResponseBuilder responseBuilder) {
+	private ProjectRepository projectRepository;
 
-        this.documentRepository = documentRepository;
-        this.virusScanService = virusScanService;
-        this.responseBuilder = responseBuilder;
-    }
-	
-	
+	public DocumentServiceImpl(DocumentRepository documentRepository, VirusScanService virusScanService,
+			ResponseBuilder responseBuilder, ProjectRepository projectRepository) {
+
+		this.documentRepository = documentRepository;
+		this.virusScanService = virusScanService;
+		this.responseBuilder = responseBuilder;
+		this.projectRepository = projectRepository;
+	}
 
 	@Value("${document.upload.path}")
 	private String documentFolder;
@@ -67,17 +71,16 @@ public class DocumentServiceImpl implements DocumentService {
 	public Response uploadDocument(UploadDocumentRequest request, MultipartFile file) {
 
 		logger.info("Document upload started. Project={}, Activity={}, User={}", request.getProjectName(),
-				request.getActivityName(), UserContextUtil.getCurrentUser());
+				request.getActivityId(), UserContextUtil.getCurrentUser());
 
 		validateFile(file);
-		
+
 		virusScanService.scan(file);
 
 		Documents documents = documentRepository
-				.findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-						request.getProjectName(), request.getBankName(), request.getPhaseName(),
-						request.getMilestoneName(), request.getTaskName(), request.getSubTaskName(),
-						request.getActivityName())
+				.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(request.getProjectId(),
+						request.getPhaseId(), request.getMilestoneId(), request.getTaskId(), request.getSubTaskId(),
+						request.getActivityId())
 				.orElse(null);
 
 		if (documents == null) {
@@ -166,12 +169,25 @@ public class DocumentServiceImpl implements DocumentService {
 
 	private File createActivityFolder(UploadDocumentRequest request) {
 
+		Project project = projectRepository.findById(request.getProjectId())
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found",
+						request.getProjectId()));
+
+		Phase phase = project.getPhases().stream().filter(p -> p.getPhaseId().equals(request.getPhaseId())).findFirst()
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.PHASE_NOT_FOUND, "Phase not found",
+						request.getPhaseId()));
+
+		Milestone milestone = phase.getMilestones().stream()
+				.filter(m -> m.getMilestoneId().equals(request.getMilestoneId())).findFirst()
+				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.MILESTONE_NOT_FOUND, "Milestone not found",
+						request.getMilestoneId()));
+
 		String basePath = Paths.get(documentFolder).toAbsolutePath().toString();
 
 		String folderPath = basePath + File.separator + sanitize(request.getBankName()) + File.separator
-				+ sanitize(request.getProjectName()) + File.separator + sanitize(request.getPhaseName())
-				+ File.separator + sanitize(request.getMilestoneName());
-		
+				+ sanitize(request.getProjectName()) + File.separator + sanitize(phase.getPhaseName()) + File.separator
+				+ sanitize(milestone.getMilestoneName());
+
 		File folder = new File(folderPath);
 
 		if (!folder.exists()) {
@@ -181,7 +197,6 @@ public class DocumentServiceImpl implements DocumentService {
 			logger.info("Creating folder : {}", folder.getAbsolutePath());
 
 			if (!created && !folder.exists()) {
-
 				throw new RuntimeException("Unable to create folder : " + folder.getAbsolutePath());
 			}
 		}
@@ -248,14 +263,14 @@ public class DocumentServiceImpl implements DocumentService {
 
 			return new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND, "Document not found.", documentId);
 		});
-		
+
 		System.out.println(documents);
 
 		ActivityDocument activityDocument = documents.getDocuments().stream()
 				.filter(doc -> doc.getDocumentId().equals(documentId)).findFirst()
 				.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND, "Document not found.",
 						documentId));
-		
+
 		System.out.println(activityDocument);
 
 		File file = new File(activityDocument.getFilePath());
@@ -276,20 +291,19 @@ public class DocumentServiceImpl implements DocumentService {
 	@Override
 	public Response getDocuments(UploadDocumentRequest request) {
 
-		logger.info("Fetching documents. Project={}, Activity={}", request.getProjectName(), request.getActivityName());
+		logger.info("Fetching documents. ProjectId={}, ActivityId={}", request.getProjectId(), request.getActivityId());
 
 		Documents documents = documentRepository
-				.findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-						request.getProjectName(), request.getBankName(), request.getPhaseName(),
-						request.getMilestoneName(), request.getTaskName(), request.getSubTaskName(),
-						request.getActivityName())
+				.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(request.getProjectId(),
+						request.getPhaseId(), request.getMilestoneId(), request.getTaskId(), request.getSubTaskId(),
+						request.getActivityId())
 				.orElseThrow(() -> {
 
-					logger.warn("No documents found. Project={}, Activity={}", request.getProjectName(),
-							request.getActivityName());
+					logger.warn("No documents found. ProjectId={}, ActivityId={}", request.getProjectId(),
+							request.getActivityId());
 
 					return new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND,
-							"No documents found for the selected activity.", request.getActivityName());
+							"No documents found for the selected activity.", request.getActivityId());
 				});
 
 		logger.info("Documents fetched successfully. Total Documents={}", documents.getDocuments().size());
@@ -299,9 +313,21 @@ public class DocumentServiceImpl implements DocumentService {
 	}
 
 	@Override
-	public Response getAllDocuments() {
-		List<Documents> result = documentRepository.findAll();
-		
-		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Documents Fetched Successfully", result);
+	public Response getDocumentsByProjectId(String projectId) {
+
+		logger.info("Fetching documents for ProjectId={}", projectId);
+
+		projectRepository.findById(projectId).orElseThrow(
+				() -> new ResourceNotFoundException(ErrorCode.PROJECT_NOT_FOUND, "Project not found", projectId));
+
+		List<Documents> result = documentRepository.findByProjectId(projectId);
+
+		if (result.isEmpty()) {
+			throw new ResourceNotFoundException(ErrorCode.DOCUMENT_NOT_FOUND, "No documents found for this project",
+					projectId);
+		}
+
+		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+				"Documents fetched successfully", result);
 	}
 }

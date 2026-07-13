@@ -14,4 +14,5 @@ public class LoginResponseModel {
 	private User user;
 	private String accessToken;
     private String refreshToken;
+    private Boolean forcePasswordChange;
 }

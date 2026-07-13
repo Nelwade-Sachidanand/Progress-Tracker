@@ -30,6 +30,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.novillex.progresstracker.common.AuditAction;
 import com.novillex.progresstracker.common.AuditEntity;
 import com.novillex.progresstracker.common.ErrorCode;
@@ -39,6 +40,7 @@ import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.entity.ProjectInformation;
 import com.novillex.progresstracker.entity.User;
 import com.novillex.progresstracker.exception.ApplicationException;
+import com.novillex.progresstracker.exception.DatabaseException;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.ProjectInformationModel;
 import com.novillex.progresstracker.repository.ProjectInformationRepository;
@@ -71,6 +73,9 @@ public class ProjectInformationServiceImplTest {
 	@Mock
 	private UserRepository userRepository;
 
+	@Mock
+	private ObjectMapper objectMapper;
+
 	@InjectMocks
 	private ProjectInformationServiceImpl service;
 
@@ -86,6 +91,7 @@ public class ProjectInformationServiceImplTest {
 	void shouldCreateProjectInformationSuccessfully() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
+		model.setId("PI001");
 		model.setProjectName("Tracker");
 		model.setBankName("HDFC");
 		model.setProjectManager("Manager");
@@ -216,7 +222,7 @@ public class ProjectInformationServiceImplTest {
 	}
 
 	@Test
-	void shouldUpdateProjectInformationSuccessfully() {
+	void shouldUpdateProjectInformationSuccessfully() throws Exception {
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 		Response response = new Response();
@@ -226,11 +232,20 @@ public class ProjectInformationServiceImplTest {
 		existing.setProjectName("Old");
 
 		ProjectInformationModel model = new ProjectInformationModel();
+		model.setId("P001");
 		model.setProjectName("New");
+
+		ProjectInformation oldProject = new ProjectInformation();
+		oldProject.setId("P001");
+		oldProject.setProjectName("Old");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
+
+		when(objectMapper.writeValueAsString(any(ProjectInformation.class))).thenReturn("json");
+
+		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(oldProject);
 
 		when(repository.save(any(ProjectInformation.class))).thenReturn(existing);
 
@@ -242,10 +257,11 @@ public class ProjectInformationServiceImplTest {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-			Response result = service.updateProjectInformation("P001", model);
+			Response result = service.updateProjectInformation(model);
 
 			assertEquals(response, result);
 
+			verify(repository).findById("P001");
 			verify(repository).save(any(ProjectInformation.class));
 
 			verify(auditService).saveAuditLog(eq(AuditAction.UPDATE_PROJECT_INFORMATION), eq(AuditEntity.PROJECT),
@@ -259,19 +275,20 @@ public class ProjectInformationServiceImplTest {
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ProjectInformationModel model = new ProjectInformationModel();
+		model.setId("P001");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.empty());
 
 		ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
-				() -> service.updateProjectInformation("P001", model));
+				() -> service.updateProjectInformation(model));
 
 		assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
 
 		verify(repository).findById("P001");
 
-		verify(repository, never()).save(any());
+		verify(repository, never()).save(any(ProjectInformation.class));
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -355,40 +372,59 @@ public class ProjectInformationServiceImplTest {
 	@Test
 	void shouldThrowExceptionWhenRepositoryFailsDuringCreate() {
 
-		ProjectInformationModel model = new ProjectInformationModel();
-		model.setProjectName("Tracker");
+	    ProjectInformationModel model = new ProjectInformationModel();
+	    model.setProjectName("Tracker");
+	    model.setBankName("HDFC");
+	    model.setProjectManager("Manager");
 
-		ProjectInformation project = new ProjectInformation();
+	    ProjectInformation project = new ProjectInformation();
+	    project.setProjectName("Tracker");
+	    project.setBankName("HDFC");
+	    project.setProjectManager("Manager");
 
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
+	    when(context.getBean(ResponseBuilder.class))
+	            .thenReturn(responseBuilder);
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+	    when(repository.findByProjectName("Tracker"))
+	            .thenReturn(Optional.empty());
 
-		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
+	    when(modelMapper.map(model, ProjectInformation.class))
+	            .thenReturn(project);
 
-		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("DB error"));
+	    when(repository.save(any(ProjectInformation.class)))
+	            .thenThrow(new RuntimeException("DB error"));
 
-		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+	    try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+	        mocked.when(UserContextUtil::getCurrentUser)
+	                .thenReturn("testUser");
 
-			ApplicationException ex = assertThrows(ApplicationException.class,
-					() -> service.createProjectInformation(model));
+	        ApplicationException ex = assertThrows(
+	                ApplicationException.class,
+	                () -> service.createProjectInformation(model));
 
-			assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
+	        assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
 
-			verify(repository).save(any(ProjectInformation.class));
+	        verify(repository).findByProjectName("Tracker");
+	        verify(repository).save(any(ProjectInformation.class));
 
-			verify(projectRepository, never()).save(any(Project.class));
+	        verify(projectRepository, never()).findByProjectInformationId(anyString());
+	        verify(projectRepository, never()).save(any(Project.class));
 
-			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
-		}
+	        verify(auditService, never()).saveAuditLog(
+	                any(),
+	                any(),
+	                any(),
+	                any(),
+	                any(),
+	                any(),
+	                any());
+	    }
 	}
-
 	@Test
-	void shouldThrowExceptionWhenUpdateFails() {
+	void shouldThrowExceptionWhenUpdateFails() throws Exception {
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
@@ -397,10 +433,15 @@ public class ProjectInformationServiceImplTest {
 		existing.setProjectName("Tracker");
 
 		ProjectInformationModel model = new ProjectInformationModel();
+		model.setId("P001");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
+
+		when(objectMapper.writeValueAsString(any(ProjectInformation.class))).thenReturn("json");
+
+		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(new ProjectInformation());
 
 		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("Database error"));
 
@@ -408,10 +449,9 @@ public class ProjectInformationServiceImplTest {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-			RuntimeException ex = assertThrows(RuntimeException.class,
-					() -> service.updateProjectInformation("P001", model));
+			DatabaseException ex = assertThrows(DatabaseException.class, () -> service.updateProjectInformation(model));
 
-			assertEquals("Database error", ex.getMessage());
+			assertEquals(ErrorCode.DATABASE_ERROR, ex.getErrorCode());
 
 			verify(repository).findById("P001");
 			verify(repository).save(any(ProjectInformation.class));
@@ -644,16 +684,36 @@ public class ProjectInformationServiceImplTest {
 	}
 
 	@Test
-	void shouldSetUpdatedTimeDuringUpdate() {
+	void shouldSetUpdatedTimeDuringUpdate() throws Exception {
 
 		ProjectInformation existing = new ProjectInformation();
-
 		existing.setId("P001");
+		existing.setProjectName("Tracker");
+
+		ProjectInformationModel model = new ProjectInformationModel();
+		model.setId("P001");
+
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
 
-		service.updateProjectInformation("P001", new ProjectInformationModel());
+		when(objectMapper.writeValueAsString(any(ProjectInformation.class))).thenReturn("json");
 
-		assertEquals(true, existing.getUpdatedAt() != null);
+		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(new ProjectInformation());
+
+		when(repository.save(any(ProjectInformation.class))).thenReturn(existing);
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
+
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			service.updateProjectInformation(model);
+
+			assertNotNull(existing.getUpdatedAt());
+		}
 	}
 }

@@ -11,17 +11,25 @@ import lombok.Data;
 @Data
 @Document(collection = "Documents")
 public class Documents {
-	@Id
-	private String id;
-	
-	private String projectId;
-	private String bankName;
-	private String projectName;
-	private String phaseName;
-	private String milestoneName;
-	private String taskName;
-	private String subTaskName;
-	private String activityName;
 
-	private List<ActivityDocument> documents = new ArrayList<>();
+    @Id
+    private String id;
+
+    private String projectId;
+
+    private String projectName;
+
+    private String bankName;
+
+    private String phaseId;
+
+    private String milestoneId;
+
+    private String taskId;
+
+    private String subTaskId;
+
+    private String activityId;
+
+    private List<ActivityDocument> documents = new ArrayList<>();
 }
