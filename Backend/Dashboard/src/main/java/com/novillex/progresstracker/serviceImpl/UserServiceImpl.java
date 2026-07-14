@@ -399,8 +399,8 @@ public class UserServiceImpl implements UserService {
 		for (User admin : admins) {
 
 			notificationService.createNotification("Forgot Password Request",
-					user.getUsername() + " has requested a password reset.", "FORGOT_PASSWORD_REQUEST", user.getId(),
-					null, admin.getId());
+					user.getUsername() + " has Requested a Password Reset.", "FORGOT_PASSWORD_REQUEST", user.getId(),
+					null, null);
 		}
 
 		auditService.saveAuditLog(AuditAction.FORGOT_PASSWORD_REQUEST, AuditEntity.USER, user.getUsername(), null, null,
