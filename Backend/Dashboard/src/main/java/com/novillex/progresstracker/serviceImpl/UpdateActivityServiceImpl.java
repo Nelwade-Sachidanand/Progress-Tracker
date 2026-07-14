@@ -98,13 +98,13 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 			for (Milestone milestone : phase.getMilestones()) {
 
-//    if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
-//
-//     logger.warn("Milestone weightage is not defined. Milestone={}", milestone.getMilestoneName());
-//
-//     throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
-//       "Milestone weightage is not defined. Please assign milestone weightage first.");
-//    }
+				if (milestone.getWeightage() == null || milestone.getWeightage() <= 0) {
+
+					logger.warn("Milestone weightage is not defined. Milestone={}", milestone.getMilestoneName());
+
+					throw new ValidationException(ErrorCode.MILESTONE_WEIGHTAGE_NOT_DEFINED,
+							"Milestone weightage is not defined. Please assign milestone weightage first.");
+				}
 
 				for (Task task : milestone.getTasks()) {
 
@@ -246,7 +246,7 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		activityRequest.setOldActivity(oldActivity);
 		activityRequest.setNewActivity(newActivity);
 
-		activityRequest.setRequestSource("UI");
+		activityRequest.setRequestSource("MANUAL");
 		activityRequest.setRequestType("UPDATE");
 		activityRequest.setStatus("PENDING");
 
