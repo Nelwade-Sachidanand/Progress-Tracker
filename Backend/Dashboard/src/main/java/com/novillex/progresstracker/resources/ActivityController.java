@@ -58,7 +58,7 @@ public class ActivityController {
 	@PostMapping("/add/remark")
 	public Response addRemark(@Valid @RequestBody AddRemarkModel addRemarkModel) {
 
-		logger.info("Add Remark request received for activity : {},", addRemarkModel.getActivityName());
+		logger.info("Add Remark request received for activity : {},", addRemarkModel.getActivityId());
 
 		return updateActivityService.addRemark(addRemarkModel);
 	}

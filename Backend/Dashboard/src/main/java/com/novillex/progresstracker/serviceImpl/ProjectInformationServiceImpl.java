@@ -76,7 +76,8 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 
 		try {
 
-			Optional<ProjectInformation> existingProjectOpt = repository.findByProjectNameAndBankName(model.getProjectName(),model.getBankName());
+			Optional<ProjectInformation> existingProjectOpt = repository
+					.findByProjectNameAndBankName(model.getProjectName(), model.getBankName());
 
 			if (existingProjectOpt.isPresent()) {
 
@@ -283,19 +284,19 @@ public class ProjectInformationServiceImpl implements ProjectInformationService 
 			ProjectInformation oldProject = objectMapper.readValue(objectMapper.writeValueAsString(project),
 					ProjectInformation.class);
 
-			logger.info("Before Mapping: {}", project);
 
 			modelMapper.map(model, project);
+			if (objectMapper.valueToTree(oldProject).equals(objectMapper.valueToTree(project))) {
 
-			logger.info("After Mapping: {}", project);
+				logger.info("No changes found for ProjectId={}", id);
 
+				return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE,
+						"No changes found. Nothing to update.", project);
+			}
 			project.setUpdatedAt(LocalDateTime.now());
 			project.setUpdatedBy(UserContextUtil.getCurrentUser());
 
 			repository.save(project);
-
-			logger.info("Old Project : {}", oldProject);
-			logger.info("New Project : {}", project);
 
 			auditService.saveAuditLog(AuditAction.UPDATE_PROJECT_INFORMATION, AuditEntity.PROJECT,
 					project.getProjectName(), project.getProjectName(), oldProject, project,
