@@ -36,8 +36,4 @@ public class User {
     private Boolean temporaryPasswordActive = false;
 
     private Boolean forcePasswordChange = false;
-
-    private LocalDateTime temporaryPasswordExpiry;
-
-  
 }

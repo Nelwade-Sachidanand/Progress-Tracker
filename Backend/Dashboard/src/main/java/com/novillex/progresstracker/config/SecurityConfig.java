@@ -18,6 +18,12 @@ import com.novillex.progresstracker.filter.JwtAuthFilter;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+	
+	private final JwtAuthFilter jwtAuthFilter;
+
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+    }
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -27,7 +33,7 @@ public class SecurityConfig {
 
 		http.authorizeHttpRequests(auth -> auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 				.requestMatchers("/user/login/**","/user/refresh/**","/user/forgotPassword/**").permitAll().anyRequest().authenticated());
-		http.addFilterBefore(new JwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+		http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 		return http.build();
 	}
 
