@@ -7,6 +7,8 @@ import com.novillex.progresstracker.common.Response;
 public interface ActivityUpdateRequestService {
 
 	Response getAllRequests();
+	
+	Response getActivityUpdateRequestById(String requestId);
 
 	Response getPendingRequests();
 

@@ -153,7 +153,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 		requestRepository.save(request);
 
 		notificationService.createNotification("Activity Update Approved",
-				"Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
+				"Your Update Request for Activity '" + request.getNewActivityName() + "' has been Approved.",
 				"ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
 
 		auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
@@ -248,7 +248,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 			request.setApprovedAt(approvedAt);
 
 			notificationService.createNotification("Activity Update Approved",
-					"Your update request for activity '" + request.getNewActivityName() + "' has been approved.",
+					"Your Update Request for Activity '" + request.getNewActivityName() + "' has been Approved.",
 					"ACTIVITY_APPROVED", request.getId(), "/tasks", request.getRequestedByUserId());
 
 			auditService.saveAuditLog(AuditAction.APPROVE_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
@@ -306,7 +306,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 		requestRepository.save(request);
 
 		notificationService.createNotification("Activity Update Rejected",
-				"Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
+				"Your Update Request for Activity '" + request.getNewActivityName() + "' has been Rejected.",
 				"ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
 
 		auditService.saveAuditLog(AuditAction.REJECT_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
@@ -375,7 +375,7 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 			request.setApprovedAt(rejectedAt);
 
 			notificationService.createNotification("Activity Update Rejected",
-					"Your update request for activity '" + request.getNewActivityName() + "' has been rejected.",
+					"Your Update Request for Activity '" + request.getNewActivityName() + "' has been Rejected.",
 					"ACTIVITY_REJECTED", request.getId(), "/tasks", request.getRequestedByUserId());
 
 			rejectedCount++;
@@ -472,6 +472,37 @@ public class ActivityUpdateRequestServiceImpl implements ActivityUpdateRequestSe
 			logger.error("Failed to fetch activity update requests.", ex);
 
 			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch activity update requests.");
+		}
+	}
+
+	@Override
+	public Response getActivityUpdateRequestById(String requestId) {
+
+		logger.info("Fetching activity update request with ID: {}", requestId);
+
+		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+
+		try {
+
+			ActivityUpdateRequest request = requestRepository.findById(requestId)
+					.orElseThrow(() -> new ResourceNotFoundException(ErrorCode.REQUEST_NOT_FOUND, "Activity update request not found.", null));
+
+			logger.info("Successfully fetched activity update request with ID: {}", requestId);
+
+			return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
+					"Activity update request fetched successfully.", request);
+
+		} catch (ResourceNotFoundException ex) {
+
+			logger.warn("Activity update request not found with ID: {}", requestId);
+
+			throw ex;
+
+		} catch (Exception ex) {
+
+			logger.error("Failed to fetch activity update request with ID: {}", requestId, ex);
+
+			throw new DatabaseException(ErrorCode.DATABASE_ERROR, "Unable to fetch activity update request.");
 		}
 	}
 

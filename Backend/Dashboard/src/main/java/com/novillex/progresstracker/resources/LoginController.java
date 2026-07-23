@@ -43,16 +43,18 @@ public class LoginController {
 
 		Response loginResponse = userService.login(loginModel);
 
-		LoginResponseModel details = (LoginResponseModel) loginResponse.getDetails();
+		if (loginResponse.getDetails() != null) {
+			LoginResponseModel details = (LoginResponseModel) loginResponse.getDetails();
 
-		ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", details.getRefreshToken()).httpOnly(true)
-				.secure(false) // true in production (HTTPS)
-				.path("/").sameSite("Lax").maxAge(Duration.ofDays(7)).build();
+			ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", details.getRefreshToken()).httpOnly(true)
+					.secure(false) // true in production (HTTPS)
+					.path("/").sameSite("Lax").maxAge(Duration.ofDays(7)).build();
 
-		response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+			response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
-		// Don't expose refresh token in response body
-		details.setRefreshToken(null);
+			// Don't expose refresh token in response body
+			details.setRefreshToken(null);
+		}
 
 		return loginResponse;
 	}

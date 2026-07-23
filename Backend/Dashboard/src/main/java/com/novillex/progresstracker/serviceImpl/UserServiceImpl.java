@@ -149,7 +149,7 @@ public class UserServiceImpl implements UserService {
 
 			logger.warn("Login failed. Invalid password for username: {}", username);
 
-			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid username or password",
 					null);
 		}
 		

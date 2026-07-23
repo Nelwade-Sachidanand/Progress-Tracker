@@ -259,10 +259,16 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 
 		requestRepository.save(activityRequest);
 
+//		notificationService.createNotification("Activity Update Requested",
+//				UserContextUtil.getCurrentUser() + " Requested Update for Activity "
+//						+ activityRequest.getNewActivityName(),
+//				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
+
 		notificationService.createNotification("Activity Update Requested",
-				UserContextUtil.getCurrentUser() + " requested update for activity "
+				UserContextUtil.getCurrentUser() + " Requested Update for Activity "
 						+ activityRequest.getNewActivityName(),
-				"ACTIVITY_UPDATE", activityRequest.getId(), "/authorization", null);
+				"ACTIVITY_UPDATE", activityRequest.getId(),
+				"/authorization?type=activity-update&requestId=" + activityRequest.getId(), null);
 
 		auditService.saveAuditLog(AuditAction.REQUEST_ACTIVITY_UPDATE, AuditEntity.ACTIVITY,
 				activityRequest.getNewActivityName(), project.getProjectName(), oldActivity, newActivity,

@@ -20,16 +20,21 @@ import com.novillex.progresstracker.service.ActivityUpdateRequestService;
 @PreAuthorize("hasRole('ADMIN')")
 public class ActivityUpdateRequestController {
 
-	
 	private ActivityUpdateRequestService activityUpdateRequestService;
-	
+
 	public ActivityUpdateRequestController(ActivityUpdateRequestService activityUpdateRequestService) {
-		this.activityUpdateRequestService=activityUpdateRequestService;
+		this.activityUpdateRequestService = activityUpdateRequestService;
 	}
 
 	@GetMapping("/getAllRequests")
 	public Response getAllReqests() {
 		return activityUpdateRequestService.getAllRequests();
+	}
+
+	@GetMapping("/activityUpdateRequest/{requestId}")
+	public Response getActivityUpdateRequestById(@PathVariable String requestId) {
+
+		return activityUpdateRequestService.getActivityUpdateRequestById(requestId);
 	}
 
 	@GetMapping("/pending")
