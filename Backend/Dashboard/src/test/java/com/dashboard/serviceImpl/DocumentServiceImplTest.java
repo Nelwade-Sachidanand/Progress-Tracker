@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -33,369 +34,362 @@ import com.novillex.progresstracker.common.ResponseBuilder;
 import com.novillex.progresstracker.common.StatusCode;
 import com.novillex.progresstracker.entity.ActivityDocument;
 import com.novillex.progresstracker.entity.Documents;
+import com.novillex.progresstracker.entity.Milestone;
+import com.novillex.progresstracker.entity.Phase;
+import com.novillex.progresstracker.entity.Project;
 import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.exception.ValidationException;
 import com.novillex.progresstracker.model.UploadDocumentRequest;
 import com.novillex.progresstracker.repository.DocumentRepository;
+import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.service.VirusScanService;
 import com.novillex.progresstracker.serviceImpl.DocumentServiceImpl;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentServiceImplTest {
 
-    @Mock
-    private DocumentRepository documentRepository;
+	@Mock
+	private DocumentRepository documentRepository;
 
-    @Mock
-    private ResponseBuilder responseBuilder;
+	@Mock
+	private ResponseBuilder responseBuilder;
 
-    @Mock
-    private VirusScanService virusScanService;
+	@Mock
+	private VirusScanService virusScanService;
 
-    @InjectMocks
-    private DocumentServiceImpl documentService;
+	@Mock
+	private ProjectRepository projectRepository;
 
-    @TempDir
-    Path tempDir;
+	@InjectMocks
+	private DocumentServiceImpl documentService;
+	@TempDir
+	Path tempDir;
 
-    @BeforeEach
-    void setUp() throws Exception {
+	@BeforeEach
+	void setUp() throws Exception {
 
-        Field field = DocumentServiceImpl.class.getDeclaredField("documentFolder");
-        field.setAccessible(true);
-        field.set(documentService, tempDir.toString());
-    }
+		Field field = DocumentServiceImpl.class.getDeclaredField("documentFolder");
+		field.setAccessible(true);
+		field.set(documentService, tempDir.toString());
+	}
 
-    private UploadDocumentRequest buildRequest() {
+	private UploadDocumentRequest buildRequest() {
 
-        UploadDocumentRequest request = new UploadDocumentRequest();
+		UploadDocumentRequest request = new UploadDocumentRequest();
 
-        request.setProjectId("P001");
-        request.setProjectName("Demo Project");
-        request.setBankName("HDFC");
-        request.setPhaseName("Phase1");
-        request.setMilestoneName("Milestone1");
-        request.setTaskName("Task1");
-        request.setSubTaskName("SubTask1");
-        request.setActivityName("Activity1");
+		request.setProjectId("P001");
+		request.setProjectName("Demo Project");
+		request.setBankName("HDFC");
 
-        return request;
-    }
+		request.setPhaseId("PH001");
+		request.setMilestoneId("M001");
+		request.setTaskId("T001");
+		request.setSubTaskId("ST001");
+		request.setActivityId("A001");
 
-    private Documents buildDocuments() {
+		return request;
+	}
 
-        Documents documents = new Documents();
+	private Documents buildDocuments() {
 
-        documents.setProjectId("P001");
-        documents.setProjectName("Demo Project");
-        documents.setBankName("HDFC");
-        documents.setPhaseName("Phase1");
-        documents.setMilestoneName("Milestone1");
-        documents.setTaskName("Task1");
-        documents.setSubTaskName("SubTask1");
-        documents.setActivityName("Activity1");
-        documents.setDocuments(new ArrayList<>());
+		Documents documents = new Documents();
 
-        return documents;
-    }
+		documents.setProjectId("P001");
+		documents.setProjectName("Demo Project");
+		documents.setBankName("HDFC");
+		documents.setPhaseId("Phase1");
+		documents.setMilestoneId("Milestone1");
+		documents.setTaskId("Task1");
+		documents.setSubTaskId("SubTask1");
+		documents.setActivityId("Activity1");
+		documents.setDocuments(new ArrayList<>());
 
-    private MockMultipartFile buildPdfFile() {
+		return documents;
+	}
 
-        return new MockMultipartFile(
-                "file",
-                "Document.pdf",
-                "application/pdf",
-                "Sample PDF".getBytes());
-    }
+	private Project buildProject() {
+		Project project = new Project();
+		project.setId("P001");
 
-    private Response buildResponse() {
+		Phase phase = new Phase();
+		phase.setPhaseId("PH001");
+		phase.setPhaseName("Phase1");
 
-        Response response = new Response();
+		Milestone milestone = new Milestone();
+		milestone.setMilestoneId("M001");
+		milestone.setMilestoneName("Milestone1");
 
-        response.setStatusCode(StatusCode.SUCCESS);
-        response.setStatusType(StatusCode.SUCCESS_STATUS_TYPE);
-        response.setStatusDesc("Success");
-        response.setDetails(null);
+		phase.setMilestones(List.of(milestone));
+		project.setPhases(List.of(phase));
 
-        return response;
-    }
+		return project;
+	}
 
-    private void mockLoggedInUser() {
+	private MockMultipartFile buildPdfFile() {
 
-        SecurityContextHolder.getContext()
-                .setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
-    }
-    
-    @Test
-    void uploadDocument_Success_NewDocument() {
+		return new MockMultipartFile("file", "Document.pdf", "application/pdf", "Sample PDF".getBytes());
+	}
 
-        mockLoggedInUser();
+	private Response buildResponse() {
 
-        UploadDocumentRequest request = buildRequest();
+		Response response = new Response();
 
-        MockMultipartFile file = buildPdfFile();
+		response.setStatusCode(StatusCode.SUCCESS);
+		response.setStatusType(StatusCode.SUCCESS_STATUS_TYPE);
+		response.setStatusDesc("Success");
+		response.setDetails(null);
 
-        Documents documents = buildDocuments();
+		return response;
+	}
 
-        Response response = buildResponse();
+	private void mockLoggedInUser() {
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken("admin", null));
+	}
 
-        when(documentRepository.save(any(Documents.class))).thenReturn(documents);
+	@Test
+	void uploadDocument_Success_NewDocument() {
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		mockLoggedInUser();
 
-        Response result = documentService.uploadDocument(request, file);
+		UploadDocumentRequest request = buildRequest();
 
-        assertNotNull(result);
+		MockMultipartFile file = buildPdfFile();
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(any(Documents.class));
-    }
+		Documents documents = buildDocuments();
 
-    @Test
-    void uploadDocument_Success_ExistingDocument() {
+		Response response = buildResponse();
 
-        mockLoggedInUser();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        UploadDocumentRequest request = buildRequest();
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        MockMultipartFile file = buildPdfFile();
+		when(documentRepository.save(any(Documents.class))).thenReturn(documents);
 
-        Documents documents = buildDocuments();
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        Response response = buildResponse();
+		Response result = documentService.uploadDocument(request, file);
 
-        documents.getDocuments().add(new ActivityDocument());
+		assertNotNull(result);
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(any(Documents.class));
+	}
 
-        when(documentRepository.save(any(Documents.class))).thenReturn(documents);
+	@Test
+	void uploadDocument_Success_ExistingDocument() {
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		mockLoggedInUser();
 
-        Response result = documentService.uploadDocument(request, file);
+		UploadDocumentRequest request = buildRequest();
 
-        assertNotNull(result);
+		MockMultipartFile file = buildPdfFile();
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(any(Documents.class));
-    }
+		Documents documents = buildDocuments();
 
-    @Test
-    void uploadDocument_FileEmpty() {
+		Response response = buildResponse();
 
-        mockLoggedInUser();
+		documents.getDocuments().add(new ActivityDocument());
 
-        UploadDocumentRequest request = buildRequest();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test.pdf",
-                "application/pdf",
-                new byte[0]);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> documentService.uploadDocument(request, file));
+		when(documentRepository.save(any(Documents.class))).thenReturn(documents);
 
-        assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        verify(documentRepository, never()).save(any());
-        verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+		Response result = documentService.uploadDocument(request, file);
 
-        verify(virusScanService, never()).scan(any());
-    }
+		assertNotNull(result);
 
-    @Test
-    void uploadDocument_FileSizeExceeded() {
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(any(Documents.class));
+	}
 
-        mockLoggedInUser();
+	@Test
+	void uploadDocument_FileEmpty() {
 
-        UploadDocumentRequest request = buildRequest();
+		mockLoggedInUser();
 
-        byte[] largeFile = new byte[11 * 1024 * 1024];
+		UploadDocumentRequest request = buildRequest();
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "large.pdf",
-                "application/pdf",
-                largeFile);
+		MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", new byte[0]);
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> documentService.uploadDocument(request, file));
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> documentService.uploadDocument(request, file));
 
-        assertEquals(ErrorCode.FILE_SIZE_EXCEEDED, exception.getErrorCode());
+		assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
 
-        verify(documentRepository, never()).save(any());
-        verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+		verify(documentRepository, never()).save(any());
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
 
-        verify(virusScanService, never()).scan(any());
-    }
+		verify(virusScanService, never()).scan(any());
+	}
 
-    @Test
-    void uploadDocument_InvalidContentType() {
+	@Test
+	void uploadDocument_FileSizeExceeded() {
 
-        mockLoggedInUser();
+		mockLoggedInUser();
 
-        UploadDocumentRequest request = buildRequest();
+		UploadDocumentRequest request = buildRequest();
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "test.txt",
-                "text/plain",
-                "Invalid File".getBytes());
+		byte[] largeFile = new byte[11 * 1024 * 1024];
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> documentService.uploadDocument(request, file));
+		MockMultipartFile file = new MockMultipartFile("file", "large.pdf", "application/pdf", largeFile);
 
-        assertEquals(ErrorCode.INVALID_FILE_TYPE, exception.getErrorCode());
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> documentService.uploadDocument(request, file));
 
-        verify(documentRepository, never()).save(any());
-        verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+		assertEquals(ErrorCode.FILE_SIZE_EXCEEDED, exception.getErrorCode());
 
-        verify(virusScanService, never()).scan(any());
-    }
+		verify(documentRepository, never()).save(any());
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
 
-    @Test
-    void uploadDocument_NullFile() {
+		verify(virusScanService, never()).scan(any());
+	}
 
-        mockLoggedInUser();
+	@Test
+	void uploadDocument_InvalidContentType() {
 
-        UploadDocumentRequest request = buildRequest();
+		mockLoggedInUser();
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> documentService.uploadDocument(request, null));
+		UploadDocumentRequest request = buildRequest();
 
-        assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
+		MockMultipartFile file = new MockMultipartFile("file", "test.txt", "text/plain", "Invalid File".getBytes());
 
-        verify(documentRepository, never()).save(any());
-        verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> documentService.uploadDocument(request, file));
 
-        verify(virusScanService, never()).scan(any());
-    }
+		assertEquals(ErrorCode.INVALID_FILE_TYPE, exception.getErrorCode());
 
-    @Test
-    void uploadDocument_IOExceptionWhileTransfer() throws Exception {
+		verify(documentRepository, never()).save(any());
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
 
-        mockLoggedInUser();
+		verify(virusScanService, never()).scan(any());
+	}
 
-        UploadDocumentRequest request = buildRequest();
+	@Test
+	void uploadDocument_NullFile() {
 
-        MultipartFile file = mock(MultipartFile.class);
+		mockLoggedInUser();
 
-        when(file.isEmpty()).thenReturn(false);
-        when(file.getSize()).thenReturn(1024L);
-        when(file.getContentType()).thenReturn("application/pdf");
-        when(file.getOriginalFilename()).thenReturn("Document.pdf");
+		UploadDocumentRequest request = buildRequest();
 
-        doThrow(new IOException("Disk Error"))
-                .when(file)
-                .transferTo(any(File.class));
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> documentService.uploadDocument(request, null));
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> documentService.uploadDocument(request, file));
+		verify(documentRepository, never()).save(any());
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
 
-        assertEquals(ErrorCode.FILE_UPLOAD_FAILED, exception.getErrorCode());
+		verify(virusScanService, never()).scan(any());
+	}
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository, never()).save(any());
-        verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
-    }
-    
-    @Test
-    void uploadDocument_FileAlreadyExists_ShouldRename() {
+	@Test
+	void uploadDocument_IOExceptionWhileTransfer() throws Exception {
 
-        mockLoggedInUser();
+		mockLoggedInUser();
 
-        UploadDocumentRequest request = buildRequest();
+		UploadDocumentRequest request = buildRequest();
 
-        MockMultipartFile file = buildPdfFile();
+		MultipartFile file = mock(MultipartFile.class);
 
-        Documents documents = buildDocuments();
+		when(file.isEmpty()).thenReturn(false);
+		when(file.getSize()).thenReturn(1024L);
+		when(file.getContentType()).thenReturn("application/pdf");
+		when(file.getOriginalFilename()).thenReturn("Document.pdf");
 
-        Response response = buildResponse();
+		doThrow(new IOException("Disk Error")).when(file).transferTo(any(File.class));
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        when(documentRepository.save(any(Documents.class))).thenReturn(documents);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> documentService.uploadDocument(request, file));
 
-        // First upload
-        documentService.uploadDocument(request, file);
+		assertEquals(ErrorCode.FILE_UPLOAD_FAILED, exception.getErrorCode());
 
-        // Second upload with same filename
-        documentService.uploadDocument(request, file);
+		verify(virusScanService).scan(file);
+		verify(documentRepository, never()).save(any());
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+	}
 
-        ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+	@Test
+	void uploadDocument_FileAlreadyExists_ShouldRename() {
 
-        verify(documentRepository, atLeast(2)).save(captor.capture());
+		mockLoggedInUser();
 
-        Documents saved = captor.getValue();
+		UploadDocumentRequest request = buildRequest();
 
-        assertEquals(2, saved.getDocuments().size());
-        assertEquals("Document.pdf", saved.getDocuments().get(0).getFileName());
-        assertEquals("Document(1).pdf", saved.getDocuments().get(1).getFileName());
+		MockMultipartFile file = buildPdfFile();
 
-        verify(virusScanService, times(2)).scan(any(MultipartFile.class));
-    }
+		Documents documents = buildDocuments();
 
-    @Test
-    void downloadDocument_Success() throws Exception {
+		Response response = buildResponse();
 
-        Documents documents = buildDocuments();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        File file = new File(tempDir.toFile(), "Document.pdf");
-        assertTrue(file.createNewFile());
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        ActivityDocument activityDocument = new ActivityDocument();
-        activityDocument.setDocumentId("DOC001");
-        activityDocument.setFileName("Document.pdf");
-        activityDocument.setFilePath(file.getAbsolutePath());
-        activityDocument.setUploadedBy("admin");
-        activityDocument.setUploadedDate(LocalDateTime.now());
+		when(documentRepository.save(any(Documents.class))).thenReturn(documents);
 
-        documents.getDocuments().add(activityDocument);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        when(documentRepository.findByDocumentsDocumentId("DOC001"))
-                .thenReturn(Optional.of(documents));
+		// First upload
+		documentService.uploadDocument(request, file);
 
-        Resource resource = documentService.downloadDocument("DOC001");
+		// Second upload with same filename
+		documentService.uploadDocument(request, file);
 
-        assertNotNull(resource);
-        assertTrue(resource instanceof FileSystemResource);
-        assertTrue(resource.exists());
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
 
-        verify(documentRepository).findByDocumentsDocumentId("DOC001");
-    }
+		verify(documentRepository, atLeast(2)).save(captor.capture());
 
-    @Test
+		Documents saved = captor.getValue();
+
+		assertEquals(2, saved.getDocuments().size());
+		assertEquals("Document.pdf", saved.getDocuments().get(0).getFileName());
+		assertEquals("Document(1).pdf", saved.getDocuments().get(1).getFileName());
+
+		verify(virusScanService, times(2)).scan(any(MultipartFile.class));
+	}
+
+	@Test
+	void downloadDocument_Success() throws Exception {
+
+		Documents documents = buildDocuments();
+
+		File file = new File(tempDir.toFile(), "Document.pdf");
+		assertTrue(file.createNewFile());
+
+		ActivityDocument activityDocument = new ActivityDocument();
+		activityDocument.setDocumentId("DOC001");
+		activityDocument.setFileName("Document.pdf");
+		activityDocument.setFilePath(file.getAbsolutePath());
+		activityDocument.setUploadedBy("admin");
+		activityDocument.setUploadedDate(LocalDateTime.now());
+
+		documents.getDocuments().add(activityDocument);
+
+		when(documentRepository.findByDocumentsDocumentId("DOC001")).thenReturn(Optional.of(documents));
+
+		Resource resource = documentService.downloadDocument("DOC001");
+
+		assertNotNull(resource);
+		assertTrue(resource instanceof FileSystemResource);
+		assertTrue(resource.exists());
+
+		verify(documentRepository).findByDocumentsDocumentId("DOC001");
+	}
+
+	@Test
     void downloadDocument_DocumentNotFound() {
 
         when(documentRepository.findByDocumentsDocumentId("DOC001"))
@@ -410,478 +404,426 @@ class DocumentServiceImplTest {
         verify(documentRepository).findByDocumentsDocumentId("DOC001");
     }
 
-    @Test
-    void downloadDocument_PhysicalFileNotFound() {
+	@Test
+	void downloadDocument_PhysicalFileNotFound() {
 
-        Documents documents = buildDocuments();
+		Documents documents = buildDocuments();
 
-        ActivityDocument activityDocument = new ActivityDocument();
-        activityDocument.setDocumentId("DOC001");
-        activityDocument.setFileName("Document.pdf");
-        activityDocument.setFilePath(tempDir.resolve("NotExist.pdf").toString());
+		ActivityDocument activityDocument = new ActivityDocument();
+		activityDocument.setDocumentId("DOC001");
+		activityDocument.setFileName("Document.pdf");
+		activityDocument.setFilePath(tempDir.resolve("NotExist.pdf").toString());
 
-        documents.getDocuments().add(activityDocument);
+		documents.getDocuments().add(activityDocument);
 
-        when(documentRepository.findByDocumentsDocumentId("DOC001"))
-                .thenReturn(Optional.of(documents));
+		when(documentRepository.findByDocumentsDocumentId("DOC001")).thenReturn(Optional.of(documents));
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> documentService.downloadDocument("DOC001"));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> documentService.downloadDocument("DOC001"));
 
-        assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
+		assertEquals(ErrorCode.FILE_NOT_FOUND, exception.getErrorCode());
 
-        verify(documentRepository).findByDocumentsDocumentId("DOC001");
-    }
+		verify(documentRepository).findByDocumentsDocumentId("DOC001");
+	}
 
-    @Test
-    void downloadDocument_DocumentExistsButActivityDocumentNotFound() {
+	@Test
+	void downloadDocument_DocumentExistsButActivityDocumentNotFound() {
 
-        Documents documents = buildDocuments();
+		Documents documents = buildDocuments();
 
-        ActivityDocument activityDocument = new ActivityDocument();
-        activityDocument.setDocumentId("DOC002");
+		ActivityDocument activityDocument = new ActivityDocument();
+		activityDocument.setDocumentId("DOC002");
 
-        documents.getDocuments().add(activityDocument);
+		documents.getDocuments().add(activityDocument);
 
-        when(documentRepository.findByDocumentsDocumentId("DOC001"))
-                .thenReturn(Optional.of(documents));
+		when(documentRepository.findByDocumentsDocumentId("DOC001")).thenReturn(Optional.of(documents));
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> documentService.downloadDocument("DOC001"));
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> documentService.downloadDocument("DOC001"));
 
-        assertEquals(ErrorCode.DOCUMENT_NOT_FOUND, exception.getErrorCode());
+		assertEquals(ErrorCode.DOCUMENT_NOT_FOUND, exception.getErrorCode());
 
-        verify(documentRepository).findByDocumentsDocumentId("DOC001");
-    }
+		verify(documentRepository).findByDocumentsDocumentId("DOC001");
+	}
 
-    @Test
-    void downloadDocument_ShouldReturnFileSystemResource() throws Exception {
+	@Test
+	void downloadDocument_ShouldReturnFileSystemResource() throws Exception {
 
-        Documents documents = buildDocuments();
+		Documents documents = buildDocuments();
 
-        File file = new File(tempDir.toFile(), "Document.pdf");
+		File file = new File(tempDir.toFile(), "Document.pdf");
 
-        assertTrue(file.createNewFile());
+		assertTrue(file.createNewFile());
 
-        ActivityDocument activity = new ActivityDocument();
-        activity.setDocumentId("DOC001");
-        activity.setFileName("Document.pdf");
-        activity.setFilePath(file.getAbsolutePath());
+		ActivityDocument activity = new ActivityDocument();
+		activity.setDocumentId("DOC001");
+		activity.setFileName("Document.pdf");
+		activity.setFilePath(file.getAbsolutePath());
 
-        documents.getDocuments().add(activity);
+		documents.getDocuments().add(activity);
 
-        when(documentRepository.findByDocumentsDocumentId("DOC001"))
-                .thenReturn(Optional.of(documents));
+		when(documentRepository.findByDocumentsDocumentId("DOC001")).thenReturn(Optional.of(documents));
 
-        Resource resource = documentService.downloadDocument("DOC001");
+		Resource resource = documentService.downloadDocument("DOC001");
 
-        assertTrue(resource instanceof FileSystemResource);
+		assertTrue(resource instanceof FileSystemResource);
 
-        verify(documentRepository).findByDocumentsDocumentId("DOC001");
-    }
-    
-    @Test
-    void getDocuments_Success() {
+		verify(documentRepository).findByDocumentsDocumentId("DOC001");
+	}
 
-        UploadDocumentRequest request = buildRequest();
+	@Test
+	void getDocuments_Success() {
 
-        Documents documents = buildDocuments();
+		UploadDocumentRequest request = buildRequest();
 
-        ActivityDocument document = new ActivityDocument();
-        document.setDocumentId("DOC001");
-        document.setFileName("Document.pdf");
-        document.setUploadedBy("admin");
-        document.setUploadedDate(LocalDateTime.now());
+		Documents documents = buildDocuments();
 
-        documents.getDocuments().add(document);
+		ActivityDocument document = new ActivityDocument();
+		document.setDocumentId("DOC001");
+		document.setFileName("Document.pdf");
+		document.setUploadedBy("admin");
+		document.setUploadedDate(LocalDateTime.now());
 
-        Response response = buildResponse();
+		documents.getDocuments().add(document);
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		Response response = buildResponse();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        Response result = documentService.getDocuments(request);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        assertNotNull(result);
+		Response result = documentService.getDocuments(request);
 
-        verify(documentRepository)
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString());
+		assertNotNull(result);
 
-        verify(responseBuilder)
-                .createResponse(any(), any(), anyString(), any());
-    }
+		verify(documentRepository).findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(
+				anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 
-    @Test
-    void getDocuments_DocumentNotFound() {
+		verify(responseBuilder).createResponse(eq(StatusCode.SUCCESS), eq(StatusCode.SUCCESS_STATUS_TYPE),
+				eq("Documents fetched successfully."), eq(documents.getDocuments()));
+	}
 
-        UploadDocumentRequest request = buildRequest();
+	@Test
+	void getDocuments_DocumentNotFound() {
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		UploadDocumentRequest request = buildRequest();
 
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> documentService.getDocuments(request));
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        assertEquals(ErrorCode.DOCUMENT_NOT_FOUND, exception.getErrorCode());
+		ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+				() -> documentService.getDocuments(request));
 
-        verify(documentRepository)
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString());
+		assertEquals(ErrorCode.DOCUMENT_NOT_FOUND, exception.getErrorCode());
 
-        verify(responseBuilder, never())
-                .createResponse(any(), any(), anyString(), any());
-    }
+		verify(documentRepository).findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(
+				anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 
-    @Test
-    void getDocuments_EmptyDocumentList() {
+		verify(responseBuilder, never()).createResponse(any(), any(), anyString(), any());
+	}
 
-        UploadDocumentRequest request = buildRequest();
+	@Test
+	void getDocuments_EmptyDocumentList() {
 
-        Documents documents = buildDocuments();
-        documents.setDocuments(new ArrayList<>());
+		UploadDocumentRequest request = buildRequest();
 
-        Response response = buildResponse();
+		Documents documents = buildDocuments();
+		documents.setDocuments(new ArrayList<>());
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		Response response = buildResponse();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        Response result = documentService.getDocuments(request);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        assertNotNull(result);
+		Response result = documentService.getDocuments(request);
 
-        verify(documentRepository)
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString());
+		assertNotNull(result);
 
-        verify(responseBuilder)
-                .createResponse(any(), any(), anyString(), any());
-    }
+		verify(documentRepository).findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(
+				anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 
-    @Test
-    void getDocuments_ShouldReturnDocumentList() {
+		verify(responseBuilder).createResponse(eq(StatusCode.SUCCESS), eq(StatusCode.SUCCESS_STATUS_TYPE),
+				eq("Documents fetched successfully."), eq(documents.getDocuments()));
+	}
 
-        UploadDocumentRequest request = buildRequest();
+	@Test
+	void getDocuments_ShouldReturnDocumentList() {
 
-        Documents documents = buildDocuments();
+		UploadDocumentRequest request = buildRequest();
 
-        ActivityDocument activity = new ActivityDocument();
-        activity.setDocumentId("DOC001");
+		Documents documents = buildDocuments();
 
-        documents.getDocuments().add(activity);
+		ActivityDocument activity = new ActivityDocument();
+		activity.setDocumentId("DOC001");
 
-        Response response = buildResponse();
+		documents.getDocuments().add(activity);
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		Response response = buildResponse();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        Response result = documentService.getDocuments(request);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        assertNotNull(result);
+		Response result = documentService.getDocuments(request);
 
-        verify(responseBuilder).createResponse(
-                eq(StatusCode.SUCCESS),
-                eq(StatusCode.SUCCESS_STATUS_TYPE),
-                eq("Documents fetched successfully."),
-                eq(documents.getDocuments()));
-    }
+		assertNotNull(result);
 
-    @Test
-    void getDocuments_ShouldReturnEmptyDocumentCollection() {
+		verify(documentRepository).findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(
+				anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 
-        UploadDocumentRequest request = buildRequest();
+		verify(responseBuilder).createResponse(eq(StatusCode.SUCCESS), eq(StatusCode.SUCCESS_STATUS_TYPE),
+				eq("Documents fetched successfully."), eq(documents.getDocuments()));
+	}
 
-        Documents documents = buildDocuments();
-        documents.setDocuments(new ArrayList<>());
+	@Test
+	void getDocuments_ShouldReturnEmptyDocumentCollection() {
 
-        Response response = buildResponse();
+		UploadDocumentRequest request = buildRequest();
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+		Documents documents = buildDocuments();
+		documents.setDocuments(new ArrayList<>());
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(response);
+		Response response = buildResponse();
 
-        Response result = documentService.getDocuments(request);
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        assertNotNull(result);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
 
-        verify(responseBuilder).createResponse(
-                eq(StatusCode.SUCCESS),
-                eq(StatusCode.SUCCESS_STATUS_TYPE),
-                eq("Documents fetched successfully."),
-                eq(documents.getDocuments()));
-    }
-    
-    @Test
-    void uploadDocument_NullContentType() {
+		Response result = documentService.getDocuments(request);
 
-        mockLoggedInUser();
+		assertNotNull(result);
 
-        UploadDocumentRequest request = buildRequest();
+		verify(documentRepository).findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(
+				anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 
-        MultipartFile file = mock(MultipartFile.class);
+		verify(responseBuilder).createResponse(eq(StatusCode.SUCCESS), eq(StatusCode.SUCCESS_STATUS_TYPE),
+				eq("Documents fetched successfully."), eq(documents.getDocuments()));
+	}
 
-        when(file.isEmpty()).thenReturn(false);
-        when(file.getSize()).thenReturn(1024L);
-        when(file.getContentType()).thenReturn(null);
-        when(file.getOriginalFilename()).thenReturn("Document.pdf");
+	@Test
+	void uploadDocument_NullContentType() {
 
-        ValidationException exception = assertThrows(
-                ValidationException.class,
-                () -> documentService.uploadDocument(request, file));
+		mockLoggedInUser();
 
-        assertEquals(ErrorCode.INVALID_FILE_TYPE, exception.getErrorCode());
+		UploadDocumentRequest request = buildRequest();
 
-        verify(documentRepository, never()).save(any());
-        verify(virusScanService, never()).scan(any());
-    }
+		MultipartFile file = mock(MultipartFile.class);
 
-    @Test
-    void uploadDocument_ShouldPopulateActivityDocumentCorrectly() {
+		when(file.isEmpty()).thenReturn(false);
+		when(file.getSize()).thenReturn(1024L);
+		when(file.getContentType()).thenReturn(null);
+		when(file.getOriginalFilename()).thenReturn("Document.pdf");
 
-        mockLoggedInUser();
+		ValidationException exception = assertThrows(ValidationException.class,
+				() -> documentService.uploadDocument(request, file));
 
-        UploadDocumentRequest request = buildRequest();
+		assertEquals(ErrorCode.INVALID_FILE_TYPE, exception.getErrorCode());
 
-        MockMultipartFile file = buildPdfFile();
+		verify(documentRepository, never()).save(any());
+		verify(virusScanService, never()).scan(any());
+	}
 
-        ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+	@Test
+	void uploadDocument_ShouldPopulateActivityDocumentCorrectly() {
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		mockLoggedInUser();
 
-        when(documentRepository.save(any(Documents.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+		UploadDocumentRequest request = buildRequest();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(buildResponse());
+		MockMultipartFile file = buildPdfFile();
 
-        documentService.uploadDocument(request, file);
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(captor.capture());
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        Documents saved = captor.getValue();
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        assertEquals(1, saved.getDocuments().size());
+		when(documentRepository.save(any(Documents.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ActivityDocument activity = saved.getDocuments().get(0);
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(buildResponse());
 
-        assertNotNull(activity.getDocumentId());
-        assertEquals("Document.pdf", activity.getFileName());
-        assertNotNull(activity.getFilePath());
-        assertEquals("admin", activity.getUploadedBy());
-        assertNotNull(activity.getUploadedDate());
-    }
+		documentService.uploadDocument(request, file);
 
-    @Test
-    void uploadDocument_ShouldCreateNewDocumentsEntity() {
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(captor.capture());
 
-        mockLoggedInUser();
+		Documents saved = captor.getValue();
 
-        UploadDocumentRequest request = buildRequest();
+		assertEquals(1, saved.getDocuments().size());
 
-        MockMultipartFile file = buildPdfFile();
+		ActivityDocument activity = saved.getDocuments().get(0);
 
-        ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+		assertNotNull(activity.getDocumentId());
+		assertEquals("Document.pdf", activity.getFileName());
+		assertNotNull(activity.getFilePath());
+		assertEquals("admin", activity.getUploadedBy());
+		assertNotNull(activity.getUploadedDate());
+	}
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+	@Test
+	void uploadDocument_ShouldCreateNewDocumentsEntity() {
 
-        when(documentRepository.save(any(Documents.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+		mockLoggedInUser();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(buildResponse());
+		UploadDocumentRequest request = buildRequest();
 
-        documentService.uploadDocument(request, file);
+		MockMultipartFile file = buildPdfFile();
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(captor.capture());
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
 
-        Documents saved = captor.getValue();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        assertEquals(request.getProjectId(), saved.getProjectId());
-        assertEquals(request.getProjectName(), saved.getProjectName());
-        assertEquals(request.getBankName(), saved.getBankName());
-        assertEquals(request.getPhaseName(), saved.getPhaseName());
-        assertEquals(request.getMilestoneName(), saved.getMilestoneName());
-        assertEquals(request.getTaskName(), saved.getTaskName());
-        assertEquals(request.getSubTaskName(), saved.getSubTaskName());
-        assertEquals(request.getActivityName(), saved.getActivityName());
-    }
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-    @Test
-    void uploadDocument_ShouldAppendToExistingDocuments() {
+		when(documentRepository.save(any(Documents.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        mockLoggedInUser();
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(buildResponse());
 
-        UploadDocumentRequest request = buildRequest();
+		documentService.uploadDocument(request, file);
 
-        MockMultipartFile file = buildPdfFile();
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(captor.capture());
 
-        Documents documents = buildDocuments();
+		Documents saved = captor.getValue();
 
-        documents.getDocuments().add(new ActivityDocument());
+		assertEquals(request.getProjectId(), saved.getProjectId());
+		assertEquals(request.getProjectName(), saved.getProjectName());
+		assertEquals(request.getBankName(), saved.getBankName());
+		assertEquals(request.getPhaseId(), saved.getPhaseId());
+		assertEquals(request.getMilestoneId(), saved.getMilestoneId());
+		assertEquals(request.getTaskId(), saved.getTaskId());
+		assertEquals(request.getSubTaskId(), saved.getSubTaskId());
+		assertEquals(request.getActivityId(), saved.getActivityId());
+	}
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.of(documents));
+	@Test
+	void uploadDocument_ShouldAppendToExistingDocuments() {
 
-        when(documentRepository.save(any(Documents.class))).thenReturn(documents);
+		mockLoggedInUser();
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(buildResponse());
+		UploadDocumentRequest request = buildRequest();
 
-        documentService.uploadDocument(request, file);
+		MockMultipartFile file = buildPdfFile();
 
-        assertEquals(2, documents.getDocuments().size());
+		Documents documents = buildDocuments();
+		documents.getDocuments().add(new ActivityDocument());
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(documents);
-    }
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
 
-    @Test
-    void uploadDocument_ShouldReturnResponseFromResponseBuilder() {
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        mockLoggedInUser();
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.of(documents));
 
-        UploadDocumentRequest request = buildRequest();
+		when(documentRepository.save(any(Documents.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        MockMultipartFile file = buildPdfFile();
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(buildResponse());
 
-        Documents documents = buildDocuments();
+		documentService.uploadDocument(request, file);
 
-        Response expected = buildResponse();
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(captor.capture());
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		Documents saved = captor.getValue();
 
-        when(documentRepository.save(any(Documents.class))).thenReturn(documents);
+		assertEquals(2, saved.getDocuments().size());
+	}
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(expected);
+	@Test
+	void uploadDocument_ShouldReturnResponseFromResponseBuilder() {
 
-        Response actual = documentService.uploadDocument(request, file);
+		mockLoggedInUser();
 
-        verify(virusScanService).scan(file);
+		UploadDocumentRequest request = buildRequest();
 
-        assertSame(expected, actual);
-    }
+		MockMultipartFile file = buildPdfFile();
 
-    @Test
-    void uploadDocument_ShouldGenerateUniqueDocumentId() {
+		Documents documents = buildDocuments();
 
-        mockLoggedInUser();
+		Response expected = buildResponse();
 
-        UploadDocumentRequest request = buildRequest();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        MockMultipartFile file = buildPdfFile();
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+		when(documentRepository.save(any(Documents.class))).thenReturn(documents);
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(expected);
 
-        when(documentRepository.save(any(Documents.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+		Response actual = documentService.uploadDocument(request, file);
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(buildResponse());
+		verify(virusScanService).scan(file);
 
-        documentService.uploadDocument(request, file);
+		assertSame(expected, actual);
+	}
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(captor.capture());
+	@Test
+	void uploadDocument_ShouldGenerateUniqueDocumentId() {
 
-        String documentId = captor.getValue()
-                .getDocuments()
-                .get(0)
-                .getDocumentId();
+		mockLoggedInUser();
 
-        assertNotNull(documentId);
-        assertFalse(documentId.isBlank());
-    }
+		UploadDocumentRequest request = buildRequest();
 
-    @Test
-    void uploadDocument_ShouldStoreAbsoluteFilePath() {
+		MockMultipartFile file = buildPdfFile();
 
-        mockLoggedInUser();
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
 
-        UploadDocumentRequest request = buildRequest();
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
 
-        MockMultipartFile file = buildPdfFile();
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
 
-        ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+		when(documentRepository.save(any(Documents.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(documentRepository
-                .findByProjectNameAndBankNameAndPhaseNameAndMilestoneNameAndTaskNameAndSubTaskNameAndActivityName(
-                        anyString(), anyString(), anyString(), anyString(),
-                        anyString(), anyString(), anyString()))
-                .thenReturn(Optional.empty());
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(buildResponse());
 
-        when(documentRepository.save(any(Documents.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+		documentService.uploadDocument(request, file);
 
-        when(responseBuilder.createResponse(any(), any(), anyString(), any()))
-                .thenReturn(buildResponse());
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(captor.capture());
 
-        documentService.uploadDocument(request, file);
+		String documentId = captor.getValue().getDocuments().get(0).getDocumentId();
 
-        verify(virusScanService).scan(file);
-        verify(documentRepository).save(captor.capture());
+		assertNotNull(documentId);
+		assertFalse(documentId.isBlank());
+	}
 
-        String path = captor.getValue()
-                .getDocuments()
-                .get(0)
-                .getFilePath();
+	@Test
+	void uploadDocument_ShouldStoreAbsoluteFilePath() {
 
-        assertNotNull(path);
-        assertTrue(new File(path).isAbsolute());
-    }
+		mockLoggedInUser();
+
+		UploadDocumentRequest request = buildRequest();
+
+		MockMultipartFile file = buildPdfFile();
+
+		ArgumentCaptor<Documents> captor = ArgumentCaptor.forClass(Documents.class);
+
+		when(projectRepository.findById("P001")).thenReturn(Optional.of(buildProject()));
+
+		when(documentRepository.findByProjectIdAndPhaseIdAndMilestoneIdAndTaskIdAndSubTaskIdAndActivityId(anyString(),
+				anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
+
+		when(documentRepository.save(any(Documents.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(buildResponse());
+
+		documentService.uploadDocument(request, file);
+
+		verify(virusScanService).scan(file);
+		verify(documentRepository).save(captor.capture());
+
+		String path = captor.getValue().getDocuments().get(0).getFilePath();
+
+		assertNotNull(path);
+		assertTrue(new File(path).isAbsolute());
+	}
 }

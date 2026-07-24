@@ -91,7 +91,6 @@ public class ProjectInformationServiceImplTest {
 	void shouldCreateProjectInformationSuccessfully() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-		model.setId("PI001");
 		model.setProjectName("Tracker");
 		model.setBankName("HDFC");
 		model.setProjectManager("Manager");
@@ -107,7 +106,7 @@ public class ProjectInformationServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
 
 		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
@@ -143,9 +142,7 @@ public class ProjectInformationServiceImplTest {
 			assertEquals(response, result);
 
 			verify(repository).save(any(ProjectInformation.class));
-
 			verify(projectRepository).save(any(Project.class));
-
 			verify(userRepository).findByRole("ADMIN");
 			verify(userRepository).saveAll(anyList());
 
@@ -232,7 +229,6 @@ public class ProjectInformationServiceImplTest {
 		existing.setProjectName("Old");
 
 		ProjectInformationModel model = new ProjectInformationModel();
-		model.setId("P001");
 		model.setProjectName("New");
 
 		ProjectInformation oldProject = new ProjectInformation();
@@ -247,6 +243,19 @@ public class ProjectInformationServiceImplTest {
 
 		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(oldProject);
 
+		// Simulate ModelMapper updating the entity
+		doAnswer(invocation -> {
+			ProjectInformationModel source = invocation.getArgument(0);
+			ProjectInformation destination = invocation.getArgument(1);
+			destination.setProjectName(source.getProjectName());
+			return destination;
+		}).when(modelMapper).map(any(ProjectInformationModel.class), any(ProjectInformation.class));
+
+		// Force change detection
+		when(objectMapper.valueToTree(oldProject)).thenReturn(new ObjectMapper().createObjectNode());
+
+		when(objectMapper.valueToTree(existing)).thenReturn(new ObjectMapper().createArrayNode());
+
 		when(repository.save(any(ProjectInformation.class))).thenReturn(existing);
 
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(response);
@@ -257,7 +266,7 @@ public class ProjectInformationServiceImplTest {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-			Response result = service.updateProjectInformation(model);
+			Response result = service.updateProjectInformation("P001", model);
 
 			assertEquals(response, result);
 
@@ -275,14 +284,13 @@ public class ProjectInformationServiceImplTest {
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		ProjectInformationModel model = new ProjectInformationModel();
-		model.setId("P001");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
 		when(repository.findById("P001")).thenReturn(Optional.empty());
 
 		ResourceNotFoundException ex = assertThrows(ResourceNotFoundException.class,
-				() -> service.updateProjectInformation(model));
+				() -> service.updateProjectInformation("P001", model));
 
 		assertEquals(ErrorCode.PROJECT_NOT_FOUND, ex.getErrorCode());
 
@@ -372,57 +380,45 @@ public class ProjectInformationServiceImplTest {
 	@Test
 	void shouldThrowExceptionWhenRepositoryFailsDuringCreate() {
 
-	    ProjectInformationModel model = new ProjectInformationModel();
-	    model.setProjectName("Tracker");
-	    model.setBankName("HDFC");
-	    model.setProjectManager("Manager");
+		ProjectInformationModel model = new ProjectInformationModel();
+		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
+		model.setProjectManager("Manager");
 
-	    ProjectInformation project = new ProjectInformation();
-	    project.setProjectName("Tracker");
-	    project.setBankName("HDFC");
-	    project.setProjectManager("Manager");
+		ProjectInformation project = new ProjectInformation();
+		project.setProjectName("Tracker");
+		project.setBankName("HDFC");
+		project.setProjectManager("Manager");
 
-	    ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
+		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
-	    when(context.getBean(ResponseBuilder.class))
-	            .thenReturn(responseBuilder);
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-	    when(repository.findByProjectName("Tracker"))
-	            .thenReturn(Optional.empty());
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
 
-	    when(modelMapper.map(model, ProjectInformation.class))
-	            .thenReturn(project);
+		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
-	    when(repository.save(any(ProjectInformation.class)))
-	            .thenThrow(new RuntimeException("DB error"));
+		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("DB error"));
 
-	    try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
-	        mocked.when(UserContextUtil::getCurrentUser)
-	                .thenReturn("testUser");
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-	        ApplicationException ex = assertThrows(
-	                ApplicationException.class,
-	                () -> service.createProjectInformation(model));
+			ApplicationException ex = assertThrows(ApplicationException.class,
+					() -> service.createProjectInformation(model));
 
-	        assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
+			assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
 
-	        verify(repository).findByProjectName("Tracker");
-	        verify(repository).save(any(ProjectInformation.class));
+			verify(repository).findByProjectNameAndBankName("Tracker", "HDFC");
+			verify(repository).save(any(ProjectInformation.class));
 
-	        verify(projectRepository, never()).findByProjectInformationId(anyString());
-	        verify(projectRepository, never()).save(any(Project.class));
+			verify(projectRepository, never()).findByProjectInformationId(anyString());
+			verify(projectRepository, never()).save(any(Project.class));
 
-	        verify(auditService, never()).saveAuditLog(
-	                any(),
-	                any(),
-	                any(),
-	                any(),
-	                any(),
-	                any(),
-	                any());
-	    }
+			verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
+		}
 	}
+
 	@Test
 	void shouldThrowExceptionWhenUpdateFails() throws Exception {
 
@@ -433,7 +429,7 @@ public class ProjectInformationServiceImplTest {
 		existing.setProjectName("Tracker");
 
 		ProjectInformationModel model = new ProjectInformationModel();
-		model.setId("P001");
+		model.setProjectName("Updated Tracker");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
@@ -441,7 +437,24 @@ public class ProjectInformationServiceImplTest {
 
 		when(objectMapper.writeValueAsString(any(ProjectInformation.class))).thenReturn("json");
 
-		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(new ProjectInformation());
+		ProjectInformation oldProject = new ProjectInformation();
+		oldProject.setId("P001");
+		oldProject.setProjectName("Tracker");
+
+		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(oldProject);
+
+		// Simulate ModelMapper updating the entity
+		doAnswer(invocation -> {
+			ProjectInformationModel source = invocation.getArgument(0);
+			ProjectInformation destination = invocation.getArgument(1);
+			destination.setProjectName(source.getProjectName());
+			return destination;
+		}).when(modelMapper).map(any(ProjectInformationModel.class), any(ProjectInformation.class));
+
+		// Force the "changes found" branch
+		when(objectMapper.valueToTree(oldProject)).thenReturn(new ObjectMapper().createObjectNode());
+
+		when(objectMapper.valueToTree(existing)).thenReturn(new ObjectMapper().createArrayNode());
 
 		when(repository.save(any(ProjectInformation.class))).thenThrow(new RuntimeException("Database error"));
 
@@ -449,7 +462,8 @@ public class ProjectInformationServiceImplTest {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-			DatabaseException ex = assertThrows(DatabaseException.class, () -> service.updateProjectInformation(model));
+			DatabaseException ex = assertThrows(DatabaseException.class,
+					() -> service.updateProjectInformation("P001", model));
 
 			assertEquals(ErrorCode.DATABASE_ERROR, ex.getErrorCode());
 
@@ -511,7 +525,7 @@ public class ProjectInformationServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
 
 		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
@@ -553,14 +567,24 @@ public class ProjectInformationServiceImplTest {
 	void shouldThrowExceptionWhenModelMapperFails() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(modelMapper.map(any(), eq(ProjectInformation.class))).thenThrow(new RuntimeException("Mapping failed"));
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
 
-		assertThrows(RuntimeException.class, () -> service.createProjectInformation(model));
+		when(modelMapper.map(eq(model), eq(ProjectInformation.class)))
+				.thenThrow(new RuntimeException("Mapping failed"));
+
+		ApplicationException ex = assertThrows(ApplicationException.class,
+				() -> service.createProjectInformation(model));
+
+		assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
+
+		verify(repository).findByProjectNameAndBankName("Tracker", "HDFC");
+
+		verify(repository, never()).save(any(ProjectInformation.class));
 	}
 
 	@Test
@@ -593,21 +617,37 @@ public class ProjectInformationServiceImplTest {
 	void shouldThrowExceptionWhenAuditFailsDuringCreate() {
 
 		ProjectInformationModel model = new ProjectInformationModel();
-
 		model.setProjectName("Tracker");
+		model.setBankName("HDFC");
 
 		ProjectInformation project = new ProjectInformation();
-
 		project.setProjectName("Tracker");
+		project.setBankName("HDFC");
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(modelMapper.map(any(), eq(ProjectInformation.class))).thenReturn(project);
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
+
+		when(modelMapper.map(any(ProjectInformationModel.class), eq(ProjectInformation.class))).thenReturn(project);
+
+		when(repository.save(any(ProjectInformation.class))).thenReturn(project);
+
+		when(projectRepository.findByProjectInformationId(anyString())).thenReturn(Optional.of(new Project())); // skip
+																												// dashboard
+																												// creation
 
 		doThrow(new RuntimeException("Audit failed")).when(auditService).saveAuditLog(any(), any(), anyString(),
 				anyString(), any(), any(), anyString());
 
-		assertThrows(RuntimeException.class, () -> service.createProjectInformation(model));
+		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
+
+			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
+
+			ApplicationException ex = assertThrows(ApplicationException.class,
+					() -> service.createProjectInformation(model));
+
+			assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, ex.getErrorCode());
+		}
 	}
 
 	@Test
@@ -629,7 +669,7 @@ public class ProjectInformationServiceImplTest {
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
-		when(repository.findByProjectName("Tracker")).thenReturn(Optional.empty());
+		when(repository.findByProjectNameAndBankName("Tracker", "HDFC")).thenReturn(Optional.empty());
 
 		when(modelMapper.map(model, ProjectInformation.class)).thenReturn(project);
 
@@ -643,7 +683,6 @@ public class ProjectInformationServiceImplTest {
 			return p;
 		});
 
-		// Mock admin assignment
 		User admin = new User();
 		admin.setId("ADMIN001");
 		admin.setRole("ADMIN");
@@ -673,9 +712,7 @@ public class ProjectInformationServiceImplTest {
 			assertNotNull(project.getUpdatedAt());
 
 			verify(repository).save(project);
-
 			verify(projectRepository).save(any(Project.class));
-
 			verify(userRepository).findByRole("ADMIN");
 			verify(userRepository).saveAll(anyList());
 
@@ -691,29 +728,44 @@ public class ProjectInformationServiceImplTest {
 		existing.setProjectName("Tracker");
 
 		ProjectInformationModel model = new ProjectInformationModel();
-		model.setId("P001");
+		model.setProjectName("Tracker Updated");
 
 		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
 		when(repository.findById("P001")).thenReturn(Optional.of(existing));
 
 		when(objectMapper.writeValueAsString(any(ProjectInformation.class))).thenReturn("json");
 
-		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(new ProjectInformation());
+		ProjectInformation oldProject = new ProjectInformation();
+		oldProject.setId("P001");
+		oldProject.setProjectName("Tracker");
+
+		when(objectMapper.readValue("json", ProjectInformation.class)).thenReturn(oldProject);
+
+		// Simulate the model mapper updating the entity
+		doAnswer(invocation -> {
+			ProjectInformationModel src = invocation.getArgument(0);
+			ProjectInformation dest = invocation.getArgument(1);
+			dest.setProjectName(src.getProjectName());
+			return dest;
+		}).when(modelMapper).map(any(ProjectInformationModel.class), any(ProjectInformation.class));
+
+		// Force the "changes detected" branch
+		when(objectMapper.valueToTree(oldProject)).thenReturn(new ObjectMapper().createObjectNode());
+		when(objectMapper.valueToTree(existing)).thenReturn(new ObjectMapper().createArrayNode());
 
 		when(repository.save(any(ProjectInformation.class))).thenReturn(existing);
-
 		when(responseBuilder.createResponse(any(), any(), anyString(), any())).thenReturn(new Response());
 
 		try (MockedStatic<UserContextUtil> mocked = mockStatic(UserContextUtil.class)) {
 
 			mocked.when(UserContextUtil::getCurrentUser).thenReturn("testUser");
 
-			service.updateProjectInformation(model);
+			service.updateProjectInformation("P001", model);
 
 			assertNotNull(existing.getUpdatedAt());
+			verify(repository).save(existing);
 		}
 	}
 }

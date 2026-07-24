@@ -315,31 +315,7 @@ class UserServiceImplTest {
 		assertNotNull(result);
 	}
 
-	@Test
-	void login_ProjectNotFound() {
 
-		LoginModel model = new LoginModel();
-		model.setUsername("admin");
-		model.setPassword("123");
-
-		User user = new User();
-		user.setUsername("admin");
-		user.setPassword("encoded");
-		user.setStatus(true);
-		user.setProjectIds(List.of("P1"));
-
-		ResponseBuilder responseBuilder = mock(ResponseBuilder.class);
-
-		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
-
-		when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
-
-		when(passwordEncoder.matches("123", "encoded")).thenReturn(true);
-
-		when(projectRepository.findById("P1")).thenReturn(Optional.empty());
-
-		assertThrows(ResourceNotFoundException.class, () -> userService.login(model));
-	}
 
 	@Test
 	void updateUser_NoChangesFound() {

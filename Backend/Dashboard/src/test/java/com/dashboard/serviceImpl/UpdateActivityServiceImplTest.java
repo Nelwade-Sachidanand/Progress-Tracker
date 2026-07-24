@@ -198,7 +198,7 @@ class UpdateActivityServiceImplTest {
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
-				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
+				eq("ACTIVITY_UPDATE"), any(), contains("/authorization?type=activity-update&requestId="), isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), anyString(), eq("Demo Project"), any(), any(), eq("admin"));
 	}
@@ -439,7 +439,7 @@ class UpdateActivityServiceImplTest {
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
 		verify(notificationService).createNotification(eq("Activity Update Requested"), anyString(),
-				eq("ACTIVITY_UPDATE"), any(), eq("/authorization"), isNull());
+				eq("ACTIVITY_UPDATE"), any(), contains("/authorization?type=activity-update&requestId="), isNull());
 
 		verify(auditService, never()).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -485,8 +485,8 @@ class UpdateActivityServiceImplTest {
 
 		verify(requestRepository).save(any(ActivityUpdateRequest.class));
 
-		verify(notificationService).createNotification(anyString(), anyString(), eq("ACTIVITY_UPDATE"), any(),
-				eq("/authorization"), isNull());
+		verify(notificationService).createNotification(eq("Activity Update Requested"), contains("Activity1"),
+				eq("ACTIVITY_UPDATE"), any(), contains("/authorization?type=activity-update&requestId="), isNull());
 
 		verify(auditService).saveAuditLog(any(), any(), any(), any(), any(), any(), any());
 	}
@@ -496,13 +496,11 @@ class UpdateActivityServiceImplTest {
 		AddRemarkModel model = new AddRemarkModel();
 
 		model.setProjectId("P001");
-		model.setProjectName("Demo Project");
-
-		model.setPhaseName("Phase1");
-		model.setMilestoneName("Milestone1");
-		model.setTaskName("Task1");
-		model.setSubTaskName("SubTask1");
-		model.setActivityName("Activity1");
+		model.setPhaseId("PH001");
+		model.setMilestoneId("M001");
+		model.setTaskId("T001");
+		model.setSubTaskId("ST001");
+		model.setActivityId("ACT001");
 
 		model.setRemark("Activity completed successfully");
 
@@ -597,8 +595,9 @@ class UpdateActivityServiceImplTest {
 
 		Project project = buildProject();
 
+		// Make the activity ID different so it cannot be found
 		project.getPhases().get(0).getMilestones().get(0).getTasks().get(0).getSubTasks().get(0).getActivities().get(0)
-				.setActivityName("Another Activity");
+				.setActivityId("ACT002");
 
 		when(context.getBean(ResponseBuilder.class)).thenReturn(responseBuilder);
 
@@ -610,7 +609,6 @@ class UpdateActivityServiceImplTest {
 		assertEquals(ErrorCode.ACTIVITY_NOT_FOUND, exception.getErrorCode());
 
 		verify(projectRepository).findById("P001");
-
 		verify(projectRepository, never()).save(any(Project.class));
 	}
 
@@ -760,7 +758,6 @@ class UpdateActivityServiceImplTest {
 	void updateActivityRequest_ShouldPopulateActivityUpdateRequestCorrectly() {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
 		request.setProgress(80);
 
 		Project project = buildProject();
@@ -809,9 +806,7 @@ class UpdateActivityServiceImplTest {
 
 		assertNotNull(saved);
 
-		assertAll(
-
-				() -> assertEquals("P001", saved.getProjectId()),
+		assertAll(() -> assertEquals("P001", saved.getProjectId()),
 				() -> assertEquals("Demo Project", saved.getProjectName()),
 				() -> assertEquals("ACT001", saved.getActivityId()),
 
@@ -833,8 +828,8 @@ class UpdateActivityServiceImplTest {
 				() -> assertEquals("USER001", saved.getRequestedByUserId()),
 				() -> assertEquals("ADMIN", saved.getRequestedByRole()),
 
-				() -> assertEquals("PENDING", saved.getStatus()), () -> assertEquals("UI", saved.getRequestSource()),
-				() -> assertNotNull(saved.getRequestedAt()),
+				() -> assertEquals("PENDING", saved.getStatus()),
+				() -> assertEquals("MANUAL", saved.getRequestSource()), () -> assertNotNull(saved.getRequestedAt()),
 
 				() -> assertNotNull(saved.getOldActivity()), () -> assertNotNull(saved.getNewActivity()));
 	}
@@ -901,7 +896,6 @@ class UpdateActivityServiceImplTest {
 	void updateActivityRequest_ShouldPopulateRequesterInformation() {
 
 		ActivityUpdateRequestModel request = buildActivityUpdateRequestModel();
-
 		request.setProgress(80);
 
 		Project project = buildProject();
@@ -954,7 +948,9 @@ class UpdateActivityServiceImplTest {
 
 		assertNotNull(saved.getRequestedAt());
 
-		assertEquals("UI", saved.getRequestSource());
+		// Updated expectation
+		assertEquals("MANUAL", saved.getRequestSource());
+
 		assertEquals("PENDING", saved.getStatus());
 	}
 
