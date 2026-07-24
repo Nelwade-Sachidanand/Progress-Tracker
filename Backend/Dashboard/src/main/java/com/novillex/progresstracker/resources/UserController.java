@@ -80,62 +80,38 @@ public class UserController {
 		return userService.resetPassword(request);
 	}
 
-	@PostMapping("/refresh")
-	public Response refreshToken(@RequestParam String refreshToken) {
-
-		logger.info("Refreshing Token");
-
-		Claims claims = JwtUtil.extractClaims(refreshToken);
-
-		String username = claims.getSubject();
-
-		String role = (String) claims.get("role");
-
-		String userId = (String) claims.get("userId");
-
-		String newAccessToken = JwtUtil.generateAccessToken(userId, username, role);
-
-		return new Response(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE, "Token refreshed successfully",
-				newAccessToken);
-	}
-	
 	@PostMapping("/forgotPassword")
 	public Response forgotPassword(@RequestParam String username) {
 
-	    logger.info("Forgot password request received. Username={}", username);
+		logger.info("Forgot password request received. Username={}", username);
 
-	    return userService.forgotPassword(username);
+		return userService.forgotPassword(username);
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@GetMapping("/forgotPasswordRequests")
 	public Response getForgotPasswordRequests() {
 
-	    logger.info("Fetching forgot password requests");
+		logger.info("Fetching forgot password requests");
 
-	    return userService.getForgotPasswordRequests();
+		return userService.getForgotPasswordRequests();
 	}
-	
+
 	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/generateTemporaryPassword")
-	public Response generateTemporaryPassword(
-	        @RequestParam String userId,
-	        @RequestParam String temporaryPassword) {
+	public Response generateTemporaryPassword(@RequestParam String userId, @RequestParam String temporaryPassword) {
 
-	    logger.info("Generating temporary password for UserId={}", userId);
+		logger.info("Generating temporary password for UserId={}", userId);
 
-	    return userService.generateTemporaryPassword(userId, temporaryPassword);
+		return userService.generateTemporaryPassword(userId, temporaryPassword);
 	}
-	
+
 	@PutMapping("/changeTemporaryPassword")
-	public Response changeTemporaryPassword(
-	        @Valid @RequestBody ChangeTemporaryPasswordRequest request) {
+	public Response changeTemporaryPassword(@Valid @RequestBody ChangeTemporaryPasswordRequest request) {
 
-	    logger.info("Changing password using temporary password");
+		logger.info("Changing password using temporary password");
 
-	    return userService.changeTemporaryPassword(request);
+		return userService.changeTemporaryPassword(request);
 	}
-	
-	
-	
+
 }

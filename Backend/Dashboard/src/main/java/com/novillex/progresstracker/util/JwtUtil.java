@@ -17,7 +17,7 @@ public class JwtUtil {
 	public static String generateAccessToken(String userId, String username, String role) {
 
 		return Jwts.builder().setSubject(username).claim("userId", userId).claim("role", role).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 5))
 				.signWith(key, SignatureAlgorithm.HS256).compact();
 	}
 

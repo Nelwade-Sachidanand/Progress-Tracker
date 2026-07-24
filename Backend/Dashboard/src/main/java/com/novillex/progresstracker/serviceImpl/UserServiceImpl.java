@@ -149,28 +149,10 @@ public class UserServiceImpl implements UserService {
 
 			logger.warn("Login failed. Invalid password for username: {}", username);
 
-			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid password",
+			return responseBuilder.createResponse(StatusCode.ERROR, StatusCode.ERROR_STATUS_TYPE, "Invalid username or password",
 					null);
 		}
-
-		if (Boolean.TRUE.equals(user.getTemporaryPasswordActive())) {
-
-			if (user.getTemporaryPasswordExpiry() != null
-					&& LocalDateTime.now().isAfter(user.getTemporaryPasswordExpiry())) {
-
-				user.setTemporaryPasswordActive(false);
-				user.setForcePasswordChange(false);
-				user.setTemporaryPasswordExpiry(null);
-
-				userRepository.save(user);
-
-				throw new ValidationException(ErrorCode.TEMP_PASSWORD_EXPIRED,
-						"Temporary password has expired. Please raise a new forgot password request.");
-			}
-		}
-
-		userRepository.save(user);
-
+		
 		String accessToken = JwtUtil.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
 
 		String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
@@ -399,8 +381,8 @@ public class UserServiceImpl implements UserService {
 		for (User admin : admins) {
 
 			notificationService.createNotification("Forgot Password Request",
-					user.getUsername() + " has requested a password reset.", "FORGOT_PASSWORD_REQUEST", user.getId(),
-					null, admin.getId());
+					user.getUsername() + " has Requested a Password Reset.", "FORGOT_PASSWORD_REQUEST", user.getId(),
+					"/users?userId=" + user.getId() + "&action=resetPassword", null);
 		}
 
 		auditService.saveAuditLog(AuditAction.FORGOT_PASSWORD_REQUEST, AuditEntity.USER, user.getUsername(), null, null,
@@ -435,13 +417,11 @@ public class UserServiceImpl implements UserService {
 
 		user.setForcePasswordChange(true);
 
-		user.setTemporaryPasswordExpiry(LocalDateTime.now().plusHours(72));
-
 		userRepository.save(user);
 
-		notificationService.createNotification("Temporary Password Generated",
-				"Temporary password has been generated for your account. Please login using the temporary password and change it within 72 hours.",
-				"TEMP_PASSWORD_GENERATED", user.getId(), null, user.getId());
+//		notificationService.createNotification("Temporary Password Generated",
+//				"Temporary password has been generated for your account. Please login using the temporary password and change it within 72 hours.",
+//				"TEMP_PASSWORD_GENERATED", user.getId(), null, user.getId());
 
 		auditService.saveAuditLog(AuditAction.GENERATE_TEMPORARY_PASSWORD, AuditEntity.USER, user.getUsername(), null,
 				null, null, UserContextUtil.getCurrentUser());
@@ -458,7 +438,7 @@ public class UserServiceImpl implements UserService {
 		logger.info("Changing temporary password. Username={}", UserContextUtil.getCurrentUser());
 
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
-		
+
 		User user = userRepository.findById(request.getUserId()).orElseThrow(
 				() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User not found", request.getUserId()));
 
@@ -492,8 +472,6 @@ public class UserServiceImpl implements UserService {
 
 		user.setForcePasswordChange(false);
 
-		user.setTemporaryPasswordExpiry(null);
-
 		userRepository.save(user);
 
 		auditService.saveAuditLog(AuditAction.CHANGE_TEMPORARY_PASSWORD, AuditEntity.USER, user.getUsername(), null,
@@ -502,7 +480,7 @@ public class UserServiceImpl implements UserService {
 		logger.info("Temporary password changed successfully. Username={}", user.getUsername());
 
 		return responseBuilder.createResponse(StatusCode.SUCCESS, StatusCode.SUCCESS_STATUS_TYPE,
-				"Password changed successfully.", null);
+				"Password changed successfully. Please login again.", null);
 	}
 
 	@Override

@@ -54,8 +54,8 @@ public class ProjectInformationController {
 	}
 
 	@PutMapping("/update/{id}")
-	public Response updateProjectInformation(@PathVariable String id, @RequestBody ProjectInformationModel model) {
-		System.out.println("in update");
+	public Response updateProjectInformation(@PathVariable String id,@Valid @RequestBody ProjectInformationModel model) {
+		System.out.println("bank type = "+ model.getBankType());
 		return projectInformationService.updateProjectInformation(id, model);
 	}
 
