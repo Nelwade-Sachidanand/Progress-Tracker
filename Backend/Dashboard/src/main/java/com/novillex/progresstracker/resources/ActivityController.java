@@ -48,7 +48,7 @@ public class ActivityController {
 	@PreAuthorize("hasAnyRole('ADMIN','IMPLEMENTATION USER')")
 	@PostMapping("/create")
 	public Response createStructure(@RequestBody ActivityModel request) {
-
+		
 		logger.info("Create Activity request received for project: {}, activity: {}", request.getProjectName(),
 				request.getActivityName());
 

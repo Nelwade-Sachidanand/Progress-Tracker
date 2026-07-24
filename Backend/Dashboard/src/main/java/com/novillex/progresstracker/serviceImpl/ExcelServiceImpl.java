@@ -455,7 +455,7 @@ public class ExcelServiceImpl implements ExcelService {
 				WriteUtil.setCell(row, 3, report.getTaskName());
 				WriteUtil.setCell(row, 4, report.getSubTaskName());
 				WriteUtil.setCell(row, 5, report.getActivityName());
-				WriteUtil.setCell(row, 6, "");
+				WriteUtil.setCell(row, 6, report.getOwner());
 				WriteUtil.setCell(row, 7, report.getEstimatedPeriodWeek());
 				WriteUtil.setDate(row, 8, report.getPlannedStartDate());
 				WriteUtil.setDate(row, 9, report.getPlannedEndDate());

@@ -12,19 +12,19 @@ public class AddRemarkModel {
 	@NotBlank(message = "Project Name Required")
 	private String projectName;
 	
-	@NotBlank(message = "Phase Name Required")
+	@NotBlank(message = "Phase Id Required")
 	private String phaseId;
 	
-	@NotBlank(message = "Milestone Name Required")
+	@NotBlank(message = "Milestone Id Required")
 	private String milestoneId;
 	
-	@NotBlank(message = "Task Name Required")
+	@NotBlank(message = "Task Id Required")
 	private String taskId;
 	
-	@NotBlank(message = "Subtask Name Required")
+	@NotBlank(message = "Subtask Id Required")
 	private String subTaskId;
 	
-	@NotBlank(message = "Activity Name Required")
+	@NotBlank(message = "Activity Id Required")
 	private String activityId;
 	
 	@NotBlank(message = "Remark Required")
