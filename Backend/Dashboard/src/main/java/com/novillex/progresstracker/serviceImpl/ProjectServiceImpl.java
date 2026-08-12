@@ -26,6 +26,7 @@ import com.novillex.progresstracker.exception.ResourceNotFoundException;
 import com.novillex.progresstracker.model.MilestoneWeightageModel;
 import com.novillex.progresstracker.model.MilestoneWeightageResponse;
 import com.novillex.progresstracker.model.UpdateMilestoneWeightageRequest;
+import com.novillex.progresstracker.repository.ProjectInformationRepository;
 import com.novillex.progresstracker.repository.ProjectRepository;
 import com.novillex.progresstracker.repository.UserRepository;
 import com.novillex.progresstracker.service.AuditService;
@@ -44,13 +45,16 @@ public class ProjectServiceImpl implements ProjectService {
 	private UserRepository userRepository;
 
 	private AuditService auditService;
+	
+	private ProjectInformationRepository projectInformationRepository;
 
 	public ProjectServiceImpl(ApplicationContext context, ProjectRepository projectRepository,
-			UserRepository userRepository, AuditService auditService) {
+			UserRepository userRepository, AuditService auditService, ProjectInformationRepository projectInformationRepository) {
 		this.context = context;
 		this.projectRepository = projectRepository;
 		this.userRepository = userRepository;
 		this.auditService = auditService;
+		this.projectInformationRepository = projectInformationRepository;
 	}
 
 	@Override
@@ -85,8 +89,11 @@ public class ProjectServiceImpl implements ProjectService {
 
 				userRepository.saveAll(users);
 			}
-
+			
+			projectInformationRepository.deleteById(project.getProjectInformationId());
 			projectRepository.delete(project);
+			
+			
 
 			auditService.saveAuditLog(AuditAction.DELETE_PROJECT, AuditEntity.PROJECT, project.getProjectName(),
 					project.getProjectName(), project, null, modifiedBy);

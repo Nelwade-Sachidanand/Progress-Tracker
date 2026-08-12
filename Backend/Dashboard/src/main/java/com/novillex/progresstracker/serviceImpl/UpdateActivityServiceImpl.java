@@ -284,6 +284,8 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 	@Override
 	public Response addRemark(AddRemarkModel model) {
 		ResponseBuilder responseBuilder = context.getBean(ResponseBuilder.class);
+		
+		String activityName = "";
 
 		logger.info("Add remark request received for projectId: {}, activityId: {}", model.getProjectId(),
 				model.getActivityId());
@@ -335,6 +337,8 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 							}
 
 							activityFound = true;
+							
+							activityName = activity.getActivityName();
 
 							logger.info("Remark added successfully for activityId '{}'", activity.getActivityId());
 
@@ -370,6 +374,11 @@ public class UpdateActivityServiceImpl implements UpdateActivityService {
 		}
 
 		projectRepository.save(project);
+
+		notificationService.createNotification("Activity Remark Added",
+				"A new remark has been added for Activity '" + activityName + "'.", "ACTIVITY_REMARK",
+				model.getActivityId(), "/tasks", null
+		);
 
 		logger.info("Project '{}' updated successfully after adding remark.", project.getProjectName());
 

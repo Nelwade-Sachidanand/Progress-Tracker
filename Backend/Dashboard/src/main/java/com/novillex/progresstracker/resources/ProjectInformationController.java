@@ -19,7 +19,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/project-information")
-@PreAuthorize("hasRole('ADMIN')")
 public class ProjectInformationController {
 
 	
@@ -28,7 +27,8 @@ public class ProjectInformationController {
 	public ProjectInformationController(ProjectInformationService projectInformationService) {
 		this.projectInformationService=projectInformationService;
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/create")
 	public Response createProjectInformation(@Valid @RequestBody ProjectInformationModel model) {
 		System.out.println("in create");
@@ -52,13 +52,15 @@ public class ProjectInformationController {
 
 		return projectInformationService.getProjectInformationById(id);
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@PutMapping("/update/{id}")
 	public Response updateProjectInformation(@PathVariable String id,@Valid @RequestBody ProjectInformationModel model) {
 		System.out.println("bank type = "+ model.getBankType());
 		return projectInformationService.updateProjectInformation(id, model);
 	}
-
+	
+	@PreAuthorize("hasRole('ADMIN')")
 	@DeleteMapping("/delete/{id}")
 	public Response deleteProjectInformation(@PathVariable String id) {
 
